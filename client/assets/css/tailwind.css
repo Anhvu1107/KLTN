@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   AURA ARCHIVE - Base Styles
+   Ralph Lauren Inspired Luxury Design
+   ============================================ */
+
+@layer base {
+
+  /* Reset & Base */
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply font-sans text-neutral-800 bg-aura-white antialiased;
+  }
+
+  /* Typography Defaults */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif font-medium text-aura-black;
+  }
+
+  h1 {
+    @apply text-heading-1;
+  }
+
+  h2 {
+    @apply text-heading-2;
+  }
+
+  h3 {
+    @apply text-heading-3;
+  }
+
+  h4 {
+    @apply text-heading-4;
+  }
+
+  p {
+    @apply text-body text-neutral-600;
+  }
+
+  a {
+    @apply transition-colors duration-250;
+  }
+
+  /* Focus states for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-aura-black;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-aura-black text-aura-white;
+  }
+}
+
+@layer components {
+
+  /* Container */
+  .container-aura {
+    @apply max-w-container mx-auto px-6 lg:px-8;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center px-8 py-3 text-body-sm font-medium tracking-wide uppercase transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply btn bg-aura-black text-aura-white hover:bg-neutral-800;
+  }
+
+  .btn-secondary {
+    @apply btn bg-transparent text-aura-black border border-aura-black hover:bg-aura-black hover:text-aura-white;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-neutral-600 hover:text-aura-black;
+  }
+
+  /* Input fields */
+  .input-field {
+    @apply w-full px-4 py-3 text-body bg-neutral-50 border border-neutral-200 rounded-sm transition-all duration-250 focus:border-aura-black focus:bg-aura-white focus:outline-none;
+  }
+
+  .input-label {
+    @apply block text-body-sm font-medium text-neutral-700 mb-2 uppercase tracking-wide;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-aura-white rounded-sm shadow-card transition-shadow duration-350 hover:shadow-card-hover;
+  }
+
+  /* Product Card specific */
+  .product-card {
+    @apply cursor-pointer;
+  }
+
+  .product-card-image {
+    @apply relative overflow-hidden aspect-product bg-neutral-100;
+  }
+
+  .product-card-image img {
+    @apply w-full h-full object-cover transition-transform duration-500 group-hover:scale-105;
+  }
+
+  /* Section spacing */
+  .section {
+    @apply py-16 md:py-20 lg:py-24;
+  }
+
+  .section-header {
+    @apply text-center mb-12 md:mb-16;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t border-neutral-200;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 text-caption font-medium uppercase tracking-wider;
+  }
+
+  .badge-sold {
+    @apply badge bg-neutral-800 text-aura-white;
+  }
+
+  .badge-reserved {
+    @apply badge bg-accent-burgundy text-aura-white;
+  }
+
+  .badge-available {
+    @apply badge bg-neutral-100 text-neutral-700;
+  }
+}
+
+@layer utilities {
+
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hover underline effect */
+  .hover-underline {
+    @apply relative;
+  }
+
+  .hover-underline::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-px bg-current transition-all duration-300;
+  }
+
+  .hover-underline:hover::after {
+    @apply w-full;
+  }
+
+  /* Animate on scroll helper */
+  .animate-on-scroll {
+    @apply opacity-0 translate-y-4 transition-all duration-500;
+  }
+
+  .animate-on-scroll.is-visible {
+    @apply opacity-100 translate-y-0;
+  }
+}

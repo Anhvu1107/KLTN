@@ -1,0 +1,219 @@
+/**
+ * Admin Controller
+ * AURA ARCHIVE - Handle HTTP requests for admin dashboard
+ */
+
+const adminService = require('../services/admin.service');
+const catchAsync = require('../utils/catchAsync');
+
+/**
+ * GET /api/v1/admin/stats
+ * Get dashboard statistics
+ */
+const getStats = catchAsync(async (req, res) => {
+    const stats = await adminService.getStats();
+
+    res.status(200).json({
+        success: true,
+        data: { stats },
+    });
+});
+
+/**
+ * GET /api/v1/admin/revenue/monthly
+ * Get monthly revenue data for charts
+ */
+const getMonthlyRevenue = catchAsync(async (req, res) => {
+    const data = await adminService.getMonthlyRevenue();
+
+    res.status(200).json({
+        success: true,
+        data,
+    });
+});
+
+/**
+ * GET /api/v1/admin/orders/recent
+ * Get recent orders
+ */
+const getRecentOrders = catchAsync(async (req, res) => {
+    const limit = parseInt(req.query.limit) || 10;
+    const orders = await adminService.getRecentOrders(limit);
+
+    res.status(200).json({
+        success: true,
+        data: { orders },
+    });
+});
+
+/**
+ * GET /api/v1/admin/orders
+ * Get all orders with filters
+ */
+const getAllOrders = catchAsync(async (req, res) => {
+    const result = await adminService.getAllOrders(req.query);
+
+    res.status(200).json({
+        success: true,
+        data: result,
+    });
+});
+
+/**
+ * PATCH /api/v1/admin/orders/:id/status
+ * Update order status
+ */
+const updateOrderStatus = catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const order = await adminService.updateOrderStatus(id, status);
+
+    res.status(200).json({
+        success: true,
+        message: `Order status updated to ${status}`,
+        data: { order },
+    });
+});
+
+/**
+ * GET /api/v1/admin/system-prompts
+ * Get all system prompts
+ */
+const getSystemPrompts = catchAsync(async (req, res) => {
+    const prompts = await adminService.getSystemPrompts();
+
+    res.status(200).json({
+        success: true,
+        data: { prompts },
+    });
+});
+
+/**
+ * GET /api/v1/admin/system-prompts/:key
+ * Get system prompt by key
+ */
+const getSystemPromptByKey = catchAsync(async (req, res) => {
+    const prompt = await adminService.getSystemPromptByKey(req.params.key);
+
+    res.status(200).json({
+        success: true,
+        data: { prompt },
+    });
+});
+
+/**
+ * PUT /api/v1/admin/system-prompts/:key
+ * Update system prompt
+ */
+const updateSystemPrompt = catchAsync(async (req, res) => {
+    const { key } = req.params;
+    const { content, name, description } = req.body;
+
+    const prompt = await adminService.updateSystemPrompt(key, content, name, description);
+
+    res.status(200).json({
+        success: true,
+        message: 'System prompt updated successfully',
+        data: { prompt },
+    });
+});
+
+// Product management
+const productAdminService = require('../services/product-admin.service');
+
+/**
+ * POST /api/v1/admin/products
+ * Create new product with variant
+ */
+const createProduct = catchAsync(async (req, res) => {
+    const { product: productData, variant: variantData } = req.body;
+
+    if (!productData || !productData.name || !productData.brand) {
+        return res.status(400).json({
+            success: false,
+            message: 'Product name and brand are required',
+        });
+    }
+
+    const product = await productAdminService.createProduct(productData, variantData || {});
+
+    res.status(201).json({
+        success: true,
+        message: 'Product created successfully',
+        data: { product },
+    });
+});
+
+/**
+ * GET /api/v1/admin/products
+ * Get all products for admin
+ */
+const getProducts = catchAsync(async (req, res) => {
+    const result = await productAdminService.getAllProducts(req.query);
+
+    res.status(200).json({
+        success: true,
+        data: result,
+    });
+});
+
+// User management
+const userService = require('../services/user.service');
+
+/**
+ * GET /api/v1/admin/users
+ * Get all users
+ */
+const getUsers = catchAsync(async (req, res) => {
+    const result = await userService.getAllUsers(req.query);
+
+    res.status(200).json({
+        success: true,
+        data: result,
+    });
+});
+
+/**
+ * GET /api/v1/admin/users/:id
+ * Get user detail with stats
+ */
+const getUserDetail = catchAsync(async (req, res) => {
+    const result = await userService.getUserDetail(req.params.id);
+
+    res.status(200).json({
+        success: true,
+        data: result,
+    });
+});
+
+/**
+ * PATCH /api/v1/admin/users/:id/status
+ * Update user status
+ */
+const updateUserStatus = catchAsync(async (req, res) => {
+    const { is_active } = req.body;
+    const user = await userService.updateUserStatus(req.params.id, is_active);
+
+    res.status(200).json({
+        success: true,
+        message: `User ${is_active ? 'activated' : 'deactivated'} successfully`,
+        data: { user },
+    });
+});
+
+module.exports = {
+    getStats,
+    getMonthlyRevenue,
+    getRecentOrders,
+    getAllOrders,
+    updateOrderStatus,
+    getSystemPrompts,
+    getSystemPromptByKey,
+    updateSystemPrompt,
+    createProduct,
+    getProducts,
+    getUsers,
+    getUserDetail,
+    updateUserStatus,
+};

@@ -1,0 +1,75 @@
+/**
+ * Sequelize Models Index
+ * AURA ARCHIVE - Initialize all models and relationships
+ */
+
+const { Sequelize } = require('sequelize');
+const config = require('../config/db.config');
+
+const env = process.env.NODE_ENV || 'development';
+const dbConfig = config[env];
+
+// Initialize Sequelize
+const sequelize = new Sequelize(
+    dbConfig.database,
+    dbConfig.username,
+    dbConfig.password,
+    {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        dialect: dbConfig.dialect,
+        logging: dbConfig.logging,
+        define: dbConfig.define,
+        pool: dbConfig.pool,
+        dialectOptions: dbConfig.dialectOptions,
+    }
+);
+
+// Initialize models
+const db = {};
+
+db.Sequelize = Sequelize;
+db.sequelize = sequelize;
+
+// Import models
+db.User = require('./user.model')(sequelize, Sequelize.DataTypes);
+db.Product = require('./product.model')(sequelize, Sequelize.DataTypes);
+db.Variant = require('./variant.model')(sequelize, Sequelize.DataTypes);
+db.Order = require('./order.model')(sequelize, Sequelize.DataTypes);
+db.OrderItem = require('./order-item.model')(sequelize, Sequelize.DataTypes);
+db.SystemPrompt = require('./system-prompt.model')(sequelize, Sequelize.DataTypes);
+db.ChatLog = require('./chat-log.model')(sequelize, Sequelize.DataTypes);
+db.Wishlist = require('./wishlist.model')(sequelize, Sequelize.DataTypes);
+
+// Set up associations
+Object.keys(db).forEach((modelName) => {
+    if (db[modelName].associate) {
+        db[modelName].associate(db);
+    }
+});
+
+// Test database connection
+db.testConnection = async () => {
+    try {
+        await sequelize.authenticate();
+        console.log('✓ Database connection established successfully.');
+        return true;
+    } catch (error) {
+        console.error('✗ Unable to connect to database:', error.message);
+        return false;
+    }
+};
+
+// Sync database (use with caution in production)
+db.syncDatabase = async (options = {}) => {
+    try {
+        await sequelize.sync(options);
+        console.log('✓ Database synchronized successfully.');
+        return true;
+    } catch (error) {
+        console.error('✗ Database synchronization failed:', error.message);
+        return false;
+    }
+};
+
+module.exports = db;
