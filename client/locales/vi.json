@@ -128,7 +128,19 @@
         "inWishlist": "Đã yêu thích",
         "quickView": "Xem nhanh",
         "available": "Còn hàng",
-        "reserved": "Đã đặt"
+        "reserved": "Đã đặt",
+        "sizeGuide": "Hướng dẫn chọn size",
+        "howToMeasure": "Cách đo",
+        "measureTip1": "Sử dụng thước dây mềm",
+        "measureTip2": "Đo trên lớp đồ lót tương tự với những gì bạn sẽ mặc",
+        "measureTip3": "Giữ thước vừa khít nhưng không quá chặt",
+        "sizeNote": "Số đo có thể thay đổi một chút giữa các thương hiệu. Nếu bạn ở giữa hai size, chúng tôi khuyên bạn nên chọn size lớn hơn.",
+        "buyNow": "Mua ngay",
+        "recentlyViewed": "Đã xem gần đây",
+        "compareProducts": "So sánh sản phẩm",
+        "removeFromCompare": "Bỏ so sánh",
+        "compareFull": "Đã đầy (tối đa 4)",
+        "addToCompare": "Thêm vào so sánh"
     },
     "cart": {
         "title": "Giỏ hàng",

@@ -128,7 +128,19 @@
         "inWishlist": "In Wishlist",
         "quickView": "Quick View",
         "available": "Available",
-        "reserved": "Reserved"
+        "reserved": "Reserved",
+        "sizeGuide": "Size Guide",
+        "howToMeasure": "How to Measure",
+        "measureTip1": "Use a soft measuring tape",
+        "measureTip2": "Measure over undergarments similar to what you'll wear",
+        "measureTip3": "Keep the tape snug but not tight",
+        "sizeNote": "Measurements may vary slightly between brands. If between sizes, we recommend sizing up.",
+        "buyNow": "Buy Now",
+        "recentlyViewed": "Recently Viewed",
+        "compareProducts": "Compare Products",
+        "removeFromCompare": "Remove from Compare",
+        "compareFull": "Compare Full (4 max)",
+        "addToCompare": "Add to Compare"
     },
     "cart": {
         "title": "Shopping Cart",

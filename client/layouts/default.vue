@@ -18,5 +18,8 @@
 
     <!-- AI Chat Widget -->
     <AiChatWidget />
+
+    <!-- Compare Bar -->
+    <CompareBar />
   </div>
 </template>
