@@ -184,10 +184,91 @@ const getBrands = async () => {
     return brands;
 };
 
+/**
+ * Get related products (same category or brand)
+ */
+const getRelatedProducts = async (productId, limit = 4) => {
+    // Get the current product
+    const currentProduct = await Product.findByPk(productId);
+    if (!currentProduct) {
+        return [];
+    }
+
+    // Find products with same category or brand, excluding current product
+    const products = await Product.findAll({
+        where: {
+            is_active: true,
+            id: { [Op.ne]: productId },
+            [Op.or]: [
+                { category: currentProduct.category },
+                { brand: currentProduct.brand },
+            ],
+        },
+        include: [{
+            model: Variant,
+            as: 'variants',
+            where: { status: 'AVAILABLE' },
+            required: false,
+        }],
+        order: [
+            // Prioritize same category AND brand
+            [sequelize.literal(`CASE WHEN category = '${currentProduct.category}' AND brand = '${currentProduct.brand}' THEN 0 WHEN category = '${currentProduct.category}' THEN 1 ELSE 2 END`), 'ASC'],
+            ['created_at', 'DESC'],
+        ],
+        limit,
+    });
+
+    return products;
+};
+
+/**
+ * Get best selling products (based on view count for now)
+ */
+const getBestSellers = async (limit = 8) => {
+    const products = await Product.findAll({
+        where: { is_active: true },
+        include: [{
+            model: Variant,
+            as: 'variants',
+            where: { status: 'AVAILABLE' },
+            required: true,
+        }],
+        order: [['view_count', 'DESC']],
+        limit,
+    });
+
+    return products;
+};
+
+/**
+ * Get sale products (products with sale_price)
+ */
+const getSaleProducts = async (limit = 8) => {
+    const products = await Product.findAll({
+        where: {
+            is_active: true,
+            sale_price: { [Op.ne]: null },
+        },
+        include: [{
+            model: Variant,
+            as: 'variants',
+            where: { status: 'AVAILABLE' },
+            required: true,
+        }],
+        order: [['created_at', 'DESC']],
+        limit,
+    });
+
+    return products;
+};
+
 module.exports = {
     getProducts,
     getProductByIdOrSlug,
     getFeaturedProducts,
     getCategories,
     getBrands,
+    getRelatedProducts,
+    getBestSellers,
+    getSaleProducts,
 };

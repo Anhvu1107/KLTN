@@ -2,6 +2,19 @@
 import { useCartStore } from '~/stores/cart'
 
 const cartStore = useCartStore()
+const config = useRuntimeConfig()
+
+// Coupon state
+const couponCode = ref('')
+const couponError = ref('')
+const couponSuccess = ref('')
+const isApplyingCoupon = ref(false)
+const appliedCoupon = ref<{
+  id: string
+  code: string
+  name: string
+  discountAmount: number
+} | null>(null)
 
 // Format price
 const formatPrice = (price: number) => {
@@ -14,7 +27,72 @@ const formatPrice = (price: number) => {
 // Remove item
 const removeItem = (variantId: string) => {
   cartStore.removeFromCart(variantId)
+  // Reset coupon when cart changes
+  appliedCoupon.value = null
+  couponSuccess.value = ''
 }
+
+// Apply coupon
+const applyCoupon = async () => {
+  if (!couponCode.value.trim()) {
+    couponError.value = 'Please enter a coupon code'
+    return
+  }
+
+  couponError.value = ''
+  couponSuccess.value = ''
+  isApplyingCoupon.value = true
+
+  try {
+    const token = localStorage.getItem('token')
+    const response = await $fetch<{
+      success: boolean
+      data: {
+        coupon: { id: string; code: string; name: string }
+        discountAmount: number
+        newTotal: number
+      }
+    }>(`${config.public.apiUrl}/coupons/validate`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: {
+        code: couponCode.value,
+        cartTotal: cartStore.subtotal,
+      },
+    })
+
+    if (response.success) {
+      appliedCoupon.value = {
+        id: response.data.coupon.id,
+        code: response.data.coupon.code,
+        name: response.data.coupon.name,
+        discountAmount: response.data.discountAmount,
+      }
+      couponSuccess.value = `Coupon "${response.data.coupon.code}" applied! You save ${formatPrice(response.data.discountAmount)}`
+      // Store in cart store for checkout
+      cartStore.setCoupon(appliedCoupon.value)
+    }
+  } catch (err: any) {
+    couponError.value = err.data?.message || 'Invalid coupon code'
+    appliedCoupon.value = null
+    cartStore.clearCoupon()
+  } finally {
+    isApplyingCoupon.value = false
+  }
+}
+
+// Remove coupon
+const removeCoupon = () => {
+  appliedCoupon.value = null
+  couponCode.value = ''
+  couponSuccess.value = ''
+  couponError.value = ''
+  cartStore.clearCoupon()
+}
+
+// Computed totals
+const discountAmount = computed(() => appliedCoupon.value?.discountAmount || 0)
+const subtotalAfterDiscount = computed(() => cartStore.subtotal - discountAmount.value)
 
 // SEO
 useSeoMeta({
@@ -101,17 +179,58 @@ useSeoMeta({
                 <span class="text-neutral-600">Items ({{ cartStore.itemCount }})</span>
                 <span>{{ cartStore.formattedSubtotal }}</span>
               </div>
+              <div v-if="appliedCoupon" class="flex justify-between text-green-600">
+                <span>Discount ({{ appliedCoupon.code }})</span>
+                <span>-{{ formatPrice(discountAmount) }}</span>
+              </div>
               <div class="flex justify-between">
                 <span class="text-neutral-600">Shipping</span>
                 <span class="text-neutral-500">Calculated at checkout</span>
               </div>
             </div>
 
+            <!-- Coupon Input -->
+            <div class="mb-6">
+              <label class="input-label">Coupon Code</label>
+              <div v-if="!appliedCoupon" class="flex gap-2">
+                <input
+                  v-model="couponCode"
+                  type="text"
+                  placeholder="Enter code"
+                  class="input-field flex-1 uppercase"
+                  @keyup.enter="applyCoupon"
+                />
+                <button
+                  @click="applyCoupon"
+                  :disabled="isApplyingCoupon"
+                  class="px-4 py-2 bg-neutral-800 text-white text-body-sm hover:bg-neutral-700 transition-colors"
+                  :class="{ 'opacity-50 cursor-not-allowed': isApplyingCoupon }"
+                >
+                  {{ isApplyingCoupon ? '...' : 'Apply' }}
+                </button>
+              </div>
+              <!-- Applied coupon display -->
+              <div v-else class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-sm">
+                <div>
+                  <span class="text-body-sm font-medium text-green-700">{{ appliedCoupon.code }}</span>
+                  <span class="text-caption text-green-600 ml-2">-{{ formatPrice(discountAmount) }}</span>
+                </div>
+                <button @click="removeCoupon" class="text-green-600 hover:text-green-800">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              <!-- Error/Success messages -->
+              <p v-if="couponError" class="text-caption text-red-600 mt-2">{{ couponError }}</p>
+              <p v-if="couponSuccess" class="text-caption text-green-600 mt-2">{{ couponSuccess }}</p>
+            </div>
+
             <div class="divider mb-4"></div>
 
             <div class="flex justify-between text-body font-medium mb-6">
               <span>Subtotal</span>
-              <span>{{ cartStore.formattedSubtotal }}</span>
+              <span>{{ formatPrice(subtotalAfterDiscount) }}</span>
             </div>
 
             <NuxtLink to="/checkout" class="btn-primary w-full block text-center">
@@ -134,3 +253,4 @@ useSeoMeta({
     </div>
   </div>
 </template>
+

@@ -4,24 +4,70 @@
  * AURA ARCHIVE - Products management table
  */
 
+import { useI18n } from '#imports'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
 
+const { t } = useI18n()
 const config = useRuntimeConfig()
-const token = localStorage.getItem('token')
+
+// Get token
+const getToken = () => {
+  if (process.client) {
+    return localStorage.getItem('token')
+  }
+  return null
+}
+
+// State
+const products = ref<any[]>([])
+const pagination = ref<any>({})
+const isLoading = ref(true)
+const searchQuery = ref('')
 
 // Fetch products
-const { data, pending, refresh } = await useFetch<{
-  success: boolean
-  data: { products: any[]; pagination: any }
-}>(`${config.public.apiUrl}/admin/products`, {
-  headers: { Authorization: `Bearer ${token}` },
-})
+const fetchProducts = async () => {
+  try {
+    isLoading.value = true
+    const token = getToken()
+    
+    const params = new URLSearchParams()
+    if (searchQuery.value) params.set('search', searchQuery.value)
 
-const products = computed(() => data.value?.data?.products || [])
-const pagination = computed(() => data.value?.data?.pagination || {})
+    const response = await $fetch<{
+      success: boolean
+      data: { products: any[]; pagination: any }
+    }>(`${config.public.apiUrl}/admin/products?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    products.value = response.data?.products || []
+    pagination.value = response.data?.pagination || {}
+  } catch (error) {
+    console.error('Failed to fetch products:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Delete product
+const deleteProduct = async (id: number) => {
+  if (!confirm('Are you sure you want to delete this product?')) return
+
+  try {
+    const token = getToken()
+    await $fetch(`${config.public.apiUrl}/admin/products/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    await fetchProducts()
+  } catch (error) {
+    console.error('Failed to delete product:', error)
+  }
+}
 
 // Format helpers
 const formatPrice = (price: number) => {
@@ -32,10 +78,35 @@ const formatPrice = (price: number) => {
 }
 
 const getStatusClass = (status: string) => {
-  return status === 'AVAILABLE' 
-    ? 'bg-green-100 text-green-800' 
-    : 'bg-neutral-200 text-neutral-600'
+  switch (status) {
+    case 'AVAILABLE':
+      return 'bg-green-100 text-green-800'
+    case 'RESERVED':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'SOLD':
+      return 'bg-neutral-200 text-neutral-600'
+    default:
+      return 'bg-neutral-100 text-neutral-600'
+  }
 }
+
+const getVariantStatus = (product: any) => {
+  if (!product.variants || product.variants.length === 0) return 'N/A'
+  return product.variants[0].status
+}
+
+// Search with debounce
+let searchTimeout: NodeJS.Timeout
+const onSearch = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    fetchProducts()
+  }, 300)
+}
+
+onMounted(() => {
+  fetchProducts()
+})
 
 useSeoMeta({
   title: 'Products | AURA ARCHIVE Admin',
@@ -47,17 +118,28 @@ useSeoMeta({
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="font-serif text-heading-2 text-aura-black">Products</h1>
-        <p class="text-body text-neutral-600">{{ pagination.total || 0 }} total products</p>
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.products') }}</h1>
+        <p class="text-body text-neutral-600">{{ pagination.total || 0 }} {{ t('shop.products') }}</p>
       </div>
       <NuxtLink to="/admin/products/new" class="btn-primary">
-        + Add Product
+        + {{ t('admin.addProduct') }}
       </NuxtLink>
     </div>
 
+    <!-- Search -->
+    <div class="mb-6">
+      <input
+        v-model="searchQuery"
+        @input="onSearch"
+        type="text"
+        :placeholder="t('admin.searchProducts')"
+        class="input-field max-w-md"
+      />
+    </div>
+
     <!-- Loading -->
-    <div v-if="pending" class="text-center py-16">
-      <p class="text-neutral-500">Loading products...</p>
+    <div v-if="isLoading" class="text-center py-16">
+      <p class="text-neutral-500">{{ t('common.loading') }}</p>
     </div>
 
     <!-- Table -->
@@ -69,11 +151,12 @@ useSeoMeta({
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Category</th>
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Price</th>
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Status</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Active</th>
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="product in products" :key="product.id" class="border-t border-neutral-100">
+          <tr v-for="product in products" :key="product.id" class="border-t border-neutral-100 hover:bg-neutral-50">
             <td class="py-4 px-6">
               <div>
                 <p class="text-caption text-neutral-500">{{ product.brand }}</p>
@@ -82,28 +165,43 @@ useSeoMeta({
             </td>
             <td class="py-4 px-6 text-body-sm text-neutral-600">{{ product.category }}</td>
             <td class="py-4 px-6">
-              <span v-if="product.sale_price" class="text-body-sm text-accent-burgundy">
-                {{ formatPrice(product.sale_price) }}
-              </span>
-              <span v-else class="text-body-sm">{{ formatPrice(product.base_price) }}</span>
+              <div>
+                <span v-if="product.sale_price" class="text-body-sm text-accent-burgundy font-medium">
+                  {{ formatPrice(product.sale_price) }}
+                </span>
+                <span v-else class="text-body-sm">{{ formatPrice(product.base_price) }}</span>
+                <span v-if="product.sale_price" class="text-caption text-neutral-400 line-through ml-2">
+                  {{ formatPrice(product.base_price) }}
+                </span>
+              </div>
             </td>
             <td class="py-4 px-6">
               <span
-                v-for="variant in product.variants"
-                :key="variant.id"
-                :class="getStatusClass(variant.status)"
+                :class="getStatusClass(getVariantStatus(product))"
                 class="px-2 py-1 text-caption rounded-sm"
               >
-                {{ variant.status }}
+                {{ getVariantStatus(product) }}
               </span>
             </td>
             <td class="py-4 px-6">
-              <NuxtLink 
-                :to="`/admin/products/${product.id}`"
-                class="text-body-sm text-neutral-600 hover:text-aura-black"
-              >
-                Edit
-              </NuxtLink>
+              <span v-if="product.is_active" class="text-green-600">●</span>
+              <span v-else class="text-neutral-400">○</span>
+            </td>
+            <td class="py-4 px-6">
+              <div class="flex gap-2">
+                <NuxtLink 
+                  :to="`/admin/products/${product.id}`"
+                  class="text-body-sm text-neutral-600 hover:text-aura-black"
+                >
+                  Edit
+                </NuxtLink>
+                <button
+                  @click="deleteProduct(product.id)"
+                  class="text-body-sm text-red-500 hover:text-red-700"
+                >
+                  Delete
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -111,7 +209,7 @@ useSeoMeta({
 
       <!-- Empty State -->
       <div v-if="products.length === 0" class="text-center py-16">
-        <p class="text-neutral-500 mb-4">No products yet</p>
+        <p class="text-neutral-500 mb-4">No products found</p>
         <NuxtLink to="/admin/products/new" class="btn-primary">Add First Product</NuxtLink>
       </div>
     </div>

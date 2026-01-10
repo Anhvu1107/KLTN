@@ -1,4 +1,13 @@
 <script setup lang="ts">
+/**
+ * Forgot Password Page
+ * AURA ARCHIVE - Password reset request with i18n
+ */
+
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
+
 definePageMeta({
   layout: 'auth',
 })
@@ -42,21 +51,21 @@ const handleSubmit = async () => {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       </div>
-      <h2 class="font-serif text-heading-3 text-aura-black mb-4">Check Your Email</h2>
+      <h2 class="font-serif text-heading-3 text-aura-black mb-4">{{ t('auth.checkEmail') }}</h2>
       <p class="text-body text-neutral-600 mb-8">
-        If an account exists with <strong>{{ email }}</strong>, you will receive a password reset link shortly.
+        {{ t('auth.resetEmailSent', { email: email }) }}
       </p>
       <NuxtLink to="/auth/login" class="btn-secondary w-full">
-        Back to Sign In
+        {{ t('auth.backToLogin') }}
       </NuxtLink>
     </div>
 
     <!-- Form State -->
     <div v-else>
       <div class="text-center mb-8">
-        <h2 class="font-serif text-heading-2 text-aura-black mb-2">Forgot Password</h2>
+        <h2 class="font-serif text-heading-2 text-aura-black mb-2">{{ t('auth.forgotPassword') }}</h2>
         <p class="text-body text-neutral-600">
-          Enter your email and we'll send you a reset link.
+          {{ t('auth.enterEmail') }}
         </p>
       </div>
 
@@ -71,7 +80,7 @@ const handleSubmit = async () => {
       <form @submit.prevent="handleSubmit" class="space-y-6">
         <!-- Email Field -->
         <div>
-          <label for="email" class="input-label">Email Address</label>
+          <label for="email" class="input-label">{{ t('auth.email') }}</label>
           <input
             id="email"
             v-model="email"
@@ -95,9 +104,9 @@ const handleSubmit = async () => {
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            Sending...
+            {{ t('common.loading') }}
           </span>
-          <span v-else>Send Reset Link</span>
+          <span v-else>{{ t('auth.sendResetLink') }}</span>
         </button>
 
         <!-- Back to Login -->
@@ -106,7 +115,7 @@ const handleSubmit = async () => {
             to="/auth/login"
             class="text-body-sm text-neutral-600 hover:text-aura-black transition-colors"
           >
-            &larr; Back to Sign In
+            &larr; {{ t('auth.backToLogin') }}
           </NuxtLink>
         </div>
       </form>

@@ -27,4 +27,32 @@ router.post('/reset-password', resetPasswordValidator, validate, authController.
 router.get('/me', protect, authController.getMe);
 router.post('/change-password', protect, changePasswordValidator, validate, authController.changePassword);
 
+// OAuth routes
+const oauthService = require('../../services/oauth.service');
+router.post('/google', async (req, res, next) => {
+    try {
+        const { idToken } = req.body;
+        if (!idToken) {
+            return res.status(400).json({ success: false, message: 'ID token required' });
+        }
+        const result = await oauthService.googleAuth(idToken);
+        res.status(200).json({ success: true, message: 'Login successful', data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post('/facebook', async (req, res, next) => {
+    try {
+        const { accessToken } = req.body;
+        if (!accessToken) {
+            return res.status(400).json({ success: false, message: 'Access token required' });
+        }
+        const result = await oauthService.facebookAuth(accessToken);
+        res.status(200).json({ success: true, message: 'Login successful', data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;
