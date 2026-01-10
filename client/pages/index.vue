@@ -239,7 +239,7 @@ useSeoMeta({
         <!-- View All Button -->
         <div class="text-center mt-16">
           <NuxtLink 
-            to="/shop" 
+            to="/new-arrivals" 
             class="inline-flex items-center px-10 py-4 border border-aura-black text-aura-black text-caption uppercase tracking-[0.15em] hover:bg-aura-black hover:text-white transition-all duration-300"
           >
             {{ $t('home.viewAll') }}
@@ -351,7 +351,7 @@ useSeoMeta({
 
         <!-- View All -->
         <div class="text-center mt-12">
-          <NuxtLink to="/shop?sale=true" class="text-body uppercase tracking-wider text-accent-burgundy underline underline-offset-4 hover:text-aura-black transition-colors">
+          <NuxtLink to="/sale" class="text-body uppercase tracking-wider text-accent-burgundy underline underline-offset-4 hover:text-aura-black transition-colors">
             View All Sale Items →
           </NuxtLink>
         </div>
