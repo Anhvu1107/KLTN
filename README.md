@@ -12,7 +12,61 @@ A full-stack monorepo featuring a Nuxt.js 3 frontend, Express.js backend, and Py
 |---------|------------|------|
 | **Client** | Nuxt.js 3 + Vue 3 + Tailwind CSS | 3000 |
 | **Server** | Express.js + PostgreSQL + Sequelize | 5000 |
-| **AI Service** | FastAPI + LangChain + OpenAI | 8000 |
+| **AI Service** | FastAPI + LangChain + Gemini | 8001 |
+| **Database** | PostgreSQL 15 | 5432 |
+
+---
+
+## ✨ Features (50+)
+
+### 🛒 E-commerce Core
+- Product catalog with variants (size/color)
+- Shopping cart with coupon support
+- Multi-step checkout
+- Order management & tracking
+- Wishlist
+
+### 🔍 Search & Filter
+- **AJAX Search** - Real-time suggestions with images
+- Price range, size, color filters
+- Category & brand filters
+
+### 💳 Payments
+- **VNPay** gateway integration
+- **VietQR** bank transfer QR codes
+- Payment success/failed pages
+
+### 👤 User Features
+- JWT Authentication
+- **Google OAuth** login
+- **Facebook OAuth** login
+- Address book management
+- Order history
+
+### 🤖 AI Chatbot
+- Gemini-powered AI assistant
+- Product recommendations
+- FAQ handling
+
+### 📱 Modern UI/UX
+- **Quick View** modal
+- **Skeleton Loading**
+- **Mega Menu** with images
+- **Mobile Buy Button** (fixed bottom)
+- Image zoom on hover
+- Responsive design
+
+### 🔧 Admin Dashboard (12 tabs)
+| Dashboard | Orders | Products | Users |
+|-----------|--------|----------|-------|
+| **Coupons** | **Reviews** | **Banners** | **Blogs** |
+| **Popups** | **Abandoned Carts** | **Settings** | **AI Config** |
+
+### 📧 Marketing
+- Newsletter subscriptions
+- Popup manager with scheduling
+- Abandoned cart recovery
+- Email notifications
 
 ---
 
@@ -20,172 +74,162 @@ A full-stack monorepo featuring a Nuxt.js 3 frontend, Express.js backend, and Py
 
 ```
 KLTN/
-├── client/           # Nuxt.js 3 Frontend
-│   ├── pages/        # Route pages
-│   ├── components/   # Vue components
-│   ├── stores/       # Pinia stores
-│   ├── locales/      # i18n translations (en.json, vi.json)
-│   └── assets/       # CSS, images
-├── server/           # Express.js Backend
+├── client/                 # Nuxt.js 3 Frontend
+│   ├── components/         # 36+ Vue components
+│   ├── pages/              # Route pages
+│   ├── stores/             # Pinia stores
+│   └── locales/            # i18n (en/vi)
+├── server/                 # Express.js Backend
 │   ├── src/
-│   │   ├── models/       # Sequelize models
-│   │   ├── controllers/  # Route handlers
-│   │   ├── services/     # Business logic
-│   │   ├── routes/       # API routes
-│   │   └── middlewares/  # Auth, validation
-│   └── .env              # Environment config
-├── ai_service/       # Python FastAPI AI
+│   │   ├── models/         # 19 Sequelize models
+│   │   ├── controllers/    # API handlers
+│   │   ├── services/       # Business logic
+│   │   └── routes/         # API routes
+│   └── .env
+├── ai_service/             # Python FastAPI AI
 │   ├── app/
-│   │   ├── main.py       # FastAPI entry
-│   │   ├── services/     # AI logic
-│   │   └── prompts/      # LangChain prompts
 │   └── requirements.txt
+├── docker-compose.yml      # Production
+├── docker-compose.dev.yml  # Development (PostgreSQL only)
 └── README.md
 ```
 
 ---
 
-## 🚀 Quick Start (Cho người mới)
+## 🚀 Quick Start
 
-### 1. Yêu cầu hệ thống
-
-- **Node.js** 18+ (https://nodejs.org)
-- **Python** 3.10+ (https://python.org)
-- **PostgreSQL** 14+ (https://postgresql.org)
-- **Git** (https://git-scm.com)
-
-### 2. Clone project
+### Option 1: Docker (Recommended)
 
 ```bash
+# Clone project
 git clone https://github.com/Anhvu1107/KLTN.git
 cd KLTN
-```
 
-### 3. Cài đặt PostgreSQL Database
+# Start PostgreSQL
+docker-compose -f docker-compose.dev.yml up -d
 
-```sql
--- Mở pgAdmin hoặc psql, tạo database:
-CREATE DATABASE aura_archive;
-CREATE USER aura_user WITH ENCRYPTED PASSWORD 'aura_password_2024';
-GRANT ALL PRIVILEGES ON DATABASE aura_archive TO aura_user;
-```
-
-### 4. Cấu hình môi trường
-
-**Server (.env):**
-```bash
-cd server
-copy .env.example .env
-# Mở .env và chỉnh sửa:
-# - DATABASE_URL
-# - JWT_SECRET
-# - AI_SERVICE_URL
-```
-
-**Client (.env):**
-```bash
-cd client
-copy .env.example .env
-# Mở .env và chỉnh sửa:
-# - NUXT_PUBLIC_API_URL=http://localhost:5000/api/v1
-```
-
-**AI Service (.env):**
-```bash
-cd ai_service
-copy .env.example .env
-# Mở .env và chỉnh sửa:
-# - OPENAI_API_KEY=your_openai_key
-```
-
-### 5. Cài đặt dependencies
-
-```bash
-# Terminal 1 - Client
-cd client
-npm install
-
-# Terminal 2 - Server  
+# Install & run server
 cd server
 npm install
+npm run dev
 
-# Terminal 3 - AI Service
-cd ai_service
-pip install -r requirements.txt
-```
-
-### 6. Seed database (chạy 1 lần)
-
-```bash
-cd server
-npm run seed
-```
-
-Tạo sẵn:
-- Admin: `admin@aura.com` / `admin123`
-- Customer: `customer@aura.com` / `123456`
-- 10 random customers
-- 20 sample products
-- 15 sample orders
-
-### 7. Chạy development servers
-
-```bash
-# Terminal 1 - Client (http://localhost:3000)
+# Install & run client (new terminal)
 cd client
+npm install
 npm run dev
 
-# Terminal 2 - Server (http://localhost:5000)
-cd server
-npm run dev
+# Open: http://localhost:3000
+```
 
-# Terminal 3 - AI Service (http://localhost:8000)
-cd ai_service
-uvicorn app.main:app --reload --port 8000
+### Option 2: Full Docker Stack
+
+```bash
+docker-compose up -d --build
+# Open: http://localhost:3000
 ```
 
 ---
 
-## 📋 Features
+## ⚙️ Environment Variables
 
-### Customer
-- [x] Shop page với filter (brand, category, price)
-- [x] Product detail page
-- [x] Cart & Checkout
-- [x] User account (profile, orders, wishlist)
-- [x] i18n song ngữ (EN/VI)
-- [x] AI Stylist chatbot
+### Server (.env)
+```env
+PORT=5000
+NODE_ENV=development
 
-### Admin
-- [x] Dashboard với stats & charts
-- [x] Order management (status updates)
-- [x] Product management (CRUD)
-- [x] User management (view, activate/deactivate)
-- [x] AI config (edit system prompts)
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=aura_archive
+DB_USER=postgres
+DB_PASSWORD=aura_secret_2024
+
+# Auth
+JWT_SECRET=your-super-secret-jwt-key
+JWT_EXPIRES_IN=7d
+
+# OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+FACEBOOK_APP_ID=your_facebook_app_id
+
+# Payments
+VNPAY_TMN_CODE=your_vnpay_code
+VNPAY_HASH_SECRET=your_vnpay_secret
+VNPAY_RETURN_URL=http://localhost:3000/payment/vnpay-return
+
+# AI Service
+AI_SERVICE_URL=http://localhost:8001
+```
+
+### Client (.env)
+```env
+NUXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+NUXT_PUBLIC_AI_SERVICE_URL=http://localhost:8001
+NUXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+```
+
+### AI Service (.env)
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
 
 ---
 
-## 🔑 API Endpoints
+## � API Endpoints
 
+### Public APIs
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/auth/register` | Đăng ký |
-| POST | `/api/v1/auth/login` | Đăng nhập |
-| GET | `/api/v1/products` | Danh sách sản phẩm |
-| POST | `/api/v1/orders` | Tạo đơn hàng |
-| GET | `/api/v1/wishlist` | Wishlist |
-| GET | `/api/v1/admin/stats` | Admin stats |
+| GET | `/products` | List products |
+| GET | `/products/:id` | Product detail |
+| GET | `/products/sale` | Sale products |
+| GET | `/blogs` | Blog posts |
+| POST | `/auth/login` | Login |
+| POST | `/auth/register` | Register |
+| POST | `/auth/google` | Google OAuth |
+
+### Protected APIs
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/users/profile` | Get profile |
+| GET | `/users/orders` | Order history |
+| POST | `/orders` | Create order |
+| POST | `/payments/vnpay/create` | VNPay payment |
+
+### Admin APIs
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/admin/dashboard` | Stats |
+| GET | `/admin/orders` | All orders |
+| GET | `/admin/products` | All products |
+| GET | `/admin/settings` | Site settings |
 
 ---
 
-## 🎨 Design System
+## 🐳 Docker Commands
 
-- **Typography**: Playfair Display (serif) + Inter (sans)
-- **Colors**: Black `#0A0A0A`, White `#FFFFFF`, Cream `#FAF9F6`, Gold `#D4AF37`, Burgundy `#722F37`
-- **Style**: Ralph Lauren-inspired luxury aesthetic
+```bash
+# Development (PostgreSQL only)
+docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.dev.yml down
+
+# Production (Full stack)
+docker-compose up -d --build
+docker-compose logs -f
+docker-compose down
+
+# Database backup
+docker exec aura-postgres pg_dump -U postgres aura_archive > backup.sql
+```
 
 ---
 
-## 📞 Liên hệ
+## � License
 
-- GitHub: [@Anhvu1107](https://github.com/Anhvu1107)
+MIT License - See [LICENSE](LICENSE) for details.
+
+---
+
+## 👨‍💻 Author
+
+**Anhvu1107** - KLTN Project 2026

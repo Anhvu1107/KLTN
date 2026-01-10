@@ -1,0 +1,27 @@
+# Docker Compose for Development
+# Only runs PostgreSQL, you run server/client with npm run dev
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: aura-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: aura_archive
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: aura_secret_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
