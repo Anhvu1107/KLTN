@@ -1,5 +1,52 @@
 <script setup lang="ts">
-// Homepage - AURA ARCHIVE
+/**
+ * Homepage - AURA ARCHIVE (Bright & Elegant)
+ * Luxury fashion homepage with light, airy design
+ */
+
+const config = useRuntimeConfig()
+
+// Fetch new arrivals
+const { data: featuredProducts } = await useFetch<{
+  success: boolean
+  data: { products: any[] }
+}>(`${config.public.apiUrl}/products?limit=4&sort=newest`)
+
+// Fetch best sellers
+const { data: bestSellersData } = await useFetch<{
+  success: boolean
+  data: { products: any[] }
+}>(`${config.public.apiUrl}/products/best-sellers?limit=4`)
+
+// Fetch sale products
+const { data: saleProductsData } = await useFetch<{
+  success: boolean
+  data: { products: any[] }
+}>(`${config.public.apiUrl}/products/sale?limit=4`)
+
+const products = computed(() => featuredProducts.value?.data?.products || [])
+const bestSellers = computed(() => bestSellersData.value?.data?.products || [])
+const saleProducts = computed(() => saleProductsData.value?.data?.products || [])
+
+// Format price
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+  }).format(price)
+}
+
+// Get product image
+const getProductImage = (product: any) => {
+  if (product.images && product.images.length > 0) {
+    return typeof product.images === 'string' 
+      ? JSON.parse(product.images)[0] 
+      : product.images[0]
+  }
+  return null
+}
+
 useSeoMeta({
   title: 'AURA ARCHIVE | Luxury Resell Fashion',
   description: 'Discover curated pre-owned luxury fashion. Authenticated designer pieces from the world\'s finest brands.',
@@ -8,149 +55,393 @@ useSeoMeta({
 
 <template>
   <div>
-    <!-- Hero Section -->
-    <section class="relative h-[80vh] min-h-[600px] flex items-center justify-center bg-neutral-100">
-      <!-- Background Image Placeholder -->
-      <div class="absolute inset-0 bg-gradient-to-b from-neutral-200 to-neutral-100">
-        <div class="absolute inset-0 bg-[url('/images/hero-pattern.svg')] opacity-5"></div>
+    <!-- Hero Section - Light & Elegant -->
+    <section class="relative min-h-[90vh] flex items-center bg-gradient-to-br from-neutral-100 via-aura-cream to-neutral-50">
+      <!-- Decorative elements -->
+      <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute top-20 right-20 w-96 h-96 bg-accent-gold/5 rounded-full blur-3xl" />
+        <div class="absolute bottom-20 left-20 w-80 h-80 bg-accent-burgundy/5 rounded-full blur-3xl" />
       </div>
       
       <!-- Hero Content -->
-      <div class="relative z-10 text-center px-6 max-w-3xl mx-auto">
-        <span class="text-caption uppercase tracking-[0.3em] text-neutral-500 mb-4 block">
-          Curated Luxury Consignment
-        </span>
-        <h1 class="font-serif text-display-2 lg:text-display-1 text-aura-black mb-6 text-balance">
-          Timeless Elegance, Reimagined
-        </h1>
-        <p class="text-body-lg text-neutral-600 mb-10 max-w-xl mx-auto">
-          Discover authenticated pre-owned pieces from the world's most coveted fashion houses. 
-          Each item tells a story of enduring style.
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <NuxtLink to="/shop" class="btn-primary">
-            Explore Collection
+      <div class="relative z-10 container-aura py-20">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <!-- Left: Text Content -->
+          <div class="text-center lg:text-left">
+            <span class="inline-block text-caption uppercase tracking-[0.4em] text-accent-burgundy mb-6">
+              The Archive Collection
+            </span>
+            <h1 class="font-serif text-display-2 lg:text-display-1 text-aura-black mb-8 leading-[1.1]">
+              {{ $t('hero.title') }}
+            </h1>
+            <p class="text-body-lg text-neutral-600 mb-12 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+              {{ $t('hero.subtitle') }}
+            </p>
+            
+            <!-- Buttons -->
+            <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
+              <NuxtLink 
+                to="/shop" 
+                class="inline-flex items-center px-10 py-4 bg-aura-black text-white text-caption uppercase tracking-[0.15em] hover:bg-neutral-800 transition-all duration-300"
+              >
+                {{ $t('hero.cta') }}
+              </NuxtLink>
+              <NuxtLink 
+                to="/about" 
+                class="inline-flex items-center px-10 py-4 border border-aura-black text-aura-black text-caption uppercase tracking-[0.15em] hover:bg-aura-black hover:text-white transition-all duration-300"
+              >
+                {{ $t('about.story') }}
+              </NuxtLink>
+            </div>
+          </div>
+
+          <!-- Right: Featured Image Placeholder -->
+          <div class="hidden lg:block">
+            <div class="relative">
+              <div class="aspect-[3/4] bg-neutral-200 rounded-sm overflow-hidden shadow-elevated">
+                <div class="w-full h-full flex items-center justify-center text-neutral-400">
+                  <div class="text-center p-8">
+                    <svg class="w-24 h-24 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="text-body-sm">Featured Collection</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Decorative badge -->
+              <div class="absolute -bottom-6 -left-6 bg-aura-white shadow-medium p-6 rounded-sm">
+                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">New Arrivals</p>
+                <p class="font-serif text-heading-4 text-aura-black">Spring 2026</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll indicator -->
+      <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+        <svg class="w-6 h-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </div>
+    </section>
+
+    <!-- Featured Brands Bar -->
+    <section class="py-12 border-y border-neutral-200 bg-white">
+      <div class="container-aura">
+        <div class="flex flex-wrap items-center justify-center gap-12 lg:gap-20 text-neutral-400">
+          <span class="font-serif text-xl tracking-wider">Rick Owens</span>
+          <span class="font-serif text-xl tracking-wider">Balenciaga</span>
+          <span class="font-serif text-xl tracking-wider">Prada</span>
+          <span class="font-serif text-xl tracking-wider">Maison Margiela</span>
+          <span class="font-serif text-xl tracking-wider">Acronym</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Collection Banners (2-column layout) -->
+    <section class="py-20 lg:py-28 bg-white">
+      <div class="container-aura">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          <!-- Women's Collection -->
+          <NuxtLink 
+            to="/shop?subcategory=Women" 
+            class="group relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-rose-50 to-neutral-100"
+          >
+            <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">Collection</span>
+              <h2 class="font-serif text-heading-1 text-aura-black mb-4">Women</h2>
+              <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
+                Shop Now
+              </span>
+            </div>
           </NuxtLink>
-          <NuxtLink to="/consignment" class="btn-secondary">
-            Consign With Us
+
+          <!-- Men's Collection -->
+          <NuxtLink 
+            to="/shop?subcategory=Men" 
+            class="group relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-slate-100 to-neutral-100"
+          >
+            <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">Collection</span>
+              <h2 class="font-serif text-heading-1 text-aura-black mb-4">Men</h2>
+              <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
+                Shop Now
+              </span>
+            </div>
           </NuxtLink>
         </div>
       </div>
     </section>
 
-    <!-- Featured Categories -->
-    <section class="section">
+    <!-- Featured Products (New Arrivals) -->
+    <section class="py-20 lg:py-28 bg-neutral-50">
       <div class="container-aura">
-        <div class="section-header">
-          <h2 class="font-serif text-heading-2 text-aura-black mb-4">Shop by Category</h2>
-          <p class="text-body text-neutral-600">Explore our curated selection of luxury pieces</p>
+        <!-- Section Header -->
+        <div class="text-center mb-16">
+          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">New In</span>
+          <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.newArrivals') }}</h2>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- Category Card -->
-          <NuxtLink
-            v-for="category in ['Bags', 'Clothing', 'Accessories']"
-            :key="category"
-            :to="`/shop?category=${category.toLowerCase()}`"
-            class="group relative aspect-[3/4] overflow-hidden bg-neutral-100"
+        <!-- Products Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <NuxtLink 
+            v-for="product in products.slice(0, 4)" 
+            :key="product.id"
+            :to="`/shop/${product.id}`"
+            class="group"
           >
-            <div class="absolute inset-0 bg-gradient-to-t from-aura-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="absolute bottom-0 left-0 right-0 p-6 text-aura-white translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-              <h3 class="font-serif text-heading-4 mb-2">{{ category }}</h3>
-              <span class="text-body-sm uppercase tracking-wider opacity-80">View Collection &rarr;</span>
+            <!-- Product Image -->
+            <div class="relative aspect-product bg-white overflow-hidden mb-4 shadow-soft group-hover:shadow-medium transition-shadow duration-300">
+              <img 
+                v-if="getProductImage(product)"
+                :src="getProductImage(product)"
+                :alt="product.name"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-neutral-300 bg-neutral-100">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
             </div>
-            <div class="absolute inset-0 flex items-center justify-center group-hover:opacity-0 transition-opacity duration-300">
-              <h3 class="font-serif text-heading-3 text-aura-black">{{ category }}</h3>
+            <!-- Product Info -->
+            <div class="text-center">
+              <p class="text-caption text-neutral-500 uppercase tracking-wider mb-1">{{ product.brand }}</p>
+              <h3 class="text-body text-aura-black mb-2 line-clamp-1">{{ product.name }}</h3>
+              <p class="text-body font-medium text-aura-black">
+                <span v-if="product.sale_price" class="text-accent-burgundy mr-2">{{ formatPrice(product.sale_price) }}</span>
+                <span :class="product.sale_price ? 'text-neutral-400 line-through text-body-sm' : ''">
+                  {{ formatPrice(product.base_price) }}
+                </span>
+              </p>
             </div>
           </NuxtLink>
-        </div>
-      </div>
-    </section>
 
-    <!-- Featured Products -->
-    <section class="section bg-neutral-50">
-      <div class="container-aura">
-        <div class="section-header">
-          <h2 class="font-serif text-heading-2 text-aura-black mb-4">New Arrivals</h2>
-          <p class="text-body text-neutral-600">The latest additions to our collection</p>
-        </div>
-
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          <!-- Product Card Placeholder -->
-          <div
-            v-for="i in 4"
-            :key="i"
-            class="product-card"
+          <!-- Placeholder cards if no products -->
+          <div 
+            v-for="i in (4 - products.length)" 
+            :key="'placeholder-' + i"
+            v-show="products.length < 4"
+            class="group"
           >
-            <div class="product-card-image">
-              <div class="w-full h-full bg-neutral-200 animate-pulse"></div>
-            </div>
-            <div class="pt-4 space-y-2">
-              <p class="text-caption text-neutral-500 uppercase tracking-wider">Brand Name</p>
-              <h3 class="text-body font-medium text-aura-black line-clamp-2">Product Name Example</h3>
-              <p class="text-body text-neutral-700">$1,200</p>
+            <div class="relative aspect-product bg-neutral-100 mb-4 shadow-soft" />
+            <div class="text-center">
+              <p class="text-caption text-neutral-400 uppercase tracking-wider mb-1">Brand</p>
+              <h3 class="text-body text-neutral-400 mb-2">Product Name</h3>
+              <p class="text-body text-neutral-400">$0</p>
             </div>
           </div>
         </div>
 
+        <!-- View All Button -->
+        <div class="text-center mt-16">
+          <NuxtLink 
+            to="/shop" 
+            class="inline-flex items-center px-10 py-4 border border-aura-black text-aura-black text-caption uppercase tracking-[0.15em] hover:bg-aura-black hover:text-white transition-all duration-300"
+          >
+            {{ $t('home.viewAll') }}
+            <svg class="w-4 h-4 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- Best Sellers -->
+    <section v-if="bestSellers.length > 0" class="py-20 lg:py-28 bg-white">
+      <div class="container-aura">
+        <!-- Section Header -->
+        <div class="text-center mb-16">
+          <span class="text-caption uppercase tracking-[0.3em] text-accent-gold mb-4 block">Most Popular</span>
+          <h2 class="font-serif text-heading-1 text-aura-black">Best Sellers</h2>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <NuxtLink 
+            v-for="product in bestSellers" 
+            :key="product.id"
+            :to="`/shop/${product.id}`"
+            class="group"
+          >
+            <!-- Product Image -->
+            <div class="relative aspect-product bg-neutral-100 overflow-hidden mb-4 shadow-soft group-hover:shadow-medium transition-shadow duration-300">
+              <img 
+                v-if="getProductImage(product)"
+                :src="getProductImage(product)"
+                :alt="product.name"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-neutral-300">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <!-- View count badge -->
+              <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-caption text-neutral-600">
+                {{ product.view_count || 0 }} views
+              </div>
+            </div>
+            <!-- Product Info -->
+            <div class="text-center">
+              <p class="text-caption text-neutral-500 uppercase tracking-wider mb-1">{{ product.brand }}</p>
+              <h3 class="text-body text-aura-black mb-2 line-clamp-1">{{ product.name }}</h3>
+              <p class="text-body font-medium text-aura-black">
+                <span v-if="product.sale_price" class="text-accent-burgundy mr-2">{{ formatPrice(product.sale_price) }}</span>
+                <span :class="product.sale_price ? 'text-neutral-400 line-through text-body-sm' : ''">
+                  {{ formatPrice(product.base_price) }}
+                </span>
+              </p>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- On Sale -->
+    <section v-if="saleProducts.length > 0" class="py-20 lg:py-28 bg-gradient-to-br from-red-50 to-rose-50">
+      <div class="container-aura">
+        <!-- Section Header -->
+        <div class="text-center mb-16">
+          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">Limited Time</span>
+          <h2 class="font-serif text-heading-1 text-aura-black">On Sale</h2>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <NuxtLink 
+            v-for="product in saleProducts" 
+            :key="product.id"
+            :to="`/shop/${product.id}`"
+            class="group"
+          >
+            <!-- Product Image -->
+            <div class="relative aspect-product bg-white overflow-hidden mb-4 shadow-soft group-hover:shadow-medium transition-shadow duration-300">
+              <img 
+                v-if="getProductImage(product)"
+                :src="getProductImage(product)"
+                :alt="product.name"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-neutral-300">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <!-- Sale badge -->
+              <div class="absolute top-3 left-3 bg-accent-burgundy text-white px-3 py-1 text-caption uppercase tracking-wider">
+                Sale
+              </div>
+            </div>
+            <!-- Product Info -->
+            <div class="text-center">
+              <p class="text-caption text-neutral-500 uppercase tracking-wider mb-1">{{ product.brand }}</p>
+              <h3 class="text-body text-aura-black mb-2 line-clamp-1">{{ product.name }}</h3>
+              <p class="text-body font-medium">
+                <span class="text-accent-burgundy mr-2">{{ formatPrice(product.sale_price) }}</span>
+                <span class="text-neutral-400 line-through text-body-sm">{{ formatPrice(product.base_price) }}</span>
+              </p>
+            </div>
+          </NuxtLink>
+        </div>
+
+        <!-- View All -->
         <div class="text-center mt-12">
-          <NuxtLink to="/shop" class="btn-secondary">
-            View All Products
+          <NuxtLink to="/shop?sale=true" class="text-body uppercase tracking-wider text-accent-burgundy underline underline-offset-4 hover:text-aura-black transition-colors">
+            View All Sale Items →
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- Category Cards (3-column) -->
+    <section class="py-20 lg:py-28 bg-neutral-50">
+      <div class="container-aura">
+        <div class="text-center mb-16">
+          <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.categories') }}</h2>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+          <NuxtLink
+            v-for="(cat, index) in [
+              { name: 'Bags', color: 'from-amber-50 to-orange-50' },
+              { name: 'Outerwear', color: 'from-slate-50 to-gray-100' },
+              { name: 'Accessories', color: 'from-rose-50 to-pink-50' }
+            ]"
+            :key="cat.name"
+            :to="`/shop?category=${cat.name}`"
+            class="group relative aspect-square overflow-hidden bg-gradient-to-br"
+            :class="cat.color"
+          >
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+              <h3 class="font-serif text-heading-2 text-aura-black mb-3">{{ cat.name }}</h3>
+              <span class="text-caption uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
+                Shop Now
+              </span>
+            </div>
           </NuxtLink>
         </div>
       </div>
     </section>
 
     <!-- Value Propositions -->
-    <section class="section">
+    <section class="py-20 lg:py-28 bg-neutral-50">
       <div class="container-aura">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-16">
           <div class="text-center">
-            <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-neutral-100 flex items-center justify-center">
-              <svg class="w-7 h-7 text-aura-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-white shadow-soft flex items-center justify-center">
+              <svg class="w-8 h-8 text-accent-burgundy" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <h3 class="font-serif text-heading-4 text-aura-black mb-3">Authenticated</h3>
-            <p class="text-body text-neutral-600">Every piece is verified by our expert team to ensure authenticity.</p>
+            <h3 class="font-serif text-heading-4 text-aura-black mb-3">{{ $t('home.authenticated') }}</h3>
+            <p class="text-body text-neutral-600 leading-relaxed">{{ $t('home.authenticatedDesc') }}</p>
           </div>
           <div class="text-center">
-            <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-neutral-100 flex items-center justify-center">
-              <svg class="w-7 h-7 text-aura-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-white shadow-soft flex items-center justify-center">
+              <svg class="w-8 h-8 text-accent-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
             </div>
-            <h3 class="font-serif text-heading-4 text-aura-black mb-3">Worldwide Shipping</h3>
-            <p class="text-body text-neutral-600">Secure delivery to your door, anywhere in the world.</p>
+            <h3 class="font-serif text-heading-4 text-aura-black mb-3">{{ $t('home.curated') }}</h3>
+            <p class="text-body text-neutral-600 leading-relaxed">{{ $t('home.curatedDesc') }}</p>
           </div>
           <div class="text-center">
-            <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-neutral-100 flex items-center justify-center">
-              <svg class="w-7 h-7 text-aura-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-white shadow-soft flex items-center justify-center">
+              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
               </svg>
             </div>
-            <h3 class="font-serif text-heading-4 text-aura-black mb-3">AI Stylist</h3>
-            <p class="text-body text-neutral-600">Get personalized style advice from our intelligent fashion assistant.</p>
+            <h3 class="font-serif text-heading-4 text-aura-black mb-3">{{ $t('home.sustainable') }}</h3>
+            <p class="text-body text-neutral-600 leading-relaxed">{{ $t('home.sustainableDesc') }}</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Newsletter / CTA -->
-    <section class="py-20 bg-aura-black text-aura-white">
-      <div class="container-aura text-center">
-        <h2 class="font-serif text-heading-2 mb-4">Join the Archive</h2>
-        <p class="text-body text-neutral-400 mb-8 max-w-md mx-auto">
-          Be the first to know about new arrivals and exclusive offers.
+    <!-- Newsletter CTA (Light version) -->
+    <section class="py-24 lg:py-32 bg-gradient-to-br from-neutral-100 to-aura-cream">
+      <div class="container-aura text-center max-w-2xl mx-auto">
+        <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">Stay Updated</span>
+        <h2 class="font-serif text-heading-1 text-aura-black mb-6">{{ $t('footer.newsletter') }}</h2>
+        <p class="text-body-lg text-neutral-600 mb-10 leading-relaxed">
+          {{ $t('footer.newsletterText') }}
         </p>
-        <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+        <form class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
           <input
             type="email"
-            placeholder="Enter your email"
-            class="flex-1 px-4 py-3 bg-neutral-800 border border-neutral-700 text-aura-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
+            :placeholder="$t('footer.emailPlaceholder')"
+            class="flex-1 px-6 py-4 bg-white border border-neutral-300 text-aura-black placeholder-neutral-400 focus:border-aura-black focus:outline-none transition-colors"
           />
-          <button type="submit" class="px-8 py-3 bg-aura-white text-aura-black font-medium uppercase tracking-wider text-body-sm hover:bg-neutral-100 transition-colors">
-            Subscribe
+          <button 
+            type="submit" 
+            class="px-10 py-4 bg-aura-black text-white font-medium uppercase tracking-wider text-caption hover:bg-neutral-800 transition-colors"
+          >
+            {{ $t('footer.subscribe') }}
           </button>
         </form>
       </div>

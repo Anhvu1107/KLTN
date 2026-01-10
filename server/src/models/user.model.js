@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         password_hash: {
             type: DataTypes.STRING(255),
-            allowNull: false,
+            allowNull: true, // Null for OAuth users
         },
         first_name: {
             type: DataTypes.STRING(100),
@@ -37,6 +37,20 @@ module.exports = (sequelize, DataTypes) => {
         avatar_url: {
             type: DataTypes.STRING(500),
             allowNull: true,
+        },
+        google_id: {
+            type: DataTypes.STRING(255),
+            allowNull: true,
+            unique: true,
+        },
+        facebook_id: {
+            type: DataTypes.STRING(255),
+            allowNull: true,
+            unique: true,
+        },
+        is_verified: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
         },
         role: {
             type: DataTypes.ENUM('ADMIN', 'CUSTOMER'),
@@ -78,6 +92,10 @@ module.exports = (sequelize, DataTypes) => {
         User.hasMany(models.ChatLog, {
             foreignKey: 'user_id',
             as: 'chatLogs',
+        });
+        User.hasMany(models.Review, {
+            foreignKey: 'user_id',
+            as: 'reviews',
         });
     };
 

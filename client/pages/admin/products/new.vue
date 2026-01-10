@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Admin - Add New Product
- * AURA ARCHIVE - Form to create new product with variant
+ * AURA ARCHIVE - Form to create new product with variant and image upload
  */
 
 definePageMeta({
@@ -23,6 +23,7 @@ const form = reactive({
   conditionText: '9/10 - Like New',
   conditionDescription: '',
   description: '',
+  images: [] as string[],
   // Variant fields
   size: 'M',
   color: 'Black',
@@ -30,8 +31,12 @@ const form = reactive({
 })
 
 const isSubmitting = ref(false)
+const isUploading = ref(false)
 const error = ref('')
 const success = ref('')
+
+// File input ref
+const fileInput = ref<HTMLInputElement | null>(null)
 
 // Options
 const brands = [
@@ -44,6 +49,56 @@ const conditions = ['10/10 - New with tags', '9/10 - Like New', '8/10 - Excellen
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size']
 const colors = ['Black', 'White', 'Grey', 'Navy', 'Olive', 'Burgundy', 'Cream', 'Brown', 'Multi']
 const materials = ['Leather', 'Cotton', 'Wool', 'Nylon', 'Silk', 'Cashmere', 'Polyester', 'Linen', 'Mixed']
+
+// Handle file selection
+const handleFileSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  
+  if (!files || files.length === 0) return
+  if (form.images.length + files.length > 5) {
+    error.value = 'Maximum 5 images allowed'
+    return
+  }
+
+  isUploading.value = true
+  error.value = ''
+
+  try {
+    const token = localStorage.getItem('token')
+    const formData = new FormData()
+    
+    for (let i = 0; i < files.length; i++) {
+      formData.append('images', files[i])
+    }
+
+    const response = await $fetch<{
+      success: boolean
+      data: { urls: string[] }
+    }>(`${config.public.apiUrl}/admin/upload/product-images`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+
+    if (response.success) {
+      form.images.push(...response.data.urls)
+    }
+  } catch (err: any) {
+    error.value = err?.data?.message || 'Failed to upload images'
+  } finally {
+    isUploading.value = false
+    // Reset file input
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+  }
+}
+
+// Remove image
+const removeImage = (index: number) => {
+  form.images.splice(index, 1)
+}
 
 // Submit form
 const handleSubmit = async () => {
@@ -72,6 +127,7 @@ const handleSubmit = async () => {
           condition_text: form.conditionText,
           condition_description: form.conditionDescription,
           description: form.description,
+          images: form.images,
         },
         variant: {
           size: form.size,
@@ -122,6 +178,59 @@ useSeoMeta({
 
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-8">
+        <!-- Product Images -->
+        <div class="bg-white p-6 rounded-sm shadow-card">
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">Product Images</h2>
+          
+          <!-- Image Preview Grid -->
+          <div class="grid grid-cols-5 gap-4 mb-4">
+            <div 
+              v-for="(url, index) in form.images" 
+              :key="index"
+              class="relative aspect-square bg-neutral-100 rounded-sm overflow-hidden group"
+            >
+              <img :src="url" :alt="`Product image ${index + 1}`" class="w-full h-full object-cover" />
+              <button
+                type="button"
+                @click="removeImage(index)"
+                class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+            
+            <!-- Upload Button -->
+            <div 
+              v-if="form.images.length < 5"
+              class="aspect-square border-2 border-dashed border-neutral-300 rounded-sm flex flex-col items-center justify-center cursor-pointer hover:border-neutral-400 transition-colors"
+              :class="{ 'opacity-50 cursor-not-allowed': isUploading }"
+              @click="fileInput?.click()"
+            >
+              <svg v-if="!isUploading" class="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
+              </svg>
+              <svg v-else class="w-6 h-6 text-neutral-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span class="text-caption text-neutral-400 mt-1">{{ isUploading ? 'Uploading...' : 'Add' }}</span>
+            </div>
+          </div>
+          
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            class="hidden"
+            @change="handleFileSelect"
+          />
+          
+          <p class="text-caption text-neutral-500">
+            Upload up to 5 images. Accepted formats: JPEG, PNG, WebP. Max 5MB each.
+          </p>
+        </div>
+
         <!-- Product Info -->
         <div class="bg-white p-6 rounded-sm shadow-card">
           <h2 class="font-serif text-heading-4 text-aura-black mb-6">Product Information</h2>
@@ -210,9 +319,9 @@ useSeoMeta({
         <div class="flex gap-4">
           <button
             type="submit"
-            :disabled="isSubmitting"
+            :disabled="isSubmitting || isUploading"
             class="btn-primary"
-            :class="{ 'opacity-70': isSubmitting }"
+            :class="{ 'opacity-70': isSubmitting || isUploading }"
           >
             {{ isSubmitting ? 'Creating...' : 'Create Product' }}
           </button>
