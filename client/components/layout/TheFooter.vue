@@ -43,10 +43,10 @@ const handleSubscribe = async () => {
 
 // Footer links
 const shopLinks = computed(() => [
-  { name: t('nav.newArrivals'), href: '/shop?sort=newest' },
+  { name: t('nav.newArrivals'), href: '/new-arrivals' },
+  { name: 'Featured', href: '/featured' },
   { name: 'Women', href: '/shop?subcategory=Women' },
   { name: 'Men', href: '/shop?subcategory=Men' },
-  { name: t('shop.category'), href: '/shop' },
 ])
 
 const customerLinks = computed(() => [

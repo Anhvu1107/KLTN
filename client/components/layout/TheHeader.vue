@@ -16,7 +16,7 @@ const cartStore = useCartStore()
 
 // Navigation items with i18n
 const navItems = computed(() => [
-  { name: t('nav.newArrivals'), href: '/shop?sort=newest' },
+  { name: t('nav.newArrivals'), href: '/new-arrivals' },
   { name: t('common.shop'), href: '/shop' },
   { name: t('common.about'), href: '/about' },
   { name: t('common.contact'), href: '/contact' },

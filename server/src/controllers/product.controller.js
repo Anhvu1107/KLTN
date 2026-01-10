@@ -114,6 +114,21 @@ const getSaleProducts = catchAsync(async (req, res) => {
     });
 });
 
+/**
+ * GET /api/v1/products/new-arrivals
+ * Get new arrival products (added in last 14 days)
+ */
+const getNewArrivals = catchAsync(async (req, res) => {
+    const limit = parseInt(req.query.limit) || 12;
+    const page = parseInt(req.query.page) || 1;
+    const result = await productService.getNewArrivals(limit, page);
+
+    res.status(200).json({
+        success: true,
+        data: result,
+    });
+});
+
 module.exports = {
     getProducts,
     getFeaturedProducts,
@@ -123,4 +138,5 @@ module.exports = {
     getRelatedProducts,
     getBestSellers,
     getSaleProducts,
+    getNewArrivals,
 };

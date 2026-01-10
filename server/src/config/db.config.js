@@ -59,11 +59,11 @@ module.exports = {
             acquire: 60000,
             idle: 10000,
         },
-        dialectOptions: {
+        dialectOptions: process.env.DB_SSL === 'true' ? {
             ssl: {
                 require: true,
                 rejectUnauthorized: false,
             },
-        },
+        } : {},
     },
 };

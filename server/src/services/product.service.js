@@ -262,6 +262,41 @@ const getSaleProducts = async (limit = 8) => {
     return products;
 };
 
+/**
+ * Get new arrivals (products added in last 14 days)
+ */
+const getNewArrivals = async (limit = 12, page = 1) => {
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Product.findAndCountAll({
+        where: {
+            is_active: true,
+            created_at: { [Op.gte]: fourteenDaysAgo },
+        },
+        include: [{
+            model: Variant,
+            as: 'variants',
+        }],
+        order: [['created_at', 'DESC']],
+        limit,
+        offset,
+        distinct: true,
+    });
+
+    return {
+        products: rows,
+        pagination: {
+            total: count,
+            page,
+            limit,
+            totalPages: Math.ceil(count / limit),
+        },
+    };
+};
+
 module.exports = {
     getProducts,
     getProductByIdOrSlug,
@@ -271,4 +306,5 @@ module.exports = {
     getRelatedProducts,
     getBestSellers,
     getSaleProducts,
+    getNewArrivals,
 };

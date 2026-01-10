@@ -7,10 +7,10 @@ const express = require('express');
 const router = express.Router();
 
 const paymentController = require('../../controllers/payment.controller');
-const { authenticate } = require('../../middlewares/auth.middleware');
+const { protect } = require('../../middlewares/auth.middleware');
 
-// VNPay
-router.post('/vnpay/create', authenticate, paymentController.createVNPayPayment);
+// VNPay Payment
+router.post('/vnpay/create', protect, paymentController.createVNPayPayment);
 router.get('/vnpay/return', paymentController.vnpayReturn);
 router.get('/vnpay/ipn', paymentController.vnpayIPN);
 

@@ -13,13 +13,13 @@ const menuItems = computed(() => [
   { path: '/admin/orders', label: t('admin.orders'), icon: 'cart' },
   { path: '/admin/products', label: t('admin.products'), icon: 'box' },
   { path: '/admin/users', label: t('admin.users'), icon: 'users' },
-  { path: '/admin/coupons', label: 'Coupons', icon: 'tag' },
-  { path: '/admin/reviews', label: 'Reviews', icon: 'star' },
-  { path: '/admin/banners', label: 'Banners', icon: 'image' },
+  { path: '/admin/coupons', label: t('admin.coupons.title'), icon: 'tag' },
+  { path: '/admin/reviews', label: t('admin.reviews.title'), icon: 'star' },
+  { path: '/admin/banners', label: t('admin.banners.title'), icon: 'image' },
   { path: '/admin/blogs', label: 'Blogs', icon: 'document' },
-  { path: '/admin/popups', label: 'Popups', icon: 'popup' },
-  { path: '/admin/abandoned-carts', label: 'Abandoned Carts', icon: 'cart-abandon' },
-  { path: '/admin/settings', label: 'Settings', icon: 'cog' },
+  { path: '/admin/popups', label: t('admin.popups.title'), icon: 'popup' },
+  { path: '/admin/abandoned-carts', label: t('admin.abandonedCarts.title'), icon: 'cart-abandon' },
+  { path: '/admin/settings', label: t('admin.settings.title'), icon: 'cog' },
   { path: '/admin/ai-config', label: t('admin.aiConfig'), icon: 'robot' },
 ])
 
@@ -38,8 +38,13 @@ const isActive = (path: string) => route.path.startsWith(path)
         </NuxtLink>
       </div>
 
+      <!-- Language Switcher -->
+      <div class="px-6 py-3 border-b border-neutral-800">
+        <LanguageSwitcher />
+      </div>
+
       <!-- Navigation -->
-      <nav class="flex-1 p-4">
+      <nav class="flex-1 p-4 overflow-y-auto">
         <ul class="space-y-1">
           <li v-for="item in menuItems" :key="item.path">
             <NuxtLink
@@ -74,6 +79,16 @@ const isActive = (path: string) => route.path.startsWith(path)
               </svg>
               <svg v-else-if="item.icon === 'robot'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <svg v-else-if="item.icon === 'cog'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <svg v-else-if="item.icon === 'popup'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+              <svg v-else-if="item.icon === 'cart-abandon'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               <span class="text-body-sm">{{ item.label }}</span>
             </NuxtLink>
