@@ -14,6 +14,14 @@ const adminRoutes = require('./v1/admin.routes');
 const chatRoutes = require('./v1/chat.routes');
 const wishlistRoutes = require('./v1/wishlist.routes');
 const userRoutes = require('./v1/user.routes');
+const contactRoutes = require('./v1/contact.routes');
+const newsletterRoutes = require('./v1/newsletter.routes');
+const reviewRoutes = require('./v1/review.routes');
+const couponRoutes = require('./v1/coupon.routes');
+const addressRoutes = require('./v1/address.routes');
+const bannerRoutes = require('./v1/banner.routes');
+const locationRoutes = require('./v1/location.routes');
+const paymentRoutes = require('./v1/payment.routes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -23,6 +31,23 @@ router.use('/admin', adminRoutes);
 router.use('/chat', chatRoutes);
 router.use('/wishlist', wishlistRoutes);
 router.use('/users', userRoutes);
+router.use('/contact', contactRoutes);
+router.use('/newsletter', newsletterRoutes);
+router.use('/', reviewRoutes); // Reviews mounted at root for /products/:id/reviews pattern
+router.use('/coupons', couponRoutes);
+router.use('/addresses', addressRoutes);
+router.use('/banners', bannerRoutes);
+router.use('/locations', locationRoutes);
+router.use('/payments', paymentRoutes);
+
+const blogRoutes = require('./v1/blog.routes');
+router.use('/blogs', blogRoutes);
+
+const shippingRoutes = require('./v1/shipping.routes');
+router.use('/shipping', shippingRoutes);
+
+const settingsRoutes = require('./v1/settings.routes');
+router.use('/settings', settingsRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

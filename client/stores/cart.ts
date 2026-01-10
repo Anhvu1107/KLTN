@@ -17,15 +17,24 @@ export interface CartItem {
     addedAt: string
 }
 
+export interface AppliedCoupon {
+    id: string
+    code: string
+    name: string
+    discountAmount: number
+}
+
 export interface CartState {
     items: CartItem[]
     isLoading: boolean
+    appliedCoupon: AppliedCoupon | null
 }
 
 export const useCartStore = defineStore('cart', {
     state: (): CartState => ({
         items: [],
         isLoading: false,
+        appliedCoupon: null,
     }),
 
     getters: {
@@ -112,6 +121,20 @@ export const useCartStore = defineStore('cart', {
          */
         isInCart(variantId: string): boolean {
             return this.items.some(item => item.id === variantId)
+        },
+
+        /**
+         * Set applied coupon
+         */
+        setCoupon(coupon: AppliedCoupon): void {
+            this.appliedCoupon = coupon
+        },
+
+        /**
+         * Clear applied coupon
+         */
+        clearCoupon(): void {
+            this.appliedCoupon = null
         },
 
         /**

@@ -103,7 +103,7 @@ useSeoMeta({
       </div>
 
       <!-- Quick Links -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <NuxtLink to="/account/orders" class="card p-6 hover:border-aura-black transition-colors">
           <div class="text-heading-2 font-serif text-aura-black">{{ recentOrders.length }}</div>
           <p class="text-body-sm text-neutral-600">{{ t('account.recentOrders') }}</p>
@@ -111,6 +111,15 @@ useSeoMeta({
         <NuxtLink to="/account/wishlist" class="card p-6 hover:border-aura-black transition-colors">
           <div class="text-heading-2 font-serif text-aura-black">{{ wishlistCount }}</div>
           <p class="text-body-sm text-neutral-600">{{ t('account.wishlistItems') }}</p>
+        </NuxtLink>
+        <NuxtLink to="/account/addresses" class="card p-6 hover:border-aura-black transition-colors">
+          <div class="text-heading-2 font-serif text-aura-black">
+            <svg class="w-8 h-8 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <p class="text-body-sm text-neutral-600">Sổ địa chỉ</p>
         </NuxtLink>
         <NuxtLink to="/account/profile" class="card p-6 hover:border-aura-black transition-colors">
           <div class="text-heading-2 font-serif text-aura-black">

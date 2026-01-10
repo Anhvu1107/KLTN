@@ -72,10 +72,55 @@ const getProductById = catchAsync(async (req, res) => {
     });
 });
 
+/**
+ * GET /api/v1/products/:id/related
+ * Get related products
+ */
+const getRelatedProducts = catchAsync(async (req, res) => {
+    const limit = parseInt(req.query.limit) || 4;
+    const products = await productService.getRelatedProducts(req.params.id, limit);
+
+    res.status(200).json({
+        success: true,
+        data: { products },
+    });
+});
+
+/**
+ * GET /api/v1/products/best-sellers
+ * Get best selling products
+ */
+const getBestSellers = catchAsync(async (req, res) => {
+    const limit = parseInt(req.query.limit) || 8;
+    const products = await productService.getBestSellers(limit);
+
+    res.status(200).json({
+        success: true,
+        data: { products },
+    });
+});
+
+/**
+ * GET /api/v1/products/sale
+ * Get products on sale
+ */
+const getSaleProducts = catchAsync(async (req, res) => {
+    const limit = parseInt(req.query.limit) || 8;
+    const products = await productService.getSaleProducts(limit);
+
+    res.status(200).json({
+        success: true,
+        data: { products },
+    });
+});
+
 module.exports = {
     getProducts,
     getFeaturedProducts,
     getCategories,
     getBrands,
     getProductById,
+    getRelatedProducts,
+    getBestSellers,
+    getSaleProducts,
 };

@@ -32,11 +32,12 @@ export default {
                     800: '#262626',
                     900: '#171717',
                 },
-                // Accent Colors
+                // Accent Colors - Ralph Lauren Inspired
                 accent: {
                     gold: '#D4AF37',
                     burgundy: '#722F37',
-                    navy: '#0F1C2E',
+                    navy: '#041E42',      // Ralph Lauren Navy
+                    'navy-dark': '#032035',
                     olive: '#3C3C2E',
                     tan: '#D2B48C',
                 },
@@ -121,5 +122,9 @@ export default {
             },
         },
     },
-    plugins: [],
+    plugins: [
+        require('@tailwindcss/forms'),
+        require('@tailwindcss/typography'),
+        require('@tailwindcss/aspect-ratio'),
+    ],
 }

@@ -9,22 +9,28 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@pinia-plugin-persistedstate/nuxt',
     '@nuxtjs/i18n',
+    '@vueuse/nuxt',
   ],
 
   // i18n Configuration
   i18n: {
     locales: [
-      { code: 'en', name: 'English', file: 'en.json' },
-      { code: 'vi', name: 'Tiếng Việt', file: 'vi.json' },
+      { code: 'en', iso: 'en-US', file: 'en.json', name: 'English' },
+      { code: 'vi', iso: 'vi-VN', file: 'vi.json', name: 'Tiếng Việt' },
     ],
     defaultLocale: 'vi',
     lazy: true,
-    langDir: 'locales/',
+    langDir: 'locales',
     strategy: 'no_prefix',
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: 'i18n_redirected',
       fallbackLocale: 'vi',
+      alwaysRedirect: false,
+      redirectOn: 'root',
+    },
+    bundle: {
+      fullInstall: true,
     },
   },
 
@@ -33,7 +39,7 @@ export default defineNuxtConfig({
     head: {
       title: 'AURA ARCHIVE | Luxury Resell Fashion',
       htmlAttrs: {
-        lang: 'en',
+        lang: 'vi',
       },
       meta: [
         { charset: 'utf-8' },
@@ -46,7 +52,6 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
-        // Google Fonts - Playfair Display (Serif) + Inter (Sans)
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
@@ -80,7 +85,7 @@ export default defineNuxtConfig({
   // TypeScript
   typescript: {
     strict: true,
-    typeCheck: false, // Disabled for faster dev - enable in CI/CD
+    typeCheck: false,
   },
 
   // CSS

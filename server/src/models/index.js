@@ -40,6 +40,16 @@ db.OrderItem = require('./order-item.model')(sequelize, Sequelize.DataTypes);
 db.SystemPrompt = require('./system-prompt.model')(sequelize, Sequelize.DataTypes);
 db.ChatLog = require('./chat-log.model')(sequelize, Sequelize.DataTypes);
 db.Wishlist = require('./wishlist.model')(sequelize, Sequelize.DataTypes);
+db.Newsletter = require('./newsletter.model')(sequelize, Sequelize.DataTypes);
+db.Review = require('./review.model')(sequelize, Sequelize.DataTypes);
+db.Coupon = require('./coupon.model')(sequelize, Sequelize.DataTypes);
+db.CouponUsage = require('./coupon-usage.model')(sequelize, Sequelize.DataTypes);
+db.Address = require('./address.model')(sequelize, Sequelize.DataTypes);
+db.Banner = require('./banner.model')(sequelize, Sequelize.DataTypes);
+db.Blog = require('./blog.model')(sequelize, Sequelize.DataTypes);
+db.SiteSettings = require('./site-settings.model')(sequelize, Sequelize.DataTypes);
+db.Popup = require('./popup.model')(sequelize, Sequelize.DataTypes);
+db.AbandonedCart = require('./abandoned-cart.model')(sequelize, Sequelize.DataTypes);
 
 // Set up associations
 Object.keys(db).forEach((modelName) => {
