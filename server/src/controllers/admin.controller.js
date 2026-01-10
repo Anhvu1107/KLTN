@@ -4,6 +4,7 @@
  */
 
 const adminService = require('../services/admin.service');
+const { processUploadedFiles, deleteFile } = require('../services/upload.service');
 const catchAsync = require('../utils/catchAsync');
 
 /**
@@ -158,6 +159,81 @@ const getProducts = catchAsync(async (req, res) => {
     });
 });
 
+/**
+ * GET /api/v1/admin/products/:id
+ * Get single product for editing
+ */
+const getProductById = catchAsync(async (req, res) => {
+    const { Product, Variant } = require('../models');
+    const product = await Product.findByPk(req.params.id, {
+        include: [{ model: Variant, as: 'variants' }],
+    });
+
+    if (!product) {
+        return res.status(404).json({
+            success: false,
+            message: 'Product not found',
+        });
+    }
+
+    res.status(200).json({
+        success: true,
+        data: { product },
+    });
+});
+
+/**
+ * PUT /api/v1/admin/products/:id
+ * Update product
+ */
+const updateProduct = catchAsync(async (req, res) => {
+    const product = await productAdminService.updateProduct(req.params.id, req.body);
+
+    res.status(200).json({
+        success: true,
+        message: 'Product updated successfully',
+        data: { product },
+    });
+});
+
+/**
+ * DELETE /api/v1/admin/products/:id
+ * Delete (deactivate) product
+ */
+const deleteProduct = catchAsync(async (req, res) => {
+    const result = await productAdminService.deleteProduct(req.params.id);
+
+    res.status(200).json({
+        success: true,
+        message: result.message,
+    });
+});
+
+/**
+ * PATCH /api/v1/admin/products/:id/variants/:variantId/status
+ * Update variant status (AVAILABLE, RESERVED, SOLD)
+ */
+const updateVariantStatus = catchAsync(async (req, res) => {
+    const { Variant } = require('../models');
+    const { status } = req.body;
+
+    const variant = await Variant.findByPk(req.params.variantId);
+    if (!variant) {
+        return res.status(404).json({
+            success: false,
+            message: 'Variant not found',
+        });
+    }
+
+    await variant.update({ status });
+
+    res.status(200).json({
+        success: true,
+        message: `Variant status updated to ${status}`,
+        data: { variant },
+    });
+});
+
 // User management
 const userService = require('../services/user.service');
 
@@ -202,6 +278,30 @@ const updateUserStatus = catchAsync(async (req, res) => {
     });
 });
 
+/**
+ * POST /api/v1/admin/upload/product-images
+ * Upload product images (max 5)
+ */
+const uploadProductImages = catchAsync(async (req, res) => {
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'No files uploaded',
+        });
+    }
+
+    const urls = processUploadedFiles(req.files);
+
+    res.status(200).json({
+        success: true,
+        message: `${req.files.length} file(s) uploaded successfully`,
+        data: {
+            urls,
+            count: req.files.length,
+        },
+    });
+});
+
 module.exports = {
     getStats,
     getMonthlyRevenue,
@@ -213,7 +313,12 @@ module.exports = {
     updateSystemPrompt,
     createProduct,
     getProducts,
+    getProductById,
+    updateProduct,
+    deleteProduct,
+    updateVariantStatus,
     getUsers,
     getUserDetail,
     updateUserStatus,
+    uploadProductImages,
 };

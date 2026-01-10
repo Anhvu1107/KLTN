@@ -1,11 +1,13 @@
 <script setup lang="ts">
 /**
  * Product Detail Page
- * AURA ARCHIVE - Shop product with Add to Cart functionality
+ * AURA ARCHIVE - Shop product with Add to Cart and Wishlist functionality
  */
 
 import { useCartStore } from '~/stores/cart'
+import { useI18n } from '#imports'
 
+const { t } = useI18n()
 const route = useRoute()
 const config = useRuntimeConfig()
 const cartStore = useCartStore()
@@ -27,6 +29,9 @@ const isSold = computed(() => variant.value?.status === 'SOLD')
 
 // Add to cart
 const addedToCart = ref(false)
+
+// Reviews ref for refreshing after submission
+const reviewsRef = ref<{ refresh: () => void } | null>(null)
 
 const handleAddToCart = () => {
   if (!variant.value || isSold.value || isInCart.value) return
@@ -50,6 +55,96 @@ const handleAddToCart = () => {
   }
 }
 
+// Buy Now - add to cart and go to checkout
+const handleBuyNow = () => {
+  if (!variant.value || isSold.value) return
+
+  // Add to cart if not already
+  if (!isInCart.value) {
+    cartStore.addToCart({
+      id: variant.value.id,
+      productId: product.value.id,
+      productName: product.value.name,
+      productBrand: product.value.brand,
+      productImage: product.value.images?.[0] || '',
+      variantSize: variant.value.size,
+      variantColor: variant.value.color,
+      price: parseFloat(product.value.sale_price || product.value.base_price),
+    })
+  }
+
+  // Navigate to checkout
+  navigateTo('/checkout')
+}
+
+// Wishlist functionality
+const isInWishlist = ref(false)
+const isWishlistLoading = ref(false)
+
+// Check wishlist status on mount
+const checkWishlist = async () => {
+  const token = localStorage.getItem('token')
+  if (!token || !product.value) return
+
+  try {
+    const response = await $fetch<{
+      success: boolean
+      data: { items: any[] }
+    }>(`${config.public.apiUrl}/wishlist`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    
+    if (response.success) {
+      isInWishlist.value = response.data.items.some(
+        (item: any) => item.product_id === productId
+      )
+    }
+  } catch {
+    // User not logged in or error
+  }
+}
+
+const toggleWishlist = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    // Redirect to login
+    navigateTo('/auth/login')
+    return
+  }
+
+  isWishlistLoading.value = true
+
+  try {
+    if (isInWishlist.value) {
+      // Remove from wishlist
+      await $fetch(`${config.public.apiUrl}/wishlist/${productId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      isInWishlist.value = false
+    } else {
+      // Add to wishlist
+      await $fetch(`${config.public.apiUrl}/wishlist`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: { productId },
+      })
+      isInWishlist.value = true
+    }
+  } catch (err: any) {
+    console.error('Wishlist error:', err)
+  } finally {
+    isWishlistLoading.value = false
+  }
+}
+
+// Check wishlist when product loads
+watch(() => product.value, () => {
+  if (product.value) {
+    checkWishlist()
+  }
+}, { immediate: true })
+
 // Format helpers
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -69,6 +164,10 @@ const getImages = computed(() => {
   }
 })
 
+// Active image for gallery
+const activeImageIndex = ref(0)
+const activeImage = computed(() => getImages.value[activeImageIndex.value] || null)
+
 useSeoMeta({
   title: () => product.value ? `${product.value.name} | AURA ARCHIVE` : 'Product | AURA ARCHIVE',
   description: () => product.value?.description?.substring(0, 160),
@@ -80,13 +179,13 @@ useSeoMeta({
     <div class="container-aura">
       <!-- Loading -->
       <div v-if="pending" class="text-center py-16">
-        <p class="text-neutral-500">Loading product...</p>
+        <p class="text-neutral-500">{{ t('common.loading') }}</p>
       </div>
 
       <!-- Error -->
       <div v-else-if="error || !product" class="text-center py-16">
-        <h1 class="font-serif text-heading-2 text-aura-black mb-4">Product Not Found</h1>
-        <NuxtLink to="/shop" class="btn-primary">Back to Shop</NuxtLink>
+        <h1 class="font-serif text-heading-2 text-aura-black mb-4">{{ t('errors.notFound') }}</h1>
+        <NuxtLink to="/shop" class="btn-primary">{{ t('common.back') }}</NuxtLink>
       </div>
 
       <!-- Product -->
@@ -96,19 +195,34 @@ useSeoMeta({
           <div class="aspect-product bg-neutral-100 rounded-sm overflow-hidden relative">
             <!-- Sold Badge -->
             <div v-if="isSold" class="absolute top-4 left-4 z-10">
-              <span class="badge-sold">SOLD</span>
+              <span class="badge-sold">{{ t('shop.sold') }}</span>
             </div>
-            <!-- Placeholder image -->
-            <div class="w-full h-full flex items-center justify-center text-neutral-400">
+            
+            <!-- Main image with zoom or placeholder -->
+            <ImageZoom 
+              v-if="activeImage" 
+              :src="activeImage" 
+              :alt="product.name"
+              class="w-full h-full"
+            />
+            <div v-else class="w-full h-full flex items-center justify-center text-neutral-400">
               <svg class="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
           </div>
           
-          <!-- Thumbnail grid -->
-          <div class="grid grid-cols-4 gap-2">
-            <div v-for="i in 4" :key="i" class="aspect-square bg-neutral-100 rounded-sm"></div>
+          <!-- Thumbnail grid (only show if images exist) -->
+          <div v-if="getImages.length > 1" class="grid grid-cols-4 gap-2">
+            <button 
+              v-for="(img, index) in getImages" 
+              :key="index" 
+              @click="activeImageIndex = Number(index)"
+              class="aspect-square bg-neutral-100 rounded-sm overflow-hidden border-2 transition-colors"
+              :class="activeImageIndex === Number(index) ? 'border-aura-black' : 'border-transparent hover:border-neutral-300'"
+            >
+              <img :src="img" :alt="`${product.name} ${Number(index) + 1}`" class="w-full h-full object-cover" />
+            </button>
           </div>
         </div>
 
@@ -116,7 +230,7 @@ useSeoMeta({
         <div class="lg:py-4">
           <!-- Breadcrumb -->
           <nav class="text-caption text-neutral-500 mb-4">
-            <NuxtLink to="/shop" class="hover:text-aura-black">Shop</NuxtLink>
+            <NuxtLink to="/shop" class="hover:text-aura-black">{{ t('common.shop') }}</NuxtLink>
             <span class="mx-2">/</span>
             <span>{{ product.category }}</span>
           </nav>
@@ -143,10 +257,10 @@ useSeoMeta({
           <!-- Condition -->
           <div class="mb-6 pb-6 border-b border-neutral-200">
             <p class="text-body-sm text-neutral-600">
-              <span class="font-medium">Condition:</span> {{ product.condition_text }}
+              <span class="font-medium">{{ t('shop.condition') }}:</span> {{ product.condition_text }}
             </p>
             <p v-if="product.authenticity_verified" class="text-body-sm text-green-600 mt-1">
-              ✓ Authenticity Verified
+              ✓ {{ t('shop.authenticityVerified') }}
             </p>
           </div>
 
@@ -154,22 +268,23 @@ useSeoMeta({
           <div v-if="variant" class="mb-8 space-y-3">
             <div class="flex gap-8">
               <div>
-                <p class="text-caption text-neutral-500 uppercase">Size</p>
+                <p class="text-caption text-neutral-500 uppercase">{{ t('shop.size') }}</p>
                 <p class="text-body font-medium">{{ variant.size }}</p>
               </div>
               <div>
-                <p class="text-caption text-neutral-500 uppercase">Color</p>
+                <p class="text-caption text-neutral-500 uppercase">{{ t('shop.color') }}</p>
                 <p class="text-body font-medium">{{ variant.color }}</p>
               </div>
               <div v-if="variant.material">
-                <p class="text-caption text-neutral-500 uppercase">Material</p>
+                <p class="text-caption text-neutral-500 uppercase">{{ t('shop.material') }}</p>
                 <p class="text-body font-medium">{{ variant.material }}</p>
               </div>
             </div>
           </div>
 
-          <!-- Add to Cart -->
-          <div class="mb-8">
+          <!-- Action Buttons -->
+          <div class="mb-8 space-y-3">
+            <!-- Add to Cart -->
             <button
               @click="handleAddToCart"
               :disabled="isSold || isInCart"
@@ -181,38 +296,86 @@ useSeoMeta({
                 'bg-aura-black text-aura-white hover:bg-neutral-800': !isSold && !isInCart && !addedToCart,
               }"
             >
-              <span v-if="isSold">Sold Out</span>
-              <span v-else-if="addedToCart">✓ Added to Cart</span>
-              <span v-else-if="isInCart">Already in Cart</span>
-              <span v-else>Add to Cart</span>
+              <span v-if="isSold">{{ t('shop.soldOut') }}</span>
+              <span v-else-if="addedToCart">✓ {{ t('shop.addedToCart') }}</span>
+              <span v-else-if="isInCart">{{ t('shop.alreadyInCart') }}</span>
+              <span v-else>{{ t('shop.addToCart') }}</span>
+            </button>
+
+            <!-- Buy Now -->
+            <button
+              v-if="!isSold"
+              @click="handleBuyNow"
+              class="w-full py-4 text-body font-medium uppercase tracking-wider bg-accent-navy text-white hover:bg-opacity-90 transition-all duration-300"
+            >
+              {{ t('shop.buyNow') || 'Buy Now' }}
+            </button>
+
+            <!-- Wishlist Button -->
+            <button
+              @click="toggleWishlist"
+              :disabled="isWishlistLoading"
+              class="w-full py-4 text-body font-medium uppercase tracking-wider border-2 transition-all duration-300 flex items-center justify-center gap-2"
+              :class="{
+                'border-red-500 bg-red-50 text-red-600': isInWishlist,
+                'border-neutral-300 text-neutral-600 hover:border-neutral-400': !isInWishlist,
+                'opacity-70': isWishlistLoading,
+              }"
+            >
+              <!-- Heart Icon -->
+              <svg class="w-5 h-5" :fill="isInWishlist ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span v-if="isWishlistLoading">...</span>
+              <span v-else-if="isInWishlist">{{ t('shop.inWishlist') }}</span>
+              <span v-else>{{ t('shop.addToWishlist') }}</span>
             </button>
 
             <NuxtLink 
               v-if="isInCart && !isSold" 
               to="/cart" 
-              class="block text-center mt-3 text-body-sm text-neutral-600 hover:text-aura-black"
+              class="block text-center text-body-sm text-neutral-600 hover:text-aura-black"
             >
-              View Cart →
+              {{ t('shop.viewCart') }} →
             </NuxtLink>
           </div>
 
           <!-- Description -->
           <div class="mb-8">
-            <h3 class="text-body font-medium text-aura-black mb-3">Description</h3>
+            <h3 class="text-body font-medium text-aura-black mb-3">{{ t('shop.description') }}</h3>
             <p class="text-body text-neutral-600 whitespace-pre-line">{{ product.description }}</p>
           </div>
 
           <!-- Details -->
           <div class="border-t border-neutral-200 pt-6">
-            <h3 class="text-body font-medium text-aura-black mb-3">Details</h3>
+            <h3 class="text-body font-medium text-aura-black mb-3">{{ t('shop.details') }}</h3>
             <ul class="space-y-2 text-body-sm text-neutral-600">
-              <li><span class="text-neutral-500">SKU:</span> {{ variant?.sku || 'N/A' }}</li>
-              <li><span class="text-neutral-500">Category:</span> {{ product.category }}</li>
+              <li><span class="text-neutral-500">{{ t('shop.sku') }}:</span> {{ variant?.sku || 'N/A' }}</li>
+              <li><span class="text-neutral-500">{{ t('shop.category') }}:</span> {{ product.category }}</li>
               <li><span class="text-neutral-500">Subcategory:</span> {{ product.subcategory }}</li>
             </ul>
           </div>
         </div>
       </div>
+
+      <!-- Reviews Section -->
+      <div v-if="product" class="mt-16">
+        <!-- Review Form -->
+        <ReviewForm 
+          :product-id="productId"
+          @submitted="reviewsRef?.refresh()"
+          class="mb-8"
+        />
+
+        <!-- Reviews List -->
+        <ProductReviews 
+          ref="reviewsRef"
+          :product-id="productId"
+        />
+      </div>
+
+      <!-- Related Products -->
+      <RelatedProducts v-if="product" :product-id="productId" />
     </div>
   </div>
 </template>
