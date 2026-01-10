@@ -7,10 +7,10 @@ const express = require('express');
 const router = express.Router();
 
 const addressController = require('../../controllers/address.controller');
-const { authenticate } = require('../../middlewares/auth.middleware');
+const { protect } = require('../../middlewares/auth.middleware');
 
 // All routes require authentication
-router.use(authenticate);
+router.use(protect);
 
 router.get('/', addressController.getAddresses);
 router.get('/default', addressController.getDefaultAddress);

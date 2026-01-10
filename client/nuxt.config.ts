@@ -14,9 +14,10 @@ export default defineNuxtConfig({
 
   // i18n Configuration
   i18n: {
+    vueI18n: './i18n.config.ts',
     locales: [
-      { code: 'en', iso: 'en-US', file: 'en.json', name: 'English' },
-      { code: 'vi', iso: 'vi-VN', file: 'vi.json', name: 'Tiếng Việt' },
+      { code: 'en', language: 'en-US', file: 'en.json' },
+      { code: 'vi', language: 'vi-VN', file: 'vi.json' },
     ],
     defaultLocale: 'vi',
     lazy: true,
@@ -28,9 +29,6 @@ export default defineNuxtConfig({
       fallbackLocale: 'vi',
       alwaysRedirect: false,
       redirectOn: 'root',
-    },
-    bundle: {
-      fullInstall: true,
     },
   },
 

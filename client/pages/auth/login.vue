@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/auth'
+
 definePageMeta({
   layout: 'auth',
 })
+
+const { t } = useI18n()
+const authStore = useAuthStore()
 
 // Form state
 const email = ref('')
@@ -27,14 +32,20 @@ const handleSubmit = async () => {
     )
 
     if (response.success) {
-      // Store token (implement proper storage later)
+      // Store token and user
       localStorage.setItem('token', response.data.token)
+      authStore.token = response.data.token
+      authStore.user = response.data.user
       
-      // Redirect to shop or dashboard
-      navigateTo('/')
+      // Redirect based on role
+      if (response.data.user.role === 'ADMIN') {
+        navigateTo('/admin/dashboard')
+      } else {
+        navigateTo('/')
+      }
     }
   } catch (err: any) {
-    error.value = err.data?.message || 'Invalid email or password'
+    error.value = err.data?.message || t('auth.invalidCredentials')
   } finally {
     isLoading.value = false
   }
@@ -44,9 +55,9 @@ const handleSubmit = async () => {
 <template>
   <div class="bg-aura-white rounded-sm shadow-card p-8 lg:p-10">
     <div class="text-center mb-8">
-      <h2 class="font-serif text-heading-2 text-aura-black mb-2">Welcome Back</h2>
+      <h2 class="font-serif text-heading-2 text-aura-black mb-2">{{ $t('auth.welcomeBack') }}</h2>
       <p class="text-body text-neutral-600">
-        Sign in to continue to your account
+        {{ $t('auth.signInToContinue') }}
       </p>
     </div>
 
@@ -61,14 +72,14 @@ const handleSubmit = async () => {
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <!-- Email Field -->
       <div>
-        <label for="email" class="input-label">Email Address</label>
+        <label for="email" class="input-label">{{ $t('auth.email') }}</label>
         <input
           id="email"
           v-model="email"
           type="email"
           required
           class="input-field"
-          placeholder="your@email.com"
+          :placeholder="$t('auth.emailPlaceholder')"
           autocomplete="email"
         />
       </div>
@@ -76,12 +87,12 @@ const handleSubmit = async () => {
       <!-- Password Field -->
       <div>
         <div class="flex justify-between items-center mb-2">
-          <label for="password" class="input-label mb-0">Password</label>
+          <label for="password" class="input-label mb-0">{{ $t('auth.password') }}</label>
           <NuxtLink
             to="/auth/forgot-password"
             class="text-caption text-neutral-600 hover:text-aura-black transition-colors"
           >
-            Forgot Password?
+            {{ $t('auth.forgotPassword') }}
           </NuxtLink>
         </div>
         <div class="relative">
@@ -91,7 +102,7 @@ const handleSubmit = async () => {
             :type="showPassword ? 'text' : 'password'"
             required
             class="input-field pr-12"
-            placeholder="Enter your password"
+            :placeholder="$t('auth.passwordPlaceholder')"
             autocomplete="current-password"
           />
           <button
@@ -122,9 +133,9 @@ const handleSubmit = async () => {
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          Signing In...
+          {{ $t('auth.signingIn') }}
         </span>
-        <span v-else>Sign In</span>
+        <span v-else>{{ $t('auth.signIn') }}</span>
       </button>
 
       <!-- Divider -->
@@ -133,16 +144,16 @@ const handleSubmit = async () => {
           <div class="w-full border-t border-neutral-200"></div>
         </div>
         <div class="relative flex justify-center">
-          <span class="px-4 bg-aura-white text-caption text-neutral-500">OR</span>
+          <span class="px-4 bg-aura-white text-caption text-neutral-500">{{ $t('common.or') }}</span>
         </div>
       </div>
 
       <!-- Register Link -->
       <div class="text-center">
         <p class="text-body text-neutral-600">
-          Don't have an account?
+          {{ $t('auth.noAccount') }}
           <NuxtLink to="/auth/register" class="text-aura-black font-medium hover:underline">
-            Create Account
+            {{ $t('auth.createAccount') }}
           </NuxtLink>
         </p>
       </div>

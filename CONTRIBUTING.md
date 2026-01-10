@@ -4,7 +4,7 @@
 
 ### 1. Clone project
 ```bash
-git clone https://github.com/Anhvu1107/KLTN.git
+git clone git@github.com:Anhvu1107/KLTN.git
 cd KLTN
 git checkout dev
 ```

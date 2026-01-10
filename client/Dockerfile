@@ -11,9 +11,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Set environment variables for build
-ENV NUXT_PUBLIC_API_URL=http://server:5000/api/v1
-ENV NUXT_PUBLIC_AI_SERVICE_URL=http://ai-service:8001
+# Set environment for build
+ARG NUXT_PUBLIC_API_URL=http://server:5000/api/v1
+ENV NUXT_PUBLIC_API_URL=$NUXT_PUBLIC_API_URL
 
 # Build for production
 RUN npm run build
@@ -27,7 +27,6 @@ WORKDIR /app
 COPY --from=builder /app/.output /app/.output
 
 # Set runtime environment
-ENV NUXT_PUBLIC_API_URL=http://server:5000/api/v1
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
