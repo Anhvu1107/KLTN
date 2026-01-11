@@ -5,10 +5,13 @@
  */
 
 import { useAuthStore } from '~/stores/auth'
+import { useI18n } from '#imports'
 
 definePageMeta({
   middleware: ['auth'],
 })
+
+const { t } = useI18n()
 
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
@@ -126,15 +129,15 @@ useSeoMeta({
     <div class="container-aura max-w-2xl">
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
-        <h1 class="font-serif text-heading-1 text-aura-black">Edit Profile</h1>
+        <h1 class="font-serif text-heading-1 text-aura-black">{{ t('account.editProfile') }}</h1>
         <NuxtLink to="/account" class="text-body-sm text-neutral-600 hover:text-aura-black">
-          ← Back to Account
+          ← {{ t('common.backTo') }} {{ t('common.account') }}
         </NuxtLink>
       </div>
 
       <!-- Profile Form -->
       <form @submit.prevent="updateProfile" class="card p-6 mb-8">
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6">Personal Information</h2>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('account.personalInfo') }}</h2>
 
         <!-- Messages -->
         <div v-if="profileMessage" class="mb-4 p-3 bg-green-50 text-green-700 text-body-sm rounded-sm">
@@ -164,13 +167,13 @@ useSeoMeta({
         </div>
 
         <button type="submit" :disabled="isUpdatingProfile" class="btn-primary">
-          {{ isUpdatingProfile ? 'Saving...' : 'Save Changes' }}
+          {{ isUpdatingProfile ? t('common.saving') : t('admin.saveChanges') }}
         </button>
       </form>
 
       <!-- Password Form -->
       <form @submit.prevent="changePassword" class="card p-6">
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6">Change Password</h2>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('account.changePassword') }}</h2>
 
         <!-- Messages -->
         <div v-if="passwordMessage" class="mb-4 p-3 bg-green-50 text-green-700 text-body-sm rounded-sm">
@@ -196,7 +199,7 @@ useSeoMeta({
         </div>
 
         <button type="submit" :disabled="isChangingPassword" class="btn-secondary">
-          {{ isChangingPassword ? 'Changing...' : 'Change Password' }}
+          {{ isChangingPassword ? t('account.changing') : t('account.changePassword') }}
         </button>
       </form>
     </div>

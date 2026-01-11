@@ -4,10 +4,14 @@
  * AURA ARCHIVE - Manage discount codes
  */
 
+import { useI18n } from '#imports'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
 })
+
+const { t } = useI18n()
 
 const config = useRuntimeConfig()
 
@@ -120,7 +124,7 @@ const submitForm = async () => {
 
 // Delete coupon
 const deleteCoupon = async (id: string) => {
-  if (!confirm('Are you sure you want to delete this coupon?')) return
+  if (!confirm(t('common.confirmDelete'))) return
 
   try {
     const token = localStorage.getItem('token')
@@ -154,9 +158,9 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
 <template>
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-serif text-heading-2 text-aura-black">Coupon Management</h1>
+      <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.coupons.title') }}</h1>
       <button @click="openCreateModal" class="btn-primary">
-        + Add Coupon
+        + {{ t('admin.coupons.add') }}
       </button>
     </div>
 
@@ -200,19 +204,19 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
             </td>
             <td class="px-4 py-3">
               <span class="px-2 py-1 rounded text-caption" :class="coupon.is_active && !isExpired(coupon.expires_at) ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'">
-                {{ coupon.is_active && !isExpired(coupon.expires_at) ? 'Active' : 'Inactive' }}
+                {{ coupon.is_active && !isExpired(coupon.expires_at) ? t('common.active') : t('common.inactive') }}
               </span>
             </td>
             <td class="px-4 py-3 text-right">
-              <button @click="openEditModal(coupon)" class="text-neutral-600 hover:text-aura-black mr-3">Edit</button>
-              <button @click="deleteCoupon(coupon.id)" class="text-red-600 hover:text-red-700">Delete</button>
+              <button @click="openEditModal(coupon)" class="text-neutral-600 hover:text-aura-black mr-3">{{ t('common.edit') }}</button>
+              <button @click="deleteCoupon(coupon.id)" class="text-red-600 hover:text-red-700">{{ t('common.delete') }}</button>
             </td>
           </tr>
         </tbody>
       </table>
 
       <div v-if="coupons.length === 0" class="text-center py-12 text-neutral-500">
-        No coupons yet
+        {{ t('admin.coupons.noCoupons') }}
       </div>
     </div>
 
@@ -221,7 +225,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
           <div class="p-6 border-b border-neutral-200">
-            <h2 class="font-serif text-heading-4">{{ editingCoupon ? 'Edit Coupon' : 'Create Coupon' }}</h2>
+            <h2 class="font-serif text-heading-4">{{ editingCoupon ? t('admin.coupons.edit') : t('admin.coupons.create') }}</h2>
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
@@ -292,10 +296,10 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
 
             <div class="flex justify-end gap-3 pt-4">
               <button type="button" @click="showModal = false" class="px-4 py-2 text-body-sm text-neutral-600 hover:text-aura-black">
-                Cancel
+                {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="isSubmitting" class="btn-primary">
-                {{ isSubmitting ? 'Saving...' : 'Save Coupon' }}
+                {{ isSubmitting ? t('common.saving') : t('admin.coupons.save') }}
               </button>
             </div>
           </form>

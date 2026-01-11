@@ -5,10 +5,13 @@
  */
 
 import { useCartStore } from '~/stores/cart'
+import { useI18n } from '#imports'
 
 definePageMeta({
   middleware: ['auth'],
 })
+
+const { t } = useI18n()
 
 const config = useRuntimeConfig()
 const cartStore = useCartStore()
@@ -73,15 +76,15 @@ useSeoMeta({
     <div class="container-aura">
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
-        <h1 class="font-serif text-heading-1 text-aura-black">Wishlist</h1>
+        <h1 class="font-serif text-heading-1 text-aura-black">{{ t('common.wishlist') }}</h1>
         <NuxtLink to="/account" class="text-body-sm text-neutral-600 hover:text-aura-black">
-          ← Back to Account
+          ← {{ t('common.backTo') }} {{ t('common.account') }}
         </NuxtLink>
       </div>
 
       <!-- Loading -->
       <div v-if="pending" class="text-center py-16">
-        <p class="text-neutral-500">Loading wishlist...</p>
+        <p class="text-neutral-500">{{ t('common.loading') }}</p>
       </div>
 
       <!-- Empty -->
@@ -91,9 +94,9 @@ useSeoMeta({
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </div>
-        <h2 class="font-serif text-heading-4 text-aura-black mb-2">Your Wishlist is Empty</h2>
-        <p class="text-body text-neutral-600 mb-6">Save items you love to buy later.</p>
-        <NuxtLink to="/shop" class="btn-primary">Explore Shop</NuxtLink>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-2">{{ t('account.wishlistEmpty') }}</h2>
+        <p class="text-body text-neutral-600 mb-6">{{ t('account.saveItemsLater') }}</p>
+        <NuxtLink to="/shop" class="btn-primary">{{ t('shop.exploreShop') }}</NuxtLink>
       </div>
 
       <!-- Wishlist Items -->
@@ -139,7 +142,7 @@ useSeoMeta({
             @click="addToCart(item)"
             class="w-full mt-3 btn-secondary text-body-sm"
           >
-            Add to Cart
+            {{ t('shop.addToCart') }}
           </button>
         </div>
       </div>

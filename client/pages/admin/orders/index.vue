@@ -4,10 +4,14 @@
  * AURA ARCHIVE - Orders list with status management
  */
 
+import { useI18n } from '#imports'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
+
+const { t } = useI18n()
 
 const config = useRuntimeConfig()
 const token = localStorage.getItem('token')
@@ -94,20 +98,20 @@ useSeoMeta({
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="font-serif text-heading-2 text-aura-black">Orders</h1>
-        <p class="text-body text-neutral-600">{{ pagination.total || 0 }} total orders</p>
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.orders') }}</h1>
+        <p class="text-body text-neutral-600">{{ pagination.total || 0 }} {{ t('admin.totalOrdersLabel') }}</p>
       </div>
       
       <!-- Filter by status -->
       <select v-model="status" class="input-field w-48">
-        <option value="">All Statuses</option>
+        <option value="">{{ t('admin.allStatuses') }}</option>
         <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
       </select>
     </div>
 
     <!-- Loading -->
     <div v-if="pending" class="text-center py-16">
-      <p class="text-neutral-500">Loading orders...</p>
+      <p class="text-neutral-500">{{ t('common.loading') }}</p>
     </div>
 
     <!-- Table -->
@@ -115,13 +119,13 @@ useSeoMeta({
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Order ID</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Customer</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Amount</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Status</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Payment</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Date</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Actions</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.orderId') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.customer') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.amount') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('common.status') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.payment') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.date') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -165,7 +169,7 @@ useSeoMeta({
 
       <!-- Empty -->
       <div v-if="orders.length === 0" class="text-center py-16">
-        <p class="text-neutral-500">No orders found</p>
+        <p class="text-neutral-500">{{ t('admin.noOrders') }}</p>
       </div>
     </div>
 

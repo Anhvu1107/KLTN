@@ -55,7 +55,7 @@ const fetchProducts = async () => {
 
 // Delete product
 const deleteProduct = async (id: number) => {
-  if (!confirm('Are you sure you want to delete this product?')) return
+  if (!confirm(t('common.confirmDelete'))) return
 
   try {
     const token = getToken()
@@ -147,12 +147,12 @@ useSeoMeta({
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
-            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Product</th>
-            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Category</th>
-            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Price</th>
-            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Status</th>
-            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Active</th>
-            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">Actions</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.product') }}</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('shop.category') }}</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('shop.price') }}</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('common.status') }}</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('common.active') }}</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -193,13 +193,13 @@ useSeoMeta({
                   :to="`/admin/products/${product.id}`"
                   class="text-body-sm text-neutral-600 hover:text-aura-black"
                 >
-                  Edit
+                  {{ t('common.edit') }}
                 </NuxtLink>
                 <button
                   @click="deleteProduct(product.id)"
                   class="text-body-sm text-red-500 hover:text-red-700"
                 >
-                  Delete
+                  {{ t('common.delete') }}
                 </button>
               </div>
             </td>
@@ -209,8 +209,8 @@ useSeoMeta({
 
       <!-- Empty State -->
       <div v-if="products.length === 0" class="text-center py-16">
-        <p class="text-neutral-500 mb-4">No products found</p>
-        <NuxtLink to="/admin/products/new" class="btn-primary">Add First Product</NuxtLink>
+        <p class="text-neutral-500 mb-4">{{ t('admin.noProducts') }}</p>
+        <NuxtLink to="/admin/products/new" class="btn-primary">{{ t('admin.addFirstProduct') }}</NuxtLink>
       </div>
     </div>
   </div>

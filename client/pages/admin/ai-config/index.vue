@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { useI18n } from '#imports'
+
 definePageMeta({
   layout: 'default',
   middleware: ['admin'],
 })
+
+const { t } = useI18n()
 
 const config = useRuntimeConfig()
 const token = localStorage.getItem('token')
@@ -77,17 +81,17 @@ useSeoMeta({
     <div class="container-aura max-w-4xl">
       <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="font-serif text-heading-2 text-aura-black">AI Configuration</h1>
-          <p class="text-body text-neutral-600 mt-2">Customize the AI Stylist's behavior and personality.</p>
+          <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.aiConfig.title') }}</h1>
+          <p class="text-body text-neutral-600 mt-2">{{ t('admin.aiConfig.desc') }}</p>
         </div>
         <NuxtLink to="/admin/dashboard" class="text-body-sm text-neutral-600 hover:text-aura-black">
-          ← Back to Dashboard
+          ← {{ t('common.backTo') }} Dashboard
         </NuxtLink>
       </div>
 
       <!-- Loading State -->
       <div v-if="pending" class="card p-8 text-center">
-        <p class="text-neutral-500">Loading prompts...</p>
+        <p class="text-neutral-500">{{ t('common.loading') }}</p>
       </div>
 
       <!-- Prompts List -->
@@ -107,7 +111,7 @@ useSeoMeta({
               @click="startEdit(prompt)"
               class="text-body-sm text-neutral-600 hover:text-aura-black px-4 py-2 border border-neutral-200 rounded-sm hover:border-neutral-300 transition-colors"
             >
-              Edit
+              {{ t('common.edit') }}
             </button>
           </div>
 
@@ -143,7 +147,7 @@ useSeoMeta({
                   :disabled="isSaving"
                   class="btn-ghost"
                 >
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button
                   @click="saveChanges"
@@ -151,7 +155,7 @@ useSeoMeta({
                   class="btn-primary"
                   :class="{ 'opacity-70': isSaving }"
                 >
-                  {{ isSaving ? 'Saving...' : 'Save Changes' }}
+                  {{ isSaving ? t('common.saving') : t('admin.saveChanges') }}
                 </button>
               </div>
             </div>
@@ -161,12 +165,12 @@ useSeoMeta({
 
       <!-- Instructions -->
       <div class="mt-8 p-6 bg-blue-50 rounded-sm">
-        <h3 class="font-medium text-blue-900 mb-2">💡 Tips for AI Persona</h3>
+        <h3 class="font-medium text-blue-900 mb-2">💡 {{ t('admin.aiConfig.tipsTitle') }}</h3>
         <ul class="text-body-sm text-blue-800 space-y-1">
-          <li>• Be specific about the desired tone and personality</li>
-          <li>• Include examples of how the AI should respond</li>
-          <li>• Mention any brands or styles the AI should prioritize</li>
-          <li>• Changes take effect immediately for new conversations</li>
+          <li>• {{ t('admin.aiConfig.tip1') }}</li>
+          <li>• {{ t('admin.aiConfig.tip2') }}</li>
+          <li>• {{ t('admin.aiConfig.tip3') }}</li>
+          <li>• {{ t('admin.aiConfig.tip4') }}</li>
         </ul>
       </div>
     </div>

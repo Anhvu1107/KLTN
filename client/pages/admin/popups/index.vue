@@ -4,11 +4,14 @@
  * AURA ARCHIVE - Marketing popup management
  */
 
+import { useI18n } from '#imports'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
 })
 
+const { t } = useI18n()
 const config = useRuntimeConfig()
 const popups = ref<any[]>([])
 const isLoading = ref(true)
@@ -89,8 +92,8 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
 <template>
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-serif text-heading-2 text-aura-black">Popup Manager</h1>
-      <button @click="openCreate" class="btn-primary">+ Tạo Popup</button>
+      <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.popups.title') }}</h1>
+      <button @click="openCreate" class="btn-primary">+ {{ t('admin.popups.add') }}</button>
     </div>
 
     <div v-if="isLoading" class="text-center py-12">
@@ -102,14 +105,14 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-medium">{{ popup.name }}</h3>
           <span :class="popup.is_active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'" class="px-2 py-1 text-caption rounded">
-            {{ popup.is_active ? 'Active' : 'Inactive' }}
+            {{ popup.is_active ? t('common.active') : t('common.inactive') }}
           </span>
         </div>
         <p class="text-body-sm text-neutral-600 mb-2">{{ popup.title }}</p>
-        <p class="text-caption text-neutral-500 mb-4">Trigger: {{ popup.trigger_type }} ({{ popup.trigger_value }}s)</p>
+        <p class="text-caption text-neutral-500 mb-4">{{ t('admin.popups.trigger') }}: {{ popup.trigger_type }} ({{ popup.trigger_value }}s)</p>
         <div class="flex gap-2">
-          <button @click="openEdit(popup)" class="flex-1 py-2 border text-body-sm hover:border-aura-black">Edit</button>
-          <button @click="deletePopup(popup.id)" class="px-4 py-2 border text-red-600 text-body-sm hover:border-red-500">Delete</button>
+          <button @click="openEdit(popup)" class="flex-1 py-2 border text-body-sm hover:border-aura-black">{{ t('common.edit') }}</button>
+          <button @click="deletePopup(popup.id)" class="px-4 py-2 border text-red-600 text-body-sm hover:border-red-500">{{ t('common.delete') }}</button>
         </div>
       </div>
     </div>
@@ -118,7 +121,7 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto p-6">
-          <h2 class="font-serif text-heading-4 mb-6">{{ editingPopup ? 'Edit Popup' : 'Create Popup' }}</h2>
+          <h2 class="font-serif text-heading-4 mb-6">{{ editingPopup ? t('admin.popups.edit') : t('admin.popups.create') }}</h2>
           <form @submit.prevent="savePopup" class="space-y-4">
             <div><label class="input-label">Name *</label><input v-model="formData.name" class="input-field" required /></div>
             <div><label class="input-label">Title</label><input v-model="formData.title" class="input-field" /></div>
@@ -151,8 +154,8 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
               <label for="active">Active</label>
             </div>
             <div class="flex justify-end gap-3 pt-4">
-              <button type="button" @click="showModal = false" class="px-4 py-2 text-neutral-600">Cancel</button>
-              <button type="submit" class="btn-primary">Save</button>
+              <button type="button" @click="showModal = false" class="px-4 py-2 text-neutral-600">{{ t('common.cancel') }}</button>
+              <button type="submit" class="btn-primary">{{ t('common.save') }}</button>
             </div>
           </form>
         </div>

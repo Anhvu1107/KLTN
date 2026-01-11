@@ -160,11 +160,11 @@ useSeoMeta({
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="font-serif text-heading-2 text-aura-black">Add New Product</h1>
-          <p class="text-body text-neutral-600 mt-1">Create a new product listing with variant</p>
+          <h1 class="font-serif text-heading-2 text-aura-black">{{ $t('admin.addProduct') }}</h1>
+          <p class="text-body text-neutral-600 mt-1">{{ $t('admin.createProductDesc') }}</p>
         </div>
         <NuxtLink to="/admin/products" class="text-body-sm text-neutral-600 hover:text-aura-black">
-          ← Back to Products
+          ← {{ $t('common.backTo') }} {{ $t('admin.products') }}
         </NuxtLink>
       </div>
 
@@ -180,7 +180,7 @@ useSeoMeta({
       <form @submit.prevent="handleSubmit" class="space-y-8">
         <!-- Product Images -->
         <div class="bg-white p-6 rounded-sm shadow-card">
-          <h2 class="font-serif text-heading-4 text-aura-black mb-6">Product Images</h2>
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.productImages') }}</h2>
           
           <!-- Image Preview Grid -->
           <div class="grid grid-cols-5 gap-4 mb-4">
@@ -213,7 +213,7 @@ useSeoMeta({
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span class="text-caption text-neutral-400 mt-1">{{ isUploading ? 'Uploading...' : 'Add' }}</span>
+              <span class="text-caption text-neutral-400 mt-1">{{ isUploading ? $t('admin.uploading') : $t('common.add') }}</span>
             </div>
           </div>
           
@@ -233,7 +233,7 @@ useSeoMeta({
 
         <!-- Product Info -->
         <div class="bg-white p-6 rounded-sm shadow-card">
-          <h2 class="font-serif text-heading-4 text-aura-black mb-6">Product Information</h2>
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.productInfo') }}</h2>
           
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
@@ -289,7 +289,7 @@ useSeoMeta({
 
         <!-- Variant Info -->
         <div class="bg-white p-6 rounded-sm shadow-card">
-          <h2 class="font-serif text-heading-4 text-aura-black mb-6">Variant Details</h2>
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.variantDetails') }}</h2>
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -323,10 +323,10 @@ useSeoMeta({
             class="btn-primary"
             :class="{ 'opacity-70': isSubmitting || isUploading }"
           >
-            {{ isSubmitting ? 'Creating...' : 'Create Product' }}
+            {{ isSubmitting ? $t('admin.creating') : $t('admin.createProduct') }}
           </button>
           <NuxtLink to="/admin/products" class="btn-secondary">
-            Cancel
+            {{ $t('common.cancel') }}
           </NuxtLink>
         </div>
       </form>

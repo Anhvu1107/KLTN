@@ -48,7 +48,7 @@ onMounted(() => {
     <div class="bg-neutral-100 text-neutral-700 border-b border-neutral-200">
       <div class="container-aura">
         <div class="flex items-center justify-between py-2 text-caption">
-          <span class="hidden md:block">Free Shipping & Returns On All Orders</span>
+          <span class="hidden md:block">{{ t('header.freeShipping') }}</span>
           <div class="flex items-center gap-6 w-full md:w-auto justify-center md:justify-end">
             <LanguageSwitcher />
             <NuxtLink 
@@ -56,7 +56,7 @@ onMounted(() => {
               to="/auth/login" 
               class="hover:text-aura-black transition-colors"
             >
-              Sign In or Create Account
+              {{ t('header.signInOrCreate') }}
             </NuxtLink>
           </div>
         </div>

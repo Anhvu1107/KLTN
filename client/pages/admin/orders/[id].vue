@@ -4,10 +4,14 @@
  * AURA ARCHIVE - Full order view with status management
  */
 
+import { useI18n } from '#imports'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
+
+const { t } = useI18n()
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -91,15 +95,15 @@ useSeoMeta({ title: 'Order Detail | Admin' })
     <div class="flex items-center justify-between mb-6">
       <div>
         <NuxtLink to="/admin/orders" class="text-body-sm text-neutral-500 hover:text-aura-black mb-2 inline-block">
-          ← Back to Orders
+          ← {{ t('common.backTo') }} {{ t('admin.orders') }}
         </NuxtLink>
-        <h1 class="font-serif text-heading-2 text-aura-black">Order Detail</h1>
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.orderDetail') }}</h1>
       </div>
       <NuxtLink :to="`/admin/orders/${orderId}/print`" class="btn-secondary flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
         </svg>
-        Print Invoice
+        {{ t('admin.printInvoice') }}
       </NuxtLink>
     </div>
 
@@ -126,7 +130,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
 
           <!-- Status Update -->
           <div class="flex items-center gap-2 pt-4 border-t">
-            <span class="text-body-sm text-neutral-500">Update Status:</span>
+            <span class="text-body-sm text-neutral-500">{{ t('admin.updateStatus') }}:</span>
             <select 
               :value="order.status"
               @change="updateStatus(($event.target as HTMLSelectElement).value)"
@@ -140,7 +144,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
 
         <!-- Items -->
         <div class="bg-white rounded-sm border border-neutral-200 p-6">
-          <h3 class="font-medium mb-4">Order Items</h3>
+          <h3 class="font-medium mb-4">{{ t('admin.orderItems') }}</h3>
           <div class="space-y-4">
             <div v-for="item in order.items" :key="item.id" class="flex items-center gap-4 p-4 bg-neutral-50 rounded">
               <img 
@@ -169,7 +173,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
       <div class="space-y-6">
         <!-- Customer -->
         <div class="bg-white rounded-sm border border-neutral-200 p-6">
-          <h3 class="font-medium mb-4">Customer</h3>
+          <h3 class="font-medium mb-4">{{ t('admin.customer') }}</h3>
           <p class="font-medium">{{ order.user?.first_name }} {{ order.user?.last_name }}</p>
           <p class="text-body-sm text-neutral-500">{{ order.user?.email }}</p>
           <p class="text-body-sm text-neutral-500">{{ order.user?.phone }}</p>
@@ -177,7 +181,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
 
         <!-- Shipping -->
         <div class="bg-white rounded-sm border border-neutral-200 p-6">
-          <h3 class="font-medium mb-4">Shipping Address</h3>
+          <h3 class="font-medium mb-4">{{ t('checkout.shippingAddress') }}</h3>
           <p class="font-medium">{{ order.shipping_address?.full_name }}</p>
           <p class="text-body-sm text-neutral-500">{{ order.shipping_address?.phone }}</p>
           <p class="text-body-sm text-neutral-500">{{ order.shipping_address?.address }}</p>
@@ -188,7 +192,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
 
         <!-- Payment -->
         <div class="bg-white rounded-sm border border-neutral-200 p-6">
-          <h3 class="font-medium mb-4">Payment</h3>
+          <h3 class="font-medium mb-4">{{ t('checkout.paymentMethod') }}</h3>
           <div class="space-y-2 text-body-sm">
             <div class="flex justify-between">
               <span class="text-neutral-500">Method:</span>
@@ -221,7 +225,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
 
     <!-- Not Found -->
     <div v-else class="text-center py-12">
-      <p class="text-neutral-500">Order not found</p>
+      <p class="text-neutral-500">{{ t('errors.notFound') }}</p>
     </div>
   </div>
 </template>
