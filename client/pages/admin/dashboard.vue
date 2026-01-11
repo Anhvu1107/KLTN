@@ -91,11 +91,11 @@ const chartOptions = {
     y: {
       beginAtZero: true,
       ticks: {
-        callback: (value: number) => `$${value.toLocaleString()}`,
+        callback: (value: string | number) => `$${Number(value).toLocaleString()}`,
       },
     },
   },
-}
+} as const
 
 // Format helpers
 const formatPrice = (price: number) => {
