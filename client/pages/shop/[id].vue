@@ -6,6 +6,8 @@
 
 import { useCartStore } from '~/stores/cart'
 import { useI18n } from '#imports'
+import { useRecentlyViewed } from '~/composables/useRecentlyViewed'
+import { useCompare } from '~/composables/useCompare'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -145,6 +147,22 @@ watch(() => product.value, () => {
   }
 }, { immediate: true })
 
+// Track recently viewed products
+const { addProduct: addToRecentlyViewed } = useRecentlyViewed()
+
+watch(() => product.value, () => {
+  if (product.value) {
+    addToRecentlyViewed({
+      id: product.value.id,
+      name: product.value.name,
+      brand: product.value.brand,
+      image: product.value.images?.[0] || '',
+      price: parseFloat(product.value.base_price),
+      salePrice: product.value.sale_price ? parseFloat(product.value.sale_price) : undefined,
+    })
+  }
+}, { immediate: true })
+
 // Format helpers
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -167,6 +185,30 @@ const getImages = computed(() => {
 // Active image for gallery
 const activeImageIndex = ref(0)
 const activeImage = computed(() => getImages.value[activeImageIndex.value] || null)
+
+// Size Guide modal
+const showSizeGuide = ref(false)
+
+// Compare functionality
+const { isInCompare, toggleProduct: toggleCompare, isFull: isCompareFull } = useCompare()
+const productInCompare = computed(() => product.value ? isInCompare(product.value.id) : false)
+
+const handleToggleCompare = () => {
+  if (!product.value) return
+  toggleCompare({
+    id: product.value.id,
+    name: product.value.name,
+    brand: product.value.brand,
+    image: product.value.images?.[0] || '',
+    price: parseFloat(product.value.base_price),
+    salePrice: product.value.sale_price ? parseFloat(product.value.sale_price) : undefined,
+    category: product.value.category,
+    condition: product.value.condition_text,
+    size: variant.value?.size,
+    color: variant.value?.color,
+    material: variant.value?.material,
+  })
+}
 
 useSeoMeta({
   title: () => product.value ? `${product.value.name} | AURA ARCHIVE` : 'Product | AURA ARCHIVE',
@@ -280,6 +322,18 @@ useSeoMeta({
                 <p class="text-body font-medium">{{ variant.material }}</p>
               </div>
             </div>
+            
+            <!-- Size Guide Button -->
+            <button
+              type="button"
+              @click="showSizeGuide = true"
+              class="text-body-sm text-accent-navy hover:underline flex items-center gap-1"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              {{ t('shop.sizeGuide') }}
+            </button>
           </div>
 
           <!-- Action Buttons -->
@@ -331,6 +385,25 @@ useSeoMeta({
               <span v-else>{{ t('shop.addToWishlist') }}</span>
             </button>
 
+            <!-- Compare Button -->
+            <button
+              @click="handleToggleCompare"
+              :disabled="isCompareFull && !productInCompare"
+              class="w-full py-3 text-body-sm font-medium uppercase tracking-wider border transition-all duration-300 flex items-center justify-center gap-2"
+              :class="{
+                'border-accent-navy bg-accent-navy/10 text-accent-navy': productInCompare,
+                'border-neutral-300 text-neutral-600 hover:border-neutral-400': !productInCompare && !isCompareFull,
+                'border-neutral-200 text-neutral-400 cursor-not-allowed': isCompareFull && !productInCompare,
+              }"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <span v-if="productInCompare">{{ t('shop.removeFromCompare') || 'Remove from Compare' }}</span>
+              <span v-else-if="isCompareFull">{{ t('shop.compareFull') || 'Compare Full (4 max)' }}</span>
+              <span v-else>{{ t('shop.compareProducts') }}</span>
+            </button>
+
             <NuxtLink 
               v-if="isInCart && !isSold" 
               to="/cart" 
@@ -376,6 +449,15 @@ useSeoMeta({
 
       <!-- Related Products -->
       <RelatedProducts v-if="product" :product-id="productId" />
+
+      <!-- Recently Viewed -->
+      <RecentlyViewed :exclude-id="productId" />
     </div>
+
+    <!-- Size Guide Modal -->
+    <SizeGuide 
+      v-model="showSizeGuide" 
+      :category="product?.category" 
+    />
   </div>
 </template>

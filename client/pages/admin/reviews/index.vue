@@ -5,6 +5,8 @@
  * Refactored with proper types, composables, and i18n
  */
 
+import { useApi } from '~/composables/useApi'
+import { useNotification } from '~/composables/useNotification'
 import type { Review, ReviewsListData } from '~/types/review.types'
 
 definePageMeta({

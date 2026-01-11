@@ -4,10 +4,14 @@
  * AURA ARCHIVE - Manage homepage banners
  */
 
+import { useI18n } from '#imports'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
 })
+
+const { t } = useI18n()
 
 const config = useRuntimeConfig()
 
@@ -111,7 +115,7 @@ const submitForm = async () => {
 
 // Delete banner
 const deleteBanner = async (id: string) => {
-  if (!confirm('Delete this banner?')) return
+  if (!confirm(t('common.confirmDelete'))) return
 
   try {
     const token = localStorage.getItem('token')
@@ -133,9 +137,9 @@ useSeoMeta({ title: 'Banner Management | Admin' })
 <template>
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-serif text-heading-2 text-aura-black">Banner Management</h1>
+      <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.banners.title') }}</h1>
       <button @click="openCreateModal" class="btn-primary">
-        + Add Banner
+        + {{ t('admin.banners.add') }}
       </button>
     </div>
 
@@ -160,14 +164,14 @@ useSeoMeta({ title: 'Banner Management | Admin' })
             class="w-full h-full object-cover"
           />
           <div v-else class="w-full h-full flex items-center justify-center text-neutral-400">
-            No Image
+            {{ t('admin.banners.noImage') }}
           </div>
           <div class="absolute top-2 right-2">
             <span 
               class="px-2 py-1 rounded text-caption"
               :class="banner.is_active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'"
             >
-              {{ banner.is_active ? 'Active' : 'Inactive' }}
+              {{ banner.is_active ? t('common.active') : t('common.inactive') }}
             </span>
           </div>
         </div>
@@ -180,10 +184,10 @@ useSeoMeta({ title: 'Banner Management | Admin' })
           
           <div class="flex gap-2 mt-4">
             <button @click="openEditModal(banner)" class="flex-1 py-2 text-body-sm border border-neutral-300 hover:border-neutral-400 transition-colors">
-              Edit
+              {{ t('common.edit') }}
             </button>
             <button @click="deleteBanner(banner.id)" class="px-4 py-2 text-body-sm text-red-600 border border-red-200 hover:border-red-300 transition-colors">
-              Delete
+              {{ t('common.delete') }}
             </button>
           </div>
         </div>
@@ -191,7 +195,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
 
       <!-- Empty -->
       <div v-if="banners.length === 0" class="col-span-full text-center py-12 text-neutral-500">
-        No banners yet. Create one to get started.
+        {{ t('admin.banners.noBanners') }}
       </div>
     </div>
 
@@ -200,7 +204,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
           <div class="p-6 border-b border-neutral-200">
-            <h2 class="font-serif text-heading-4">{{ editingBanner ? 'Edit Banner' : 'Create Banner' }}</h2>
+            <h2 class="font-serif text-heading-4">{{ editingBanner ? t('admin.banners.edit') : t('admin.banners.create') }}</h2>
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
@@ -254,10 +258,10 @@ useSeoMeta({ title: 'Banner Management | Admin' })
 
             <div class="flex justify-end gap-3 pt-4">
               <button type="button" @click="showModal = false" class="px-4 py-2 text-body-sm text-neutral-600 hover:text-aura-black">
-                Cancel
+                {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="isSubmitting" class="btn-primary">
-                {{ isSubmitting ? 'Saving...' : 'Save Banner' }}
+                {{ isSubmitting ? t('common.saving') : t('admin.banners.save') }}
               </button>
             </div>
           </form>

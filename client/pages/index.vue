@@ -3,8 +3,10 @@
  * Homepage - AURA ARCHIVE (Bright & Elegant)
  * Luxury fashion homepage with light, airy design
  */
+import { useI18n } from '#imports'
 
 const config = useRuntimeConfig()
+const { t } = useI18n()
 
 // Fetch new arrivals
 const { data: featuredProducts } = await useFetch<{
@@ -150,10 +152,10 @@ useSeoMeta({
           >
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">Collection</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">Women</h2>
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">{{ t('home.collection') }}</span>
+              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ t('home.women') }}</h2>
               <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                Shop Now
+                {{ t('shop.shopNow') }}
               </span>
             </div>
           </NuxtLink>
@@ -165,10 +167,10 @@ useSeoMeta({
           >
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">Collection</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">Men</h2>
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">{{ t('home.collection') }}</span>
+              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ t('home.men') }}</h2>
               <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                Shop Now
+                {{ t('shop.shopNow') }}
               </span>
             </div>
           </NuxtLink>
@@ -256,8 +258,8 @@ useSeoMeta({
       <div class="container-aura">
         <!-- Section Header -->
         <div class="text-center mb-16">
-          <span class="text-caption uppercase tracking-[0.3em] text-accent-gold mb-4 block">Most Popular</span>
-          <h2 class="font-serif text-heading-1 text-aura-black">Best Sellers</h2>
+          <span class="text-caption uppercase tracking-[0.3em] text-accent-gold mb-4 block">{{ t('home.mostPopular') }}</span>
+          <h2 class="font-serif text-heading-1 text-aura-black">{{ t('home.bestSellers') }}</h2>
         </div>
 
         <!-- Products Grid -->
@@ -307,8 +309,8 @@ useSeoMeta({
       <div class="container-aura">
         <!-- Section Header -->
         <div class="text-center mb-16">
-          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">Limited Time</span>
-          <h2 class="font-serif text-heading-1 text-aura-black">On Sale</h2>
+          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">{{ t('home.limitedTime') }}</span>
+          <h2 class="font-serif text-heading-1 text-aura-black">{{ t('home.onSale') }}</h2>
         </div>
 
         <!-- Products Grid -->
@@ -380,7 +382,7 @@ useSeoMeta({
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
               <h3 class="font-serif text-heading-2 text-aura-black mb-3">{{ cat.name }}</h3>
               <span class="text-caption uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                Shop Now
+                {{ t('shop.shopNow') }}
               </span>
             </div>
           </NuxtLink>

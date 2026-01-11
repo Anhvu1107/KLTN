@@ -4,6 +4,7 @@
  */
 
 const vnpayService = require('../services/vnpay.service');
+const momoService = require('../services/momo.service');
 const { Order } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 
@@ -115,8 +116,131 @@ const vnpayIPN = catchAsync(async (req, res) => {
     return res.status(200).json({ RspCode: '00', Message: 'Success' });
 });
 
+/**
+ * POST /api/v1/payments/momo/create
+ * Create MoMo payment URL
+ */
+const createMoMoPayment = catchAsync(async (req, res) => {
+    const { orderId } = req.body;
+    const userId = req.user.id;
+
+    // Find order
+    const order = await Order.findOne({
+        where: { id: orderId, user_id: userId },
+    });
+
+    if (!order) {
+        return res.status(404).json({
+            success: false,
+            message: 'Order not found',
+        });
+    }
+
+    if (order.payment_status === 'PAID') {
+        return res.status(400).json({
+            success: false,
+            message: 'Order already paid',
+        });
+    }
+
+    // Convert USD to VND (approximate rate)
+    const amountVND = Math.round(order.total_amount * 24000);
+
+    const result = await momoService.createPaymentUrl({
+        orderId: order.id.toString(),
+        amount: amountVND,
+        orderInfo: `AURA ARCHIVE - Order #${order.id}`,
+    });
+
+    if (result.success) {
+        res.status(200).json({
+            success: true,
+            data: {
+                payUrl: result.payUrl,
+                qrCodeUrl: result.qrCodeUrl,
+                deeplink: result.deeplink,
+            },
+        });
+    } else {
+        res.status(400).json({
+            success: false,
+            message: result.message || 'Failed to create MoMo payment',
+        });
+    }
+});
+
+/**
+ * GET /api/v1/payments/momo/return
+ * Handle MoMo return callback
+ */
+const momoReturn = catchAsync(async (req, res) => {
+    const { orderId, resultCode, message } = req.query;
+
+    if (resultCode === '0') {
+        // Payment successful
+        await Order.update(
+            {
+                payment_status: 'PAID',
+                payment_transaction_id: req.query.transId,
+                status: 'CONFIRMED',
+            },
+            { where: { id: orderId } }
+        );
+
+        return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${orderId}`);
+    } else {
+        // Payment failed
+        const errorMsg = momoService.getResponseMessage(parseInt(resultCode)) || message;
+        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(errorMsg)}`);
+    }
+});
+
+/**
+ * POST /api/v1/payments/momo/ipn
+ * MoMo IPN callback (server-to-server)
+ */
+const momoIPN = catchAsync(async (req, res) => {
+    const data = req.body;
+
+    // Verify signature
+    const isValid = momoService.verifySignature(data);
+
+    if (!isValid) {
+        return res.status(200).json({ resultCode: 1, message: 'Invalid signature' });
+    }
+
+    const { orderId, resultCode, transId } = data;
+    const order = await Order.findByPk(orderId);
+
+    if (!order) {
+        return res.status(200).json({ resultCode: 1, message: 'Order not found' });
+    }
+
+    if (order.payment_status === 'PAID') {
+        return res.status(200).json({ resultCode: 0, message: 'Order already paid' });
+    }
+
+    if (resultCode === 0) {
+        // Payment successful
+        await Order.update(
+            {
+                payment_status: 'PAID',
+                payment_transaction_id: transId,
+                status: 'CONFIRMED',
+            },
+            { where: { id: orderId } }
+        );
+    }
+
+    return res.status(200).json({ resultCode: 0, message: 'Success' });
+});
+
 module.exports = {
     createVNPayPayment,
     vnpayReturn,
     vnpayIPN,
+    createMoMoPayment,
+    momoReturn,
+    momoIPN,
 };
+

@@ -14,4 +14,9 @@ router.post('/vnpay/create', protect, paymentController.createVNPayPayment);
 router.get('/vnpay/return', paymentController.vnpayReturn);
 router.get('/vnpay/ipn', paymentController.vnpayIPN);
 
+// MoMo Payment
+router.post('/momo/create', protect, paymentController.createMoMoPayment);
+router.get('/momo/return', paymentController.momoReturn);
+router.post('/momo/ipn', paymentController.momoIPN);
+
 module.exports = router;

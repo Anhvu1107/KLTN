@@ -37,14 +37,50 @@ const form = reactive({
   is_active: true,
 })
 
-// Variant data
-const variant = reactive({
-  id: null as number | null,
+// Variants data (array for multi-variant support)
+interface VariantData {
+  id: number | null
+  size: string
+  color: string
+  material: string
+  status: string
+  isNew?: boolean
+  isDeleted?: boolean
+}
+
+const variants = ref<VariantData[]>([])
+
+// Images
+const productImages = ref<string[]>([])
+
+// Helper functions for variants
+const createEmptyVariant = (): VariantData => ({
+  id: null,
   size: '',
   color: '',
   material: '',
   status: 'AVAILABLE',
+  isNew: true,
 })
+
+const addVariant = () => {
+  variants.value.push(createEmptyVariant())
+}
+
+const removeVariant = (index: number) => {
+  const variant = variants.value[index]
+  if (variant.id) {
+    // Mark existing variant for deletion
+    variant.isDeleted = true
+  } else {
+    // Remove new unsaved variant immediately
+    variants.value.splice(index, 1)
+  }
+}
+
+const activeVariants = computed(() => 
+  variants.value.filter(v => !v.isDeleted)
+)
 
 // Categories
 const categories = ['Bags', 'Clothing', 'Shoes', 'Accessories', 'Jewelry', 'Watches']
@@ -87,15 +123,24 @@ const fetchProduct = async () => {
       form.condition_description = product.condition_description || ''
       form.is_active = product.is_active
 
-      // Populate variant (first variant)
+      // Populate variants (all variants)
       if (product.variants && product.variants.length > 0) {
-        const v = product.variants[0]
-        variant.id = v.id
-        variant.size = v.size || ''
-        variant.color = v.color || ''
-        variant.material = v.material || ''
-        variant.status = v.status
+        variants.value = product.variants.map((v: any) => ({
+          id: v.id,
+          size: v.size || '',
+          color: v.color || '',
+          material: v.material || '',
+          status: v.status,
+          isNew: false,
+          isDeleted: false,
+        }))
+      } else {
+        // Add empty variant if none exists
+        variants.value = [createEmptyVariant()]
       }
+
+      // Populate images
+      productImages.value = product.images || []
     }
   } catch (error: any) {
     errorMessage.value = error.data?.message || 'Failed to fetch product'
@@ -128,16 +173,33 @@ const saveProduct = async () => {
         condition_text: form.condition_text,
         condition_description: form.condition_description,
         is_active: form.is_active,
+        images: productImages.value,
       },
     })
 
-    // Update variant status if changed
-    if (variant.id) {
-      await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants/${variant.id}/status`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-        body: { status: variant.status },
-      })
+    // Handle variants
+    for (const v of variants.value) {
+      if (v.isDeleted && v.id) {
+        // Delete existing variant
+        await $fetch(`${config.public.apiUrl}/admin/variants/${v.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      } else if (v.isNew && !v.isDeleted) {
+        // Create new variant
+        await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: { size: v.size, color: v.color, material: v.material, status: v.status },
+        })
+      } else if (v.id && !v.isDeleted) {
+        // Update existing variant
+        await $fetch(`${config.public.apiUrl}/admin/variants/${v.id}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+          body: { size: v.size, color: v.color, material: v.material, status: v.status },
+        })
+      }
     }
 
     successMessage.value = 'Product updated successfully!'
@@ -196,22 +258,22 @@ useSeoMeta({
     <div class="flex items-center justify-between mb-8">
       <div>
         <NuxtLink to="/admin/products" class="text-caption text-neutral-500 hover:text-aura-black mb-2 block">
-          ← Back to Products
+          ← {{ $t('common.backTo') }} {{ $t('admin.products') }}
         </NuxtLink>
-        <h1 class="font-serif text-heading-2 text-aura-black">Edit Product</h1>
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ $t('admin.editProduct') }}</h1>
       </div>
       <button
         @click="deleteProduct"
         :disabled="isDeleting"
         class="btn-ghost text-red-600 hover:bg-red-50"
       >
-        {{ isDeleting ? 'Deleting...' : 'Delete Product' }}
+        {{ isDeleting ? $t('common.deleting') : $t('admin.deleteProduct') }}
       </button>
     </div>
 
     <!-- Loading -->
     <div v-if="isLoading" class="text-center py-16">
-      <p class="text-neutral-500">Loading product...</p>
+      <p class="text-neutral-500">{{ $t('common.loading') }}</p>
     </div>
 
     <!-- Form -->
@@ -279,6 +341,12 @@ useSeoMeta({
         </div>
       </div>
 
+      <!-- Product Images -->
+      <div class="bg-white p-6 rounded-sm shadow-card">
+        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.productImages') }}</h2>
+        <AdminImageUpload v-model="productImages" :max-files="5" />
+      </div>
+
       <!-- Pricing -->
       <div class="bg-white p-6 rounded-sm shadow-card">
         <h2 class="font-serif text-heading-4 text-aura-black mb-6">Pricing</h2>
@@ -334,61 +402,94 @@ useSeoMeta({
         </div>
       </div>
 
-      <!-- Variant / Inventory -->
+      <!-- Variants / Inventory -->
       <div class="bg-white p-6 rounded-sm shadow-card">
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6">Inventory & Status</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label class="input-label">Size</label>
-            <input
-              v-model="variant.size"
-              type="text"
-              class="input-field"
-              placeholder="e.g. Medium, 38, One Size"
-            />
-          </div>
-          
-          <div>
-            <label class="input-label">Color</label>
-            <input
-              v-model="variant.color"
-              type="text"
-              class="input-field"
-              placeholder="e.g. Black, Beige"
-            />
-          </div>
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="font-serif text-heading-4 text-aura-black">{{ $t('admin.variants') || 'Variants' }}</h2>
+          <button
+            type="button"
+            @click="addVariant"
+            class="btn-secondary text-sm flex items-center gap-1"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            {{ $t('admin.addVariant') || 'Add Variant' }}
+          </button>
+        </div>
 
-          <div>
-            <label class="input-label">Material</label>
-            <input
-              v-model="variant.material"
-              type="text"
-              class="input-field"
-              placeholder="e.g. Leather, Canvas"
-            />
-          </div>
-
-          <div>
-            <label class="input-label">Status *</label>
-            <select v-model="variant.status" class="input-field">
-              <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="input-label">Active</label>
-            <div class="mt-2">
-              <label class="flex items-center gap-2">
+        <!-- Variants List -->
+        <div class="space-y-6">
+          <div
+            v-for="(v, index) in activeVariants"
+            :key="v.id || `new-${index}`"
+            class="border border-neutral-200 rounded-sm p-4"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-body-sm font-medium text-neutral-600">
+                {{ v.isNew ? $t('admin.newVariant') || 'New Variant' : `Variant #${v.id}` }}
+              </span>
+              <button
+                v-if="activeVariants.length > 1"
+                type="button"
+                @click="removeVariant(variants.indexOf(v))"
+                class="text-red-500 hover:text-red-700 text-sm"
+              >
+                {{ $t('common.remove') || 'Remove' }}
+              </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="input-label text-sm">Size</label>
                 <input
-                  v-model="form.is_active"
-                  type="checkbox"
-                  class="w-4 h-4"
+                  v-model="v.size"
+                  type="text"
+                  class="input-field"
+                  placeholder="e.g. M, 38, OS"
                 />
-                <span class="text-body-sm">Product is active and visible</span>
-              </label>
+              </div>
+              
+              <div>
+                <label class="input-label text-sm">Color</label>
+                <input
+                  v-model="v.color"
+                  type="text"
+                  class="input-field"
+                  placeholder="e.g. Black"
+                />
+              </div>
+
+              <div>
+                <label class="input-label text-sm">Material</label>
+                <input
+                  v-model="v.material"
+                  type="text"
+                  class="input-field"
+                  placeholder="e.g. Leather"
+                />
+              </div>
+
+              <div>
+                <label class="input-label text-sm">Status *</label>
+                <select v-model="v.status" class="input-field">
+                  <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
+                </select>
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Product Active Toggle -->
+        <div class="mt-6 pt-4 border-t border-neutral-100">
+          <label class="flex items-center gap-2">
+            <input
+              v-model="form.is_active"
+              type="checkbox"
+              class="w-4 h-4"
+            />
+            <span class="text-body-sm">Product is active and visible</span>
+          </label>
         </div>
       </div>
 
@@ -399,10 +500,10 @@ useSeoMeta({
           :disabled="isSaving"
           class="btn-primary"
         >
-          {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          {{ isSaving ? $t('common.saving') : $t('admin.saveChanges') }}
         </button>
         <NuxtLink to="/admin/products" class="btn-secondary">
-          Cancel
+          {{ $t('common.cancel') }}
         </NuxtLink>
       </div>
     </form>
