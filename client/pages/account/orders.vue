@@ -4,9 +4,13 @@
  * AURA ARCHIVE - User's order list
  */
 
+import { useI18n } from '#imports'
+
 definePageMeta({
   middleware: ['auth'],
 })
+
+const { t } = useI18n()
 
 const config = useRuntimeConfig()
 const token = localStorage.getItem('token')
@@ -63,15 +67,15 @@ useSeoMeta({
     <div class="container-aura max-w-4xl">
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
-        <h1 class="font-serif text-heading-1 text-aura-black">Order History</h1>
+        <h1 class="font-serif text-heading-1 text-aura-black">{{ t('account.orderHistory') }}</h1>
         <NuxtLink to="/account" class="text-body-sm text-neutral-600 hover:text-aura-black">
-          ← Back to Account
+          ← {{ t('common.backTo') }} {{ t('common.account') }}
         </NuxtLink>
       </div>
 
       <!-- Loading -->
       <div v-if="pending" class="text-center py-16">
-        <p class="text-neutral-500">Loading orders...</p>
+        <p class="text-neutral-500">{{ t('common.loading') }}</p>
       </div>
 
       <!-- Empty -->
@@ -81,9 +85,9 @@ useSeoMeta({
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
         </div>
-        <h2 class="font-serif text-heading-4 text-aura-black mb-2">No Orders Yet</h2>
-        <p class="text-body text-neutral-600 mb-6">Start exploring our collection.</p>
-        <NuxtLink to="/shop" class="btn-primary">Shop Now</NuxtLink>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-2">{{ t('account.noOrdersYet') }}</h2>
+        <p class="text-body text-neutral-600 mb-6">{{ t('account.startExploring') }}</p>
+        <NuxtLink to="/shop" class="btn-primary">{{ t('shop.shopNow') }}</NuxtLink>
       </div>
 
       <!-- Orders List -->

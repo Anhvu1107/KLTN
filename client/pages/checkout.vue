@@ -1,7 +1,14 @@
 <script setup lang="ts">
+/**
+ * Checkout Page
+ * AURA ARCHIVE - Checkout with i18n
+ */
+
 import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
+import { useI18n } from '#imports'
 
+const { t } = useI18n()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const router = useRouter()
@@ -26,12 +33,14 @@ const error = ref('')
 const total = computed(() => cartStore.subtotal + shippingFee.value)
 
 const cities = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng']
-const paymentMethods = [
-  { value: 'COD', label: 'Cash on Delivery' },
-  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-  { value: 'MOMO', label: 'MoMo' },
-  { value: 'VNPAY', label: 'VNPay' },
-]
+
+// Payment methods with i18n labels
+const paymentMethods = computed(() => [
+  { value: 'COD', label: t('checkout.cod') },
+  { value: 'BANK_TRANSFER', label: t('checkout.bankTransfer') },
+  { value: 'MOMO', label: t('checkout.momo') },
+  { value: 'VNPAY', label: t('checkout.vnpay') },
+])
 
 // Format price
 const formatPrice = (price: number) => {
@@ -51,7 +60,7 @@ const handleCheckout = async () => {
 
   // Validate form
   if (!shippingForm.fullName || !shippingForm.phone || !shippingForm.address || !shippingForm.city) {
-    error.value = 'Please fill in all required fields'
+    error.value = t('checkout.fillRequired')
     return
   }
 
@@ -62,7 +71,7 @@ const handleCheckout = async () => {
     // Check availability first
     const unavailable = await cartStore.validateAvailability()
     if (unavailable.length > 0) {
-      error.value = `Some items are no longer available: ${unavailable.map(i => i.productName).join(', ')}`
+      error.value = `${t('checkout.itemsUnavailable')}: ${unavailable.map(i => i.productName).join(', ')}`
       return
     }
 
@@ -78,10 +87,10 @@ const handleCheckout = async () => {
       // Redirect to order confirmation
       navigateTo(`/account/orders?new=${result.order.id}`)
     } else {
-      error.value = result.error || 'Checkout failed'
+      error.value = result.error || t('checkout.checkoutFailed')
     }
   } catch (err: any) {
-    error.value = err.message || 'An error occurred'
+    error.value = err.message || t('errors.somethingWrong')
   } finally {
     isProcessing.value = false
   }
@@ -89,19 +98,19 @@ const handleCheckout = async () => {
 
 // SEO
 useSeoMeta({
-  title: 'Checkout | AURA ARCHIVE',
+  title: () => `${t('checkout.title')} | AURA ARCHIVE`,
 })
 </script>
 
 <template>
   <div class="section">
     <div class="container-aura">
-      <h1 class="font-serif text-heading-1 text-aura-black mb-8">Checkout</h1>
+      <h1 class="font-serif text-heading-1 text-aura-black mb-8">{{ $t('checkout.title') }}</h1>
 
       <!-- Empty Cart -->
       <div v-if="cartStore.isEmpty" class="text-center py-16">
-        <p class="text-body text-neutral-600 mb-8">Your cart is empty.</p>
-        <NuxtLink to="/shop" class="btn-primary">Continue Shopping</NuxtLink>
+        <p class="text-body text-neutral-600 mb-8">{{ $t('cart.empty') }}</p>
+        <NuxtLink to="/shop" class="btn-primary">{{ $t('cart.continueShopping') }}</NuxtLink>
       </div>
 
       <!-- Checkout Form -->
@@ -115,45 +124,45 @@ useSeoMeta({
 
           <!-- Shipping Address -->
           <div class="card p-6">
-            <h2 class="font-serif text-heading-4 text-aura-black mb-6">Shipping Address</h2>
+            <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('checkout.shippingInfo') }}</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="md:col-span-2">
-                <label class="input-label">Full Name *</label>
-                <input v-model="shippingForm.fullName" type="text" class="input-field" placeholder="Enter full name" />
+                <label class="input-label">{{ $t('checkout.fullName') }} *</label>
+                <input v-model="shippingForm.fullName" type="text" class="input-field" :placeholder="$t('checkout.fullName')" />
               </div>
               <div>
-                <label class="input-label">Phone *</label>
-                <input v-model="shippingForm.phone" type="tel" class="input-field" placeholder="Phone number" />
+                <label class="input-label">{{ $t('checkout.phone') }} *</label>
+                <input v-model="shippingForm.phone" type="tel" class="input-field" :placeholder="$t('checkout.phone')" />
               </div>
               <div>
-                <label class="input-label">City *</label>
+                <label class="input-label">{{ $t('checkout.city') }} *</label>
                 <select v-model="shippingForm.city" class="input-field">
                   <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
                 </select>
               </div>
               <div>
-                <label class="input-label">District</label>
-                <input v-model="shippingForm.district" type="text" class="input-field" placeholder="District" />
+                <label class="input-label">{{ $t('checkout.district') }}</label>
+                <input v-model="shippingForm.district" type="text" class="input-field" :placeholder="$t('checkout.district')" />
               </div>
               <div>
-                <label class="input-label">Ward</label>
-                <input v-model="shippingForm.ward" type="text" class="input-field" placeholder="Ward" />
+                <label class="input-label">{{ $t('checkout.ward') }}</label>
+                <input v-model="shippingForm.ward" type="text" class="input-field" :placeholder="$t('checkout.ward')" />
               </div>
               <div class="md:col-span-2">
-                <label class="input-label">Address *</label>
-                <input v-model="shippingForm.address" type="text" class="input-field" placeholder="Street address" />
+                <label class="input-label">{{ $t('checkout.address') }} *</label>
+                <input v-model="shippingForm.address" type="text" class="input-field" :placeholder="$t('checkout.address')" />
               </div>
               <div class="md:col-span-2">
-                <label class="input-label">Notes</label>
-                <textarea v-model="shippingForm.notes" rows="2" class="input-field" placeholder="Delivery notes (optional)"></textarea>
+                <label class="input-label">{{ $t('checkout.notes') }}</label>
+                <textarea v-model="shippingForm.notes" rows="2" class="input-field" :placeholder="$t('checkout.notesPlaceholder')"></textarea>
               </div>
             </div>
           </div>
 
           <!-- Payment Method -->
           <div class="card p-6">
-            <h2 class="font-serif text-heading-4 text-aura-black mb-6">Payment Method</h2>
+            <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('checkout.paymentMethod') }}</h2>
             
             <div class="space-y-3">
               <label
@@ -177,7 +186,7 @@ useSeoMeta({
         <!-- Order Summary -->
         <div class="lg:col-span-1">
           <div class="card p-6 sticky top-24">
-            <h2 class="font-serif text-heading-4 text-aura-black mb-6">Order Summary</h2>
+            <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('checkout.orderSummary') }}</h2>
             
             <!-- Cart Items -->
             <div class="space-y-4 mb-6">
@@ -201,11 +210,11 @@ useSeoMeta({
             <!-- Totals -->
             <div class="space-y-2 text-body-sm">
               <div class="flex justify-between">
-                <span class="text-neutral-600">Subtotal</span>
+                <span class="text-neutral-600">{{ $t('cart.subtotal') }}</span>
                 <span>{{ cartStore.formattedSubtotal }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-neutral-600">Shipping</span>
+                <span class="text-neutral-600">{{ $t('cart.shipping') }}</span>
                 <span>{{ formatPrice(shippingFee) }}</span>
               </div>
             </div>
@@ -213,7 +222,7 @@ useSeoMeta({
             <div class="divider my-4"></div>
 
             <div class="flex justify-between text-body font-medium mb-6">
-              <span>Total</span>
+              <span>{{ $t('cart.total') }}</span>
               <span>{{ formatPrice(total) }}</span>
             </div>
 
@@ -223,7 +232,7 @@ useSeoMeta({
               class="btn-primary w-full"
               :class="{ 'opacity-70 cursor-not-allowed': isProcessing }"
             >
-              {{ isProcessing ? 'Processing...' : 'Place Order' }}
+              {{ isProcessing ? $t('checkout.processing') : $t('checkout.placeOrder') }}
             </button>
           </div>
         </div>

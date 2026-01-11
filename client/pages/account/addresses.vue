@@ -114,7 +114,7 @@ const submitForm = async () => {
 
 // Delete address
 const deleteAddress = async (id: string) => {
-  if (!confirm('Xóa địa chỉ này?')) return
+  if (!confirm(t('common.confirmDelete'))) return
 
   try {
     const token = localStorage.getItem('token')
@@ -151,9 +151,9 @@ useSeoMeta({ title: 'Address Book | AURA ARCHIVE' })
   <div class="section">
     <div class="container-aura max-w-4xl">
       <div class="flex items-center justify-between mb-8">
-        <h1 class="font-serif text-heading-2 text-aura-black">Sổ địa chỉ</h1>
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ t('account.addressBook') }}</h1>
         <button @click="openCreateModal" class="btn-primary">
-          + Thêm địa chỉ
+          + {{ t('account.addAddress') }}
         </button>
       </div>
 
@@ -177,7 +177,7 @@ useSeoMeta({ title: 'Address Book | AURA ARCHIVE' })
                   {{ address.label }}
                 </span>
                 <span v-if="address.is_default" class="px-2 py-0.5 bg-accent-navy text-white text-caption rounded">
-                  Mặc định
+                  {{ t('account.default') }}
                 </span>
               </div>
               
@@ -194,27 +194,27 @@ useSeoMeta({ title: 'Address Book | AURA ARCHIVE' })
 
             <div class="flex flex-col gap-2 ml-4">
               <button @click="openEditModal(address)" class="text-body-sm text-neutral-600 hover:text-aura-black">
-                Sửa
+                {{ t('common.edit') }}
               </button>
               <button v-if="!address.is_default" @click="setDefault(address.id)" class="text-body-sm text-accent-navy hover:underline">
-                Đặt mặc định
+                {{ t('account.setDefault') }}
               </button>
               <button @click="deleteAddress(address.id)" class="text-body-sm text-red-600 hover:text-red-700">
-                Xóa
+                {{ t('common.delete') }}
               </button>
             </div>
           </div>
         </div>
 
         <div v-if="addresses.length === 0" class="text-center py-12 text-neutral-500">
-          Chưa có địa chỉ nào
+          {{ t('account.noAddresses') }}
         </div>
       </div>
 
       <!-- Back link -->
       <div class="mt-8">
         <NuxtLink to="/account" class="text-body-sm text-neutral-600 hover:text-aura-black">
-          ← Quay lại tài khoản
+          ← {{ t('common.backTo') }} {{ t('common.account') }}
         </NuxtLink>
       </div>
     </div>
@@ -224,7 +224,7 @@ useSeoMeta({ title: 'Address Book | AURA ARCHIVE' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
           <div class="p-6 border-b border-neutral-200">
-            <h2 class="font-serif text-heading-4">{{ editingAddress ? 'Sửa địa chỉ' : 'Thêm địa chỉ' }}</h2>
+            <h2 class="font-serif text-heading-4">{{ editingAddress ? t('account.editAddress') : t('account.addAddress') }}</h2>
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
@@ -284,10 +284,10 @@ useSeoMeta({ title: 'Address Book | AURA ARCHIVE' })
 
             <div class="flex justify-end gap-3 pt-4">
               <button type="button" @click="showModal = false" class="px-4 py-2 text-body-sm text-neutral-600 hover:text-aura-black">
-                Hủy
+                {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="isSubmitting" class="btn-primary">
-                {{ isSubmitting ? 'Đang lưu...' : 'Lưu địa chỉ' }}
+                {{ isSubmitting ? t('common.saving') : t('account.saveAddress') }}
               </button>
             </div>
           </form>
