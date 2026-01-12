@@ -172,17 +172,10 @@ useSeoMeta({
           >
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-<<<<<<< HEAD
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">{{ t('home.collection') }}</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ t('home.women') }}</h2>
-              <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                {{ t('shop.shopNow') }}
-=======
               <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">{{ $t('home.collection') }}</span>
               <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ $t('home.women') }}</h2>
               <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
                 {{ $t('home.shopNow') }}
->>>>>>> newtab
               </span>
             </div>
           </NuxtLink>
@@ -194,17 +187,10 @@ useSeoMeta({
           >
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-<<<<<<< HEAD
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">{{ t('home.collection') }}</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ t('home.men') }}</h2>
-              <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                {{ t('shop.shopNow') }}
-=======
               <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">{{ $t('home.collection') }}</span>
               <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ $t('home.men') }}</h2>
               <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
                 {{ $t('home.shopNow') }}
->>>>>>> newtab
               </span>
             </div>
           </NuxtLink>
@@ -292,13 +278,8 @@ useSeoMeta({
       <div class="container-aura">
         <!-- Section Header -->
         <div class="text-center mb-16">
-<<<<<<< HEAD
-          <span class="text-caption uppercase tracking-[0.3em] text-accent-gold mb-4 block">{{ t('home.mostPopular') }}</span>
-          <h2 class="font-serif text-heading-1 text-aura-black">{{ t('home.bestSellers') }}</h2>
-=======
           <span class="text-caption uppercase tracking-[0.3em] text-accent-gold mb-4 block">{{ $t('home.mostPopular') }}</span>
           <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.bestSellers') }}</h2>
->>>>>>> newtab
         </div>
 
         <!-- Products Grid -->
@@ -348,13 +329,8 @@ useSeoMeta({
       <div class="container-aura">
         <!-- Section Header -->
         <div class="text-center mb-16">
-<<<<<<< HEAD
-          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">{{ t('home.limitedTime') }}</span>
-          <h2 class="font-serif text-heading-1 text-aura-black">{{ t('home.onSale') }}</h2>
-=======
           <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">{{ $t('home.limitedTime') }}</span>
           <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.onSale') }}</h2>
->>>>>>> newtab
         </div>
 
         <!-- Products Grid -->
@@ -426,11 +402,7 @@ useSeoMeta({
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
               <h3 class="font-serif text-heading-2 text-aura-black mb-3">{{ cat.name }}</h3>
               <span class="text-caption uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-<<<<<<< HEAD
-                {{ t('shop.shopNow') }}
-=======
                 {{ $t('home.shopNow') }}
->>>>>>> newtab
               </span>
             </div>
           </NuxtLink>

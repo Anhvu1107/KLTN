@@ -89,15 +89,9 @@
         "status": "Status",
         "active": "Active",
         "inactive": "Inactive",
-<<<<<<< HEAD
-=======
-        "saving": "Saving...",
-        "deleting": "Deleting...",
         "uploading": "Uploading...",
         "creating": "Creating...",
-        "add": "Add",
         "saveChanges": "Save Changes",
->>>>>>> newtab
         "success": "Success",
         "error": "Error",
         "confirm": "Confirm",
@@ -105,8 +99,7 @@
         "required": "Required",
         "optional": "Optional",
         "or": "or",
-        "viewAll": "View All",
-        "loading": "Loading..."
+        "viewAll": "View All"
     },
     "header": {
         "freeShipping": "Free Shipping & Returns On All Orders",
@@ -156,15 +149,6 @@
         "curatedDesc": "Hand-picked pieces from the world's finest designers",
         "sustainable": "Sustainable Luxury",
         "sustainableDesc": "Extend the life of beautiful fashion pieces",
-<<<<<<< HEAD
-        "collection": "Collection",
-        "women": "Women",
-        "men": "Men",
-        "bestSellers": "Best Sellers",
-        "mostPopular": "Most Popular",
-        "onSale": "On Sale",
-        "limitedTime": "Limited Time"
-=======
         "featuredCollection": "Featured Collection",
         "season": "Spring 2026",
         "collection": "Collection",
@@ -221,7 +205,6 @@
         "polyester": "Polyester",
         "linen": "Linen",
         "mixed": "Mixed"
->>>>>>> newtab
     },
     "shop": {
         "title": "Shop",
@@ -446,7 +429,6 @@
         "soldItems": "Sold Items",
         "monthlyRevenue": "Monthly Revenue",
         "recentOrders": "Recent Orders",
-<<<<<<< HEAD
         "totalOrdersLabel": "total orders",
         "totalUsersLabel": "total users",
         "searchUsers": "Search email, name...",
@@ -456,10 +438,8 @@
         "joined": "Joined",
         "noUsers": "No users found",
         "payment": "Payment",
-=======
         "quickActions": "Quick Actions",
         "noRevenueData": "No revenue data available",
->>>>>>> newtab
         "addProduct": "Add Product",
         "editProduct": "Edit Product",
         "productName": "Product Name",
@@ -512,7 +492,6 @@
         "userDetail": "User Details",
         "orderManagement": "Order Management",
         "userManagement": "User Management",
-<<<<<<< HEAD
         "dragDropImages": "Drag & drop images here or click to browse",
         "imageLimits": "{remaining} of {max} slots remaining",
         "maxImagesError": "Maximum {max} images allowed",
@@ -566,7 +545,7 @@
             "tip2": "Include examples of how the AI should respond",
             "tip3": "Mention any brands or styles the AI should prioritize",
             "tip4": "Changes take effect immediately for new conversations"
-=======
+        },
         "form": {
             "title": "Title",
             "subtitle": "Subtitle",
@@ -606,7 +585,6 @@
             "color": "Color",
             "material": "Material",
             "createProduct": "Create Product"
->>>>>>> newtab
         },
         "reviews": {
             "title": "Review Management",
@@ -626,8 +604,6 @@
             "date": "Date",
             "content": "Content"
         },
-<<<<<<< HEAD
-=======
         "coupons": {
             "title": "Coupon Management",
             "addCoupon": "Add Coupon",
@@ -681,7 +657,6 @@
             "published": "Published",
             "archived": "Archived"
         },
->>>>>>> newtab
         "popups": {
             "title": "Popup Management",
             "addPopup": "Add Popup",

@@ -4,18 +4,12 @@
  * AURA ARCHIVE - Manage discount codes
  */
 
-import { useI18n } from '#imports'
-
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
 })
 
 const { t } = useI18n()
-<<<<<<< HEAD
-
-=======
->>>>>>> newtab
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
 
@@ -128,11 +122,7 @@ const submitForm = async () => {
 
 // Delete coupon
 const deleteCoupon = async (id: string) => {
-<<<<<<< HEAD
-  if (!confirm(t('common.confirmDelete'))) return
-=======
   if (!confirm(t('admin.deleteConfirm'))) return
->>>>>>> newtab
 
   try {
     const token = localStorage.getItem('token')
@@ -168,11 +158,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
     <div class="flex items-center justify-between mb-6">
       <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.coupons.title') }}</h1>
       <button @click="openCreateModal" class="btn-primary">
-<<<<<<< HEAD
-        + {{ t('admin.coupons.add') }}
-=======
         + {{ t('admin.coupons.addCoupon') }}
->>>>>>> newtab
       </button>
     </div>
 
@@ -237,11 +223,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
           <div class="p-6 border-b border-neutral-200">
-<<<<<<< HEAD
-            <h2 class="font-serif text-heading-4">{{ editingCoupon ? t('admin.coupons.edit') : t('admin.coupons.create') }}</h2>
-=======
             <h2 class="font-serif text-heading-4">{{ editingCoupon ? t('admin.coupons.editCoupon') : t('admin.coupons.createCoupon') }}</h2>
->>>>>>> newtab
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
@@ -315,11 +297,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
                 {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="isSubmitting" class="btn-primary">
-<<<<<<< HEAD
-                {{ isSubmitting ? t('common.saving') : t('admin.coupons.save') }}
-=======
                 {{ isSubmitting ? t('common.saving') : t('common.save') }}
->>>>>>> newtab
               </button>
             </div>
           </form>

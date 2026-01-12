@@ -1,16 +1,10 @@
 <script setup lang="ts">
-import { useI18n } from '#imports'
-
 definePageMeta({
   layout: 'default',
   middleware: ['admin'],
 })
 
 const { t } = useI18n()
-<<<<<<< HEAD
-
-=======
->>>>>>> newtab
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
 const token = computed(() => authStore.token)
@@ -86,29 +80,17 @@ useSeoMeta({
     <div class="container-aura max-w-4xl">
       <div class="flex items-center justify-between mb-8">
         <div>
-<<<<<<< HEAD
-          <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.aiConfig.title') }}</h1>
-          <p class="text-body text-neutral-600 mt-2">{{ t('admin.aiConfig.desc') }}</p>
-        </div>
-        <NuxtLink to="/admin/dashboard" class="text-body-sm text-neutral-600 hover:text-aura-black">
-          ← {{ t('common.backTo') }} Dashboard
-=======
           <h1 class="font-serif text-heading-2 text-aura-black">{{ $t('admin.aiConfig') }}</h1>
           <p class="text-body text-neutral-600 mt-2">{{ $t('admin.aiConfigDescription') }}</p>
         </div>
         <NuxtLink to="/admin/dashboard" class="text-body-sm text-neutral-600 hover:text-aura-black">
           ← {{ $t('admin.backToDashboard') }}
->>>>>>> newtab
         </NuxtLink>
       </div>
 
       <!-- Loading State -->
       <div v-if="pending" class="card p-8 text-center">
-<<<<<<< HEAD
-        <p class="text-neutral-500">{{ t('common.loading') }}</p>
-=======
         <p class="text-neutral-500">{{ $t('common.loading') }}</p>
->>>>>>> newtab
       </div>
 
       <!-- Prompts List -->
@@ -128,11 +110,7 @@ useSeoMeta({
               @click="startEdit(prompt)"
               class="text-body-sm text-neutral-600 hover:text-aura-black px-4 py-2 border border-neutral-200 rounded-sm hover:border-neutral-300 transition-colors"
             >
-<<<<<<< HEAD
-              {{ t('common.edit') }}
-=======
               {{ $t('common.edit') }}
->>>>>>> newtab
             </button>
           </div>
 
@@ -168,11 +146,7 @@ useSeoMeta({
                   :disabled="isSaving"
                   class="btn-ghost"
                 >
-<<<<<<< HEAD
-                  {{ t('common.cancel') }}
-=======
                   {{ $t('common.cancel') }}
->>>>>>> newtab
                 </button>
                 <button
                   @click="saveChanges"
@@ -180,11 +154,7 @@ useSeoMeta({
                   class="btn-primary"
                   :class="{ 'opacity-70': isSaving }"
                 >
-<<<<<<< HEAD
-                  {{ isSaving ? t('common.saving') : t('admin.saveChanges') }}
-=======
                   {{ isSaving ? $t('common.saving') : $t('common.saveChanges') }}
->>>>>>> newtab
                 </button>
               </div>
             </div>
@@ -194,21 +164,12 @@ useSeoMeta({
 
       <!-- Instructions -->
       <div class="mt-8 p-6 bg-blue-50 rounded-sm">
-<<<<<<< HEAD
-        <h3 class="font-medium text-blue-900 mb-2">💡 {{ t('admin.aiConfig.tipsTitle') }}</h3>
-        <ul class="text-body-sm text-blue-800 space-y-1">
-          <li>• {{ t('admin.aiConfig.tip1') }}</li>
-          <li>• {{ t('admin.aiConfig.tip2') }}</li>
-          <li>• {{ t('admin.aiConfig.tip3') }}</li>
-          <li>• {{ t('admin.aiConfig.tip4') }}</li>
-=======
         <h3 class="font-medium text-blue-900 mb-2">💡 {{ $t('admin.aiTipsTitle') }}</h3>
         <ul class="text-body-sm text-blue-800 space-y-1">
           <li>• {{ $t('admin.aiTip1') }}</li>
           <li>• {{ $t('admin.aiTip2') }}</li>
           <li>• {{ $t('admin.aiTip3') }}</li>
           <li>• {{ $t('admin.aiTip4') }}</li>
->>>>>>> newtab
         </ul>
       </div>
     </div>
