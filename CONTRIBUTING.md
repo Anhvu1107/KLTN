@@ -21,7 +21,33 @@ cd ../server && npm install
 cd ../ai_service && pip install -r requirements.txt
 ```
 
-### 3. Cấu hình môi trường
+### 3. Khởi động PostgreSQL Database
+
+**Cách 1: Dùng Docker (Khuyến nghị)**
+```bash
+# Chạy PostgreSQL container
+docker-compose up postgres -d
+
+# Kiểm tra container đang chạy
+docker ps
+```
+
+**Cách 2: Dùng PostgreSQL đã cài sẵn**
+```sql
+-- Mở pgAdmin hoặc psql, tạo database:
+CREATE DATABASE aura_archive;
+```
+
+**Verify PostgreSQL đang chạy:**
+```bash
+# Kiểm tra kết nối (nếu cài psql)
+psql -h localhost -U postgres -d aura_archive -c "SELECT 1;"
+
+# Hoặc kiểm tra qua Docker
+docker exec -it aura-postgres psql -U postgres -d aura_archive -c "SELECT 1;"
+```
+
+### 4. Cấu hình môi trường
 ```bash
 # Copy file .env.example thành .env trong mỗi thư mục
 cd server && copy .env.example .env
@@ -30,12 +56,12 @@ cd ../ai_service && copy .env.example .env
 # Mở từng file .env và điền thông tin database, API keys
 ```
 
-### 4. Seed database (lần đầu)
+### 5. Seed database (lần đầu)
 ```bash
 cd server && npm run seed
 ```
 
-### 5. Chạy development
+### 6. Chạy development
 ```bash
 # Terminal 1 - Client (http://localhost:3000)
 cd client && npm run dev

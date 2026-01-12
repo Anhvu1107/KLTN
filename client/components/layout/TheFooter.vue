@@ -44,9 +44,9 @@ const handleSubscribe = async () => {
 // Footer links
 const shopLinks = computed(() => [
   { name: t('nav.newArrivals'), href: '/new-arrivals' },
-  { name: 'Featured', href: '/featured' },
-  { name: 'Women', href: '/shop?subcategory=Women' },
-  { name: 'Men', href: '/shop?subcategory=Men' },
+  { name: t('nav.featured'), href: '/featured' },
+  { name: t('home.women'), href: '/shop?subcategory=Women' },
+  { name: t('home.men'), href: '/shop?subcategory=Men' },
 ])
 
 const customerLinks = computed(() => [
@@ -137,7 +137,7 @@ const companyLinks = computed(() => [
 
         <!-- Company -->
         <div class="lg:col-span-2">
-          <h3 class="text-caption uppercase tracking-[0.2em] text-neutral-400 mb-6">Company</h3>
+          <h3 class="text-caption uppercase tracking-[0.2em] text-neutral-400 mb-6">{{ t('footer.company') }}</h3>
           <ul class="space-y-3">
             <li v-for="link in companyLinks" :key="link.href">
               <NuxtLink

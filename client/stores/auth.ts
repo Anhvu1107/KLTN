@@ -57,7 +57,9 @@ export const useAuthStore = defineStore('auth', {
                 if (response.success) {
                     this.user = response.data.user
                     this.token = response.data.token
-                    localStorage.setItem('token', response.data.token)
+                    if (process.client) {
+                        localStorage.setItem('token', response.data.token)
+                    }
                     return { success: true }
                 }
 
@@ -96,7 +98,9 @@ export const useAuthStore = defineStore('auth', {
                 if (response.success) {
                     this.user = response.data.user
                     this.token = response.data.token
-                    localStorage.setItem('token', response.data.token)
+                    if (process.client) {
+                        localStorage.setItem('token', response.data.token)
+                    }
                     return { success: true }
                 }
 
@@ -115,7 +119,9 @@ export const useAuthStore = defineStore('auth', {
         logout(): void {
             this.user = null
             this.token = null
-            localStorage.removeItem('token')
+            if (process.client) {
+                localStorage.removeItem('token')
+            }
             navigateTo('/')
         },
 
@@ -123,6 +129,7 @@ export const useAuthStore = defineStore('auth', {
          * Fetch current user profile
          */
         async fetchUser(): Promise<void> {
+            if (!process.client) return
             const token = localStorage.getItem('token')
             if (!token) return
 
@@ -154,6 +161,7 @@ export const useAuthStore = defineStore('auth', {
          * Initialize auth state on app load
          */
         async init(): Promise<void> {
+            if (!process.client) return
             const token = localStorage.getItem('token')
             if (token) {
                 await this.fetchUser()

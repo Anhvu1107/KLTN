@@ -34,14 +34,16 @@ definePageMeta({
 })
 
 const config = useRuntimeConfig()
-const token = localStorage.getItem('token')
+const authStore = useAuthStore()
+const token = computed(() => authStore.token)
 
 // Fetch stats
 const { data: statsData, pending: statsPending } = await useFetch<{
   success: boolean
   data: { stats: any }
 }>(`${config.public.apiUrl}/admin/stats`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: { Authorization: `Bearer ${token.value}` },
+  server: false, // Only fetch on client side
 })
 
 // Fetch monthly revenue
@@ -49,7 +51,8 @@ const { data: revenueData, pending: revenuePending } = await useFetch<{
   success: boolean
   data: { months: string[]; revenues: number[]; orderCounts: number[] }
 }>(`${config.public.apiUrl}/admin/revenue/monthly`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: { Authorization: `Bearer ${token.value}` },
+  server: false,
 })
 
 // Fetch recent orders
@@ -57,19 +60,22 @@ const { data: ordersData, pending: ordersPending } = await useFetch<{
   success: boolean
   data: { orders: any[] }
 }>(`${config.public.apiUrl}/admin/orders/recent?limit=5`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: { Authorization: `Bearer ${token.value}` },
+  server: false,
 })
 
 const stats = computed(() => statsData.value?.data?.stats || {})
 const revenueChart = computed(() => revenueData.value?.data || { months: [], revenues: [], orderCounts: [] })
 const recentOrders = computed(() => ordersData.value?.data?.orders || [])
 
+const { t } = useI18n()
+
 // Chart configuration
 const chartData = computed(() => ({
   labels: revenueChart.value.months,
   datasets: [
     {
-      label: 'Revenue ($)',
+      label: t('admin.totalRevenue'),
       data: revenueChart.value.revenues,
       borderColor: '#1a1a1a',
       backgroundColor: 'rgba(26, 26, 26, 0.1)',
@@ -135,13 +141,19 @@ useSeoMeta({
   <div class="section bg-neutral-50 min-h-screen">
     <div class="container-aura">
       <div class="flex items-center justify-between mb-8">
+<<<<<<< HEAD
         <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.dashboard') }}</h1>
         <span class="text-caption text-neutral-500">{{ t('nav.adminPanel') }}</span>
+=======
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ $t('admin.dashboard') }}</h1>
+        <span class="text-caption text-neutral-500">{{ $t('nav.adminPanel') }}</span>
+>>>>>>> newtab
       </div>
 
       <!-- Stats Grid -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div class="card p-6">
+<<<<<<< HEAD
           <p class="text-caption text-neutral-500 uppercase tracking-wider mb-2">{{ t('admin.totalRevenue') }}</p>
           <p class="text-heading-3 font-serif text-aura-black">{{ formatPrice(stats.totalRevenue || 0) }}</p>
         </div>
@@ -159,12 +171,32 @@ useSeoMeta({
           <p class="text-caption text-neutral-500 uppercase tracking-wider mb-2">{{ t('admin.customers') }}</p>
           <p class="text-heading-3 font-serif text-aura-black">{{ stats.totalCustomers || 0 }}</p>
           <p class="text-caption text-blue-600">+{{ stats.newCustomersThisMonth || 0 }} {{ t('admin.thisMonth') }}</p>
+=======
+          <p class="text-caption text-neutral-500 uppercase tracking-wider mb-2">{{ $t('admin.totalRevenue') }}</p>
+          <p class="text-heading-3 font-serif text-aura-black">{{ formatPrice(stats.totalRevenue || 0) }}</p>
+        </div>
+        <div class="card p-6">
+          <p class="text-caption text-neutral-500 uppercase tracking-wider mb-2">{{ $t('admin.totalOrders') }}</p>
+          <p class="text-heading-3 font-serif text-aura-black">{{ stats.totalOrders || 0 }}</p>
+          <p class="text-caption text-yellow-600">{{ stats.pendingOrders || 0 }} {{ $t('orders.pending').toLowerCase() }}</p>
+        </div>
+        <div class="card p-6">
+          <p class="text-caption text-neutral-500 uppercase tracking-wider mb-2">{{ $t('admin.products') }}</p>
+          <p class="text-heading-3 font-serif text-aura-black">{{ stats.totalProducts || 0 }}</p>
+          <p class="text-caption text-green-600">{{ stats.availableItems || 0 }} {{ $t('shop.available').toLowerCase() }}</p>
+        </div>
+        <div class="card p-6">
+          <p class="text-caption text-neutral-500 uppercase tracking-wider mb-2">{{ $t('admin.users') }}</p>
+          <p class="text-heading-3 font-serif text-aura-black">{{ stats.totalCustomers || 0 }}</p>
+          <p class="text-caption text-blue-600">+{{ stats.newCustomersThisMonth || 0 }} {{ $t('admin.newCustomers').toLowerCase() }}</p>
+>>>>>>> newtab
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Revenue Chart -->
         <div class="lg:col-span-2 card p-6">
+<<<<<<< HEAD
           <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('admin.monthlyRevenue') }}</h2>
           <div class="h-64">
             <Line v-if="!revenuePending && revenueChart.months.length > 0" :data="chartData" :options="chartOptions" />
@@ -173,12 +205,23 @@ useSeoMeta({
             </div>
             <div v-else class="h-full flex items-center justify-center">
               <p class="text-neutral-500">{{ t('admin.noRevenueData') }}</p>
+=======
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.monthlyRevenue') }}</h2>
+          <div class="h-64">
+            <Line v-if="!revenuePending && revenueChart.months.length > 0" :data="chartData" :options="chartOptions" />
+            <div v-else-if="revenuePending" class="h-full flex items-center justify-center">
+              <p class="text-neutral-500">{{ $t('common.loading') }}</p>
+            </div>
+            <div v-else class="h-full flex items-center justify-center">
+              <p class="text-neutral-500">{{ $t('admin.noRevenueData') }}</p>
+>>>>>>> newtab
             </div>
           </div>
         </div>
 
         <!-- Quick Links -->
         <div class="card p-6">
+<<<<<<< HEAD
           <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('admin.quickActions') }}</h2>
           <div class="space-y-3">
             <NuxtLink to="/admin/orders" class="block p-3 bg-neutral-50 hover:bg-neutral-100 rounded-sm transition-colors">
@@ -192,6 +235,21 @@ useSeoMeta({
             </NuxtLink>
             <NuxtLink to="/admin/users" class="block p-3 bg-neutral-50 hover:bg-neutral-100 rounded-sm transition-colors">
               <span class="text-body-sm">{{ t('admin.manageUsers') }}</span>
+=======
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.quickActions') }}</h2>
+          <div class="space-y-3">
+            <NuxtLink to="/admin/orders" class="block p-3 bg-neutral-50 hover:bg-neutral-100 rounded-sm transition-colors">
+              <span class="text-body-sm">{{ $t('admin.orderManagement') }}</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/products" class="block p-3 bg-neutral-50 hover:bg-neutral-100 rounded-sm transition-colors">
+              <span class="text-body-sm">{{ $t('admin.products') }}</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/ai-config" class="block p-3 bg-neutral-50 hover:bg-neutral-100 rounded-sm transition-colors">
+              <span class="text-body-sm">{{ $t('admin.aiConfig') }}</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/users" class="block p-3 bg-neutral-50 hover:bg-neutral-100 rounded-sm transition-colors">
+              <span class="text-body-sm">{{ $t('admin.userManagement') }}</span>
+>>>>>>> newtab
             </NuxtLink>
           </div>
         </div>
@@ -200,28 +258,50 @@ useSeoMeta({
       <!-- Recent Orders -->
       <div class="mt-8 card p-6">
         <div class="flex items-center justify-between mb-6">
+<<<<<<< HEAD
           <h2 class="font-serif text-heading-4 text-aura-black">{{ t('admin.recentOrders') }}</h2>
           <NuxtLink to="/admin/orders" class="text-body-sm text-neutral-600 hover:text-aura-black">
             {{ t('common.viewAll') }} →
+=======
+          <h2 class="font-serif text-heading-4 text-aura-black">{{ $t('admin.recentOrders') }}</h2>
+          <NuxtLink to="/admin/orders" class="text-body-sm text-neutral-600 hover:text-aura-black">
+            {{ $t('home.viewAll') }} →
+>>>>>>> newtab
           </NuxtLink>
         </div>
 
         <div v-if="ordersPending" class="text-center py-8">
+<<<<<<< HEAD
           <p class="text-neutral-500">{{ t('common.loading') }}</p>
         </div>
 
         <div v-else-if="recentOrders.length === 0" class="text-center py-8">
           <p class="text-neutral-500">{{ t('admin.noOrders') }}</p>
+=======
+          <p class="text-neutral-500">{{ $t('common.loading') }}</p>
+        </div>
+
+        <div v-else-if="recentOrders.length === 0" class="text-center py-8">
+          <p class="text-neutral-500">{{ $t('account.noOrders') }}</p>
+>>>>>>> newtab
         </div>
 
         <table v-else class="w-full">
           <thead>
             <tr class="border-b border-neutral-200">
+<<<<<<< HEAD
               <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.orderId') }}</th>
               <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.customer') }}</th>
               <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.amount') }}</th>
               <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ t('common.status') }}</th>
               <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.date') }}</th>
+=======
+              <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ $t('orders.orderId') }}</th>
+              <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ $t('admin.reviews.customer') }}</th>
+              <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ $t('orders.total') }}</th>
+              <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ $t('orders.status') }}</th>
+              <th class="text-left py-3 text-caption font-medium text-neutral-500 uppercase">{{ $t('orders.date') }}</th>
+>>>>>>> newtab
             </tr>
           </thead>
           <tbody>

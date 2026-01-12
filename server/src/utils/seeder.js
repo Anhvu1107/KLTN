@@ -99,7 +99,7 @@ const seedUsers = async () => {
             password_hash: randomHash,
             first_name: faker.person.firstName(),
             last_name: faker.person.lastName(),
-            phone: faker.phone.number(),
+            phone: faker.phone.number({ style: 'national' }).slice(0, 15),
             role: 'CUSTOMER',
             is_active: true,
         });
@@ -295,14 +295,14 @@ const seed = async () => {
         console.log('\n🎉 Database seeding completed successfully!\n');
         console.log('='.repeat(50));
         console.log('📋 Summary:');
-        console.log('   - 2 Users (1 Admin, 1 Customer)');
+        console.log('   - 12 Users (1 Admin, 1 Demo Customer, 10 Random)');
         console.log('   - 2 System Prompts');
         console.log('   - 20 Products with Variants');
         console.log('   - 50 Orders');
         console.log('='.repeat(50));
         console.log('\n🔐 Login credentials:');
         console.log('   Admin:    admin@aura.com / admin123');
-        console.log('   Customer: user@aura.com / 123456\n');
+        console.log('   Customer: customer@aura.com / 123456\n');
 
         process.exit(0);
     } catch (error) {

@@ -61,13 +61,36 @@ git clone git@github.com:Anhvu1107/KLTN.git
 cd KLTN
 ```
 
-### 3. Cài đặt PostgreSQL Database
+### 3. Khởi động PostgreSQL Database
 
+**Cách 1: Dùng Docker (Khuyến nghị - không cần cài PostgreSQL)**
+```bash
+# Khởi động PostgreSQL container
+docker-compose up postgres -d
+
+# Database tự động được tạo với:
+# - Host: localhost
+# - Port: 5432
+# - Database: aura_archive
+# - User: postgres
+# - Password: aura_secret_2024
+```
+
+**Cách 2: Dùng PostgreSQL đã cài sẵn**
 ```sql
 -- Mở pgAdmin hoặc psql, tạo database:
 CREATE DATABASE aura_archive;
 CREATE USER aura_user WITH ENCRYPTED PASSWORD 'aura_password_2024';
 GRANT ALL PRIVILEGES ON DATABASE aura_archive TO aura_user;
+```
+
+**Verify PostgreSQL đang chạy:**
+```bash
+# Kiểm tra qua Docker
+docker exec -it aura-postgres psql -U postgres -c "\l"
+
+# Hoặc nếu cài PostgreSQL local
+psql -h localhost -U postgres -c "\l"
 ```
 
 ### 4. Cấu hình môi trường

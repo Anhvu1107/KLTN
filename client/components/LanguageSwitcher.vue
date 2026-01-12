@@ -31,16 +31,16 @@ const switchLocale = (code: string) => {
     </button>
 
     <!-- Dropdown -->
-    <div class="absolute top-full right-0 mt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-      <div class="bg-white shadow-lg border border-neutral-100 rounded-sm py-1 min-w-[120px]">
+    <div class="absolute top-full left-0 mt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100]">
+      <div class="bg-white shadow-lg border border-neutral-200 rounded-sm py-1 min-w-[140px]">
         <button
           v-for="loc in locales"
           :key="(loc as any).code"
           @click="switchLocale((loc as any).code)"
-          class="w-full text-left px-4 py-2 text-body-sm hover:bg-neutral-50 flex items-center gap-2"
-          :class="{ 'bg-neutral-50 font-medium': (loc as any).code === locale }"
+          class="w-full text-left px-4 py-2 text-body-sm text-neutral-700 hover:bg-neutral-100 flex items-center gap-2"
+          :class="{ 'bg-neutral-100 font-medium': (loc as any).code === locale }"
         >
-          <span>{{ (loc as any).code.toUpperCase() }}</span>
+          <span class="font-medium">{{ (loc as any).code.toUpperCase() }}</span>
           <span class="text-neutral-500">{{ (loc as any).name }}</span>
         </button>
       </div>

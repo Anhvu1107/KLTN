@@ -55,7 +55,11 @@ const fetchProducts = async () => {
 
 // Delete product
 const deleteProduct = async (id: number) => {
+<<<<<<< HEAD
   if (!confirm(t('common.confirmDelete'))) return
+=======
+  if (!confirm(t('admin.deleteConfirm'))) return
+>>>>>>> newtab
 
   try {
     const token = getToken()
@@ -147,9 +151,15 @@ useSeoMeta({
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
+<<<<<<< HEAD
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.product') }}</th>
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('shop.category') }}</th>
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('shop.price') }}</th>
+=======
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.reviews.product') }}</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('shop.category') }}</th>
+            <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.pricing') }}</th>
+>>>>>>> newtab
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('common.status') }}</th>
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('common.active') }}</th>
             <th class="text-left py-4 px-6 text-caption font-medium text-neutral-500 uppercase">{{ t('common.actions') }}</th>

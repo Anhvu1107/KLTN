@@ -89,6 +89,15 @@
         "status": "Status",
         "active": "Active",
         "inactive": "Inactive",
+<<<<<<< HEAD
+=======
+        "saving": "Saving...",
+        "deleting": "Deleting...",
+        "uploading": "Uploading...",
+        "creating": "Creating...",
+        "add": "Add",
+        "saveChanges": "Save Changes",
+>>>>>>> newtab
         "success": "Success",
         "error": "Error",
         "confirm": "Confirm",
@@ -105,11 +114,27 @@
     },
     "nav": {
         "newArrivals": "New Arrivals",
+        "featured": "Featured",
         "collections": "Collections",
         "designers": "Designers",
         "sale": "Sale",
         "adminPanel": "Admin Panel",
         "backToStore": "Back to Store"
+    },
+    "footer": {
+        "newsletter": "Join Our Newsletter",
+        "newsletterText": "Be the first to know about new arrivals, exclusive offers and styling tips.",
+        "emailPlaceholder": "Enter your email",
+        "subscribe": "Subscribe",
+        "help": "Help",
+        "faq": "FAQ",
+        "shipping": "Shipping",
+        "returns": "Returns",
+        "about": "About Us",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "company": "Company",
+        "copyright": "© 2026 AURA ARCHIVE. All rights reserved."
     },
     "hero": {
         "title": "Timeless Elegance, Reimagined",
@@ -131,6 +156,7 @@
         "curatedDesc": "Hand-picked pieces from the world's finest designers",
         "sustainable": "Sustainable Luxury",
         "sustainableDesc": "Extend the life of beautiful fashion pieces",
+<<<<<<< HEAD
         "collection": "Collection",
         "women": "Women",
         "men": "Men",
@@ -138,6 +164,64 @@
         "mostPopular": "Most Popular",
         "onSale": "On Sale",
         "limitedTime": "Limited Time"
+=======
+        "featuredCollection": "Featured Collection",
+        "season": "Spring 2026",
+        "collection": "Collection",
+        "women": "Women",
+        "men": "Men",
+        "shopNow": "Shop Now",
+        "newIn": "New In",
+        "mostPopular": "Most Popular",
+        "bestSellers": "Best Sellers",
+        "limitedTime": "Limited Time",
+        "onSale": "On Sale",
+        "sale": "Sale",
+        "viewAllSale": "View All Sale Items",
+        "views": "views",
+        "catBags": "Bags",
+        "catOuterwear": "Outerwear",
+        "catAccessories": "Accessories"
+    },
+    "categories": {
+        "tops": "Tops",
+        "pants": "Pants",
+        "outerwear": "Outerwear",
+        "shoes": "Shoes",
+        "bags": "Bags",
+        "accessories": "Accessories",
+        "dresses": "Dresses",
+        "unisex": "Unisex"
+    },
+    "conditions": {
+        "newWithTags": "10/10 - New with tags",
+        "likeNew": "9/10 - Like New",
+        "excellent": "8/10 - Excellent",
+        "good": "7/10 - Good",
+        "vintage": "Vintage"
+    },
+    "colors": {
+        "black": "Black",
+        "white": "White",
+        "grey": "Grey",
+        "navy": "Navy",
+        "olive": "Olive",
+        "burgundy": "Burgundy",
+        "cream": "Cream",
+        "brown": "Brown",
+        "multi": "Multi"
+    },
+    "materials": {
+        "leather": "Leather",
+        "cotton": "Cotton",
+        "wool": "Wool",
+        "nylon": "Nylon",
+        "silk": "Silk",
+        "cashmere": "Cashmere",
+        "polyester": "Polyester",
+        "linen": "Linen",
+        "mixed": "Mixed"
+>>>>>>> newtab
     },
     "shop": {
         "title": "Shop",
@@ -362,6 +446,7 @@
         "soldItems": "Sold Items",
         "monthlyRevenue": "Monthly Revenue",
         "recentOrders": "Recent Orders",
+<<<<<<< HEAD
         "totalOrdersLabel": "total orders",
         "totalUsersLabel": "total users",
         "searchUsers": "Search email, name...",
@@ -371,6 +456,10 @@
         "joined": "Joined",
         "noUsers": "No users found",
         "payment": "Payment",
+=======
+        "quickActions": "Quick Actions",
+        "noRevenueData": "No revenue data available",
+>>>>>>> newtab
         "addProduct": "Add Product",
         "editProduct": "Edit Product",
         "productName": "Product Name",
@@ -387,6 +476,11 @@
         "memberSince": "Member since",
         "totalOrdersCount": "Total Orders",
         "wishlistItemsCount": "Wishlist Items",
+        "allRoles": "All Roles",
+        "role": "Role",
+        "joined": "Joined",
+        "customer": "Customer",
+        "adminRole": "Admin",
         "systemPrompts": "System Prompts",
         "editPrompt": "Edit Prompt",
         "savePrompt": "Save Prompt",
@@ -418,6 +512,7 @@
         "userDetail": "User Details",
         "orderManagement": "Order Management",
         "userManagement": "User Management",
+<<<<<<< HEAD
         "dragDropImages": "Drag & drop images here or click to browse",
         "imageLimits": "{remaining} of {max} slots remaining",
         "maxImagesError": "Maximum {max} images allowed",
@@ -471,6 +566,47 @@
             "tip2": "Include examples of how the AI should respond",
             "tip3": "Mention any brands or styles the AI should prioritize",
             "tip4": "Changes take effect immediately for new conversations"
+=======
+        "form": {
+            "title": "Title",
+            "subtitle": "Subtitle",
+            "imageUrl": "Image URL",
+            "linkUrl": "Link URL",
+            "buttonText": "Button Text",
+            "position": "Position",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "minOrderAmount": "Min Order Amount",
+            "maxDiscount": "Max Discount",
+            "maxUsesTotal": "Max Uses (Total)",
+            "maxUsesPerUser": "Max Uses Per User",
+            "expiryDate": "Expiry Date",
+            "unlimited": "Unlimited"
+        },
+        "productForm": {
+            "addNew": "Add New Product",
+            "createDescription": "Create a new product listing with variant",
+            "backToProducts": "Back to Products",
+            "productImages": "Product Images",
+            "imageUploadHint": "Upload up to 5 images. Accepted formats: JPEG, PNG, WebP. Max 5MB each.",
+            "productInfo": "Product Information",
+            "productName": "Product Name",
+            "productNamePlaceholder": "e.g. Rick Owens Geobasket Sneakers",
+            "brand": "Brand",
+            "selectBrand": "Select brand",
+            "subcategory": "Subcategory",
+            "condition": "Condition",
+            "basePrice": "Base Price ($)",
+            "salePrice": "Sale Price ($)",
+            "optional": "Optional",
+            "description": "Description",
+            "descriptionPlaceholder": "Describe the product...",
+            "variantDetails": "Variant Details",
+            "size": "Size",
+            "color": "Color",
+            "material": "Material",
+            "createProduct": "Create Product"
+>>>>>>> newtab
         },
         "reviews": {
             "title": "Review Management",
@@ -490,8 +626,67 @@
             "date": "Date",
             "content": "Content"
         },
+<<<<<<< HEAD
+=======
+        "coupons": {
+            "title": "Coupon Management",
+            "addCoupon": "Add Coupon",
+            "createCoupon": "Create Coupon",
+            "editCoupon": "Edit Coupon",
+            "noCoupons": "No coupons yet",
+            "code": "Code",
+            "name": "Name",
+            "type": "Type",
+            "value": "Value",
+            "usage": "Usage",
+            "expires": "Expires",
+            "discount": "Discount",
+            "discountType": "Discount Type",
+            "percentage": "Percentage",
+            "fixedAmount": "Fixed Amount",
+            "validFrom": "Valid From",
+            "validTo": "Valid To",
+            "maxUsage": "Usage Limit",
+            "minOrder": "Minimum Order",
+            "create": "Create Coupon",
+            "edit": "Edit Coupon"
+        },
+        "banners": {
+            "title": "Banner Management",
+            "addBanner": "Add Banner",
+            "createBanner": "Create Banner",
+            "editBanner": "Edit Banner",
+            "noBanners": "No banners yet",
+            "image": "Image",
+            "link": "Link",
+            "position": "Position",
+            "active": "Active",
+            "create": "Create Banner",
+            "edit": "Edit Banner",
+            "desktop": "Desktop",
+            "mobile": "Mobile"
+        },
+        "blogs": {
+            "title": "Blogs",
+            "addBlog": "Add Blog",
+            "createBlog": "Create Blog",
+            "editBlog": "Edit Blog",
+            "noBlogs": "No blogs yet",
+            "titleColumn": "Title",
+            "views": "Views",
+            "excerpt": "Excerpt",
+            "content": "Content",
+            "featuredImage": "Featured Image",
+            "draft": "Draft",
+            "published": "Published",
+            "archived": "Archived"
+        },
+>>>>>>> newtab
         "popups": {
             "title": "Popup Management",
+            "addPopup": "Add Popup",
+            "createPopup": "Create Popup",
+            "editPopup": "Edit Popup",
             "content": "Content",
             "trigger": "Trigger",
             "delay": "Delay (seconds)",
@@ -513,10 +708,24 @@
             "items": "Items",
             "value": "Value",
             "lastActive": "Last Active",
+            "time": "Time",
             "sendReminder": "Send Reminder",
             "noCarts": "No abandoned carts",
-            "reminderSent": "Reminder sent"
-        }
+            "reminderSent": "Reminder sent",
+            "remindersSent": "Sent {count} reminders",
+            "totalCarts": "Total Carts",
+            "pending": "Pending",
+            "recovered": "Recovered",
+            "expired": "Expired",
+            "converted": "Converted"
+        },
+        "aiConfigDescription": "Customize the AI Stylist's behavior and personality.",
+        "backToDashboard": "Back to Dashboard",
+        "aiTipsTitle": "Tips for AI Persona",
+        "aiTip1": "Be specific about the desired tone and personality",
+        "aiTip2": "Include examples of how the AI should respond",
+        "aiTip3": "Mention any brands or styles the AI should prioritize",
+        "aiTip4": "Changes take effect immediately for new conversations"
     },
     "ai": {
         "stylist": "AI Stylist",

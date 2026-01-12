@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Kế Hoạch Thực Hiện Khóa Luận - AURA ARCHIVE</title>
+    <style>
+        body { font-family: 'Times New Roman', serif; font-size: 13pt; line-height: 1.5; margin: 2.5cm; }
+        h1 { font-size: 16pt; font-weight: bold; text-align: center; margin-top: 24pt; }
+        h2 { font-size: 14pt; font-weight: bold; margin-top: 18pt; border-bottom: 1px solid #000; }
+        h3 { font-size: 13pt; font-weight: bold; margin-top: 12pt; }
+        table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        th { background-color: #f0f0f0; font-weight: bold; }
+        .center { text-align: center; }
+        .highlight { background-color: #e8f5e9; }
+        ul, ol { margin-left: 20pt; }
+        .page-break { page-break-after: always; }
+    </style>
+</head>
+<body>
+
+<div class="center">
+    <h1 style="font-size: 18pt; margin-top: 100pt;">KẾ HOẠCH THỰC HIỆN KHÓA LUẬN TỐT NGHIỆP</h1>
+    <br><br>
+    <p style="font-size: 16pt; font-weight: bold;">ĐỀ TÀI:</p>
+    <p style="font-size: 14pt; font-weight: bold;">XÂY DỰNG NỀN TẢNG THƯƠNG MẠI ĐIỆN TỬ THỜI TRANG CAO CẤP<br>TÍCH HỢP TRỢ LÝ AI THÔNG MINH</p>
+    <br>
+    <p style="font-size: 14pt;">Tên sản phẩm: <strong>AURA ARCHIVE</strong></p>
+    <br><br><br>
+    <p>Sinh viên thực hiện: <strong>___________________</strong></p>
+    <p>MSSV: <strong>___________________</strong></p>
+    <p>Giảng viên hướng dẫn: <strong>___________________</strong></p>
+    <br><br>
+    <p>Năm 2026</p>
+</div>
+
+<div class="page-break"></div>
+
+<h1>MỤC LỤC</h1>
+<ol>
+    <li>Giới thiệu đề tài</li>
+    <li>Mục tiêu và phạm vi</li>
+    <li>Mô tả sản phẩm</li>
+    <li>Yêu cầu chức năng chi tiết</li>
+    <li>Kiến trúc hệ thống</li>
+    <li>Công nghệ sử dụng</li>
+    <li>Thiết kế cơ sở dữ liệu</li>
+    <li>Kế hoạch triển khai</li>
+    <li>Kết luận</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h1>CHƯƠNG 1: GIỚI THIỆU ĐỀ TÀI</h1>
+
+<h2>1.1. Lý do chọn đề tài</h2>
+<p>Trong bối cảnh thương mại điện tử đang phát triển mạnh mẽ tại Việt Nam, thị trường thời trang cao cấp (luxury fashion) và thời trang đã qua sử dụng (resell/consignment) đang trở thành xu hướng mới. Việc kết hợp giữa công nghệ trí tuệ nhân tạo (AI) và thương mại điện tử mở ra nhiều cơ hội cải thiện trải nghiệm mua sắm của khách hàng.</p>
+
+<p>Đề tài này tập trung xây dựng một nền tảng thương mại điện tử hoàn chỉnh với các đặc điểm:</p>
+<ul>
+    <li>Chuyên về thời trang cao cấp đã qua sử dụng (luxury resell)</li>
+    <li>Tích hợp trợ lý AI thông minh hỗ trợ tư vấn phong cách</li>
+    <li>Giao diện sang trọng, chuyên nghiệp</li>
+    <li>Hỗ trợ đa ngôn ngữ (Tiếng Việt & Tiếng Anh)</li>
+</ul>
+
+<h2>1.2. Mục tiêu nghiên cứu</h2>
+<h3>1.2.1. Mục tiêu tổng quát</h3>
+<p>Xây dựng một hệ thống thương mại điện tử full-stack hoàn chỉnh, ứng dụng công nghệ AI hiện đại, có khả năng triển khai thực tế.</p>
+
+<h3>1.2.2. Mục tiêu cụ thể</h3>
+<table>
+    <tr><th>STT</th><th>Mục tiêu</th><th>Mô tả chi tiết</th></tr>
+    <tr><td>1</td><td>Xây dựng Frontend</td><td>Phát triển giao diện người dùng với Nuxt.js 3, responsive design, UX/UI cao cấp</td></tr>
+    <tr><td>2</td><td>Xây dựng Backend</td><td>Phát triển RESTful API với Express.js, PostgreSQL, đảm bảo bảo mật và hiệu năng</td></tr>
+    <tr><td>3</td><td>Tích hợp AI</td><td>Xây dựng AI Stylist chatbot với OpenAI GPT, hỗ trợ tư vấn phong cách thông minh</td></tr>
+    <tr><td>4</td><td>Admin Dashboard</td><td>Phát triển giao diện quản trị đầy đủ tính năng</td></tr>
+    <tr><td>5</td><td>Triển khai</td><td>Containerization với Docker, sẵn sàng deploy lên cloud</td></tr>
+</table>
+
+<h2>1.3. Phạm vi đề tài</h2>
+<ul>
+    <li><strong>Đối tượng sử dụng:</strong> Khách hàng mua sắm thời trang cao cấp, Quản trị viên hệ thống</li>
+    <li><strong>Phạm vi chức năng:</strong> Mua sắm trực tuyến, Quản lý đơn hàng, AI tư vấn, Quản trị hệ thống</li>
+    <li><strong>Công nghệ:</strong> Web-based application (không bao gồm mobile app)</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h1>CHƯƠNG 2: MÔ TẢ SẢN PHẨM</h1>
+
+<h2>2.1. Tổng quan sản phẩm</h2>
+<p><strong>AURA ARCHIVE</strong> là một nền tảng thương mại điện tử chuyên về thời trang cao cấp đã qua sử dụng. Sản phẩm được thiết kế với mục tiêu mang đến trải nghiệm mua sắm sang trọng, kết hợp công nghệ AI để hỗ trợ khách hàng.</p>
+
+<h3>2.1.1. Thông tin sản phẩm</h3>
+<table>
+    <tr><th>Thuộc tính</th><th>Giá trị</th></tr>
+    <tr><td>Tên</td><td>AURA ARCHIVE</td></tr>
+    <tr><td>Tagline</td><td>Luxury Resell & Consignment Fashion</td></tr>
+    <tr><td>Domain dự kiến</td><td>aura-archive.com</td></tr>
+</table>
+
+<h3>2.1.2. Đặc điểm nổi bật</h3>
+<table>
+    <tr><th>Đặc điểm</th><th>Mô tả</th></tr>
+    <tr class="highlight"><td><strong>AI Stylist</strong></td><td>Chatbot thông minh tích hợp OpenAI GPT, tư vấn phong cách cá nhân hóa</td></tr>
+    <tr><td><strong>Luxury UX/UI</strong></td><td>Giao diện theo phong cách Ralph Lauren với typography cao cấp</td></tr>
+    <tr class="highlight"><td><strong>Bilingual</strong></td><td>Hỗ trợ song ngữ Tiếng Việt và Tiếng Anh với 500+ translation keys</td></tr>
+    <tr><td><strong>Production-Ready</strong></td><td>Docker containerization, VNPay payment, Admin dashboard</td></tr>
+</table>
+
+<h2>2.2. Các vai trò người dùng</h2>
+<table>
+    <tr><th>Vai trò</th><th>Mô tả</th><th>Quyền hạn chính</th></tr>
+    <tr><td><strong>Guest</strong></td><td>Người dùng chưa đăng nhập</td><td>Xem sản phẩm, Tìm kiếm, Chat với AI</td></tr>
+    <tr><td><strong>Customer</strong></td><td>Người dùng đã đăng ký</td><td>Mua hàng, Wishlist, Reviews, Quản lý tài khoản</td></tr>
+    <tr><td><strong>Admin</strong></td><td>Quản trị viên</td><td>Quản lý toàn bộ hệ thống</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h1>CHƯƠNG 3: YÊU CẦU CHỨC NĂNG CHI TIẾT</h1>
+
+<h2>3.1. Module Khách hàng (Customer)</h2>
+
+<h3>3.1.1. Xác thực người dùng</h3>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th><th>Ưu tiên</th></tr>
+    <tr><td>AUTH-01</td><td>Đăng ký tài khoản</td><td>Đăng ký với email, mật khẩu, họ tên. Validate email, password min 6 ký tự</td><td>Cao</td></tr>
+    <tr><td>AUTH-02</td><td>Đăng nhập</td><td>Xác thực bằng email và mật khẩu, trả về JWT token</td><td>Cao</td></tr>
+    <tr><td>AUTH-03</td><td>Đăng nhập Google</td><td>OAuth 2.0 với Google, tự động tạo tài khoản nếu chưa tồn tại</td><td>Trung bình</td></tr>
+    <tr><td>AUTH-04</td><td>Quên mật khẩu</td><td>Gửi email reset password với token có thời hạn</td><td>Trung bình</td></tr>
+    <tr><td>AUTH-05</td><td>Đăng xuất</td><td>Xóa token khỏi client</td><td>Cao</td></tr>
+</table>
+
+<h3>3.1.2. Duyệt và tìm kiếm sản phẩm</h3>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th><th>Ưu tiên</th></tr>
+    <tr><td>PROD-01</td><td>Trang chủ</td><td>Hero section, Featured products, Categories, New Arrivals</td><td>Cao</td></tr>
+    <tr><td>PROD-02</td><td>Danh sách sản phẩm</td><td>Grid sản phẩm với pagination (12 items/page)</td><td>Cao</td></tr>
+    <tr><td>PROD-03</td><td>Lọc sản phẩm</td><td>Lọc theo Brand, Category, Price range, Condition</td><td>Cao</td></tr>
+    <tr><td>PROD-04</td><td>Sắp xếp sản phẩm</td><td>Sort by: Newest, Price Low-High, Price High-Low, Name A-Z</td><td>Cao</td></tr>
+    <tr><td>PROD-05</td><td>Tìm kiếm</td><td>Full-text search theo tên, brand, mô tả</td><td>Cao</td></tr>
+    <tr><td>PROD-06</td><td>Chi tiết sản phẩm</td><td>Gallery ảnh, Variants (size/color), Reviews, Related products</td><td>Cao</td></tr>
+</table>
+
+<h3>3.1.3. Giỏ hàng và thanh toán</h3>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th><th>Ưu tiên</th></tr>
+    <tr><td>CART-01</td><td>Thêm vào giỏ</td><td>Thêm sản phẩm với variant, kiểm tra availability</td><td>Cao</td></tr>
+    <tr><td>CART-02</td><td>Xem giỏ hàng</td><td>Hiển thị items, subtotal, shipping, total</td><td>Cao</td></tr>
+    <tr><td>CART-03</td><td>Xóa khỏi giỏ</td><td>Xóa item với confirmation</td><td>Cao</td></tr>
+    <tr><td>CART-04</td><td>Áp dụng coupon</td><td>Nhập mã giảm giá, validate và tính discount</td><td>Trung bình</td></tr>
+    <tr><td>CART-05</td><td>Checkout</td><td>Form địa chỉ giao hàng với tích hợp Province/District/Ward API</td><td>Cao</td></tr>
+    <tr><td>CART-06</td><td>Thanh toán COD</td><td>Thanh toán khi nhận hàng</td><td>Cao</td></tr>
+    <tr><td>CART-07</td><td>Thanh toán VNPay</td><td>Redirect sang VNPay gateway, xử lý callback</td><td>Cao</td></tr>
+</table>
+
+<h3>3.1.4. Quản lý tài khoản</h3>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th><th>Ưu tiên</th></tr>
+    <tr><td>ACC-01</td><td>Dashboard</td><td>Tổng quan: Đơn hàng gần đây, Wishlist items</td><td>Cao</td></tr>
+    <tr><td>ACC-02</td><td>Cập nhật profile</td><td>Chỉnh sửa: Họ tên, Số điện thoại</td><td>Cao</td></tr>
+    <tr><td>ACC-03</td><td>Đổi mật khẩu</td><td>Nhập mật khẩu cũ/mới với validation</td><td>Trung bình</td></tr>
+    <tr><td>ACC-04</td><td>Quản lý địa chỉ</td><td>CRUD địa chỉ giao hàng</td><td>Trung bình</td></tr>
+    <tr><td>ACC-05</td><td>Lịch sử đơn hàng</td><td>Danh sách đơn hàng với filter, xem chi tiết</td><td>Cao</td></tr>
+    <tr><td>ACC-06</td><td>Wishlist</td><td>Danh sách sản phẩm yêu thích</td><td>Trung bình</td></tr>
+</table>
+
+<h3>3.1.5. Đánh giá sản phẩm</h3>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th><th>Ưu tiên</th></tr>
+    <tr><td>REV-01</td><td>Xem reviews</td><td>Danh sách reviews với rating stars</td><td>Trung bình</td></tr>
+    <tr><td>REV-02</td><td>Viết review</td><td>Rating 1-5 stars, Title, Comment. Verified purchase badge</td><td>Trung bình</td></tr>
+</table>
+
+<h2>3.2. Module AI Stylist</h2>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th><th>Ưu tiên</th></tr>
+    <tr class="highlight"><td>AI-01</td><td>Chat Widget</td><td>Floating chat button, expandable chat window</td><td>Cao</td></tr>
+    <tr class="highlight"><td>AI-02</td><td>Context Awareness</td><td>AI nhận biết sản phẩm user đang xem</td><td>Cao</td></tr>
+    <tr class="highlight"><td>AI-03</td><td>Conversation Memory</td><td>Lưu lịch sử hội thoại trong session</td><td>Cao</td></tr>
+    <tr class="highlight"><td>AI-04</td><td>Styling Advice</td><td>Tư vấn outfit, phối đồ, gợi ý sản phẩm</td><td>Cao</td></tr>
+    <tr class="highlight"><td>AI-05</td><td>Bilingual</td><td>Phản hồi bằng Tiếng Việt hoặc Tiếng Anh</td><td>Trung bình</td></tr>
+</table>
+
+<h2>3.3. Module Quản trị (Admin)</h2>
+
+<h3>3.3.1. Dashboard</h3>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th></tr>
+    <tr><td>DASH-01</td><td>Statistics Cards</td><td>Total Revenue, Total Orders, Total Products, Total Customers</td></tr>
+    <tr><td>DASH-02</td><td>Revenue Chart</td><td>Biểu đồ doanh thu theo tháng (Chart.js)</td></tr>
+    <tr><td>DASH-03</td><td>Recent Orders</td><td>5 đơn hàng gần nhất</td></tr>
+</table>
+
+<h3>3.3.2. Quản lý sản phẩm</h3>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th></tr>
+    <tr><td>APROD-01</td><td>Danh sách sản phẩm</td><td>Table với search, filter, pagination</td></tr>
+    <tr><td>APROD-02</td><td>Thêm sản phẩm</td><td>Form: Name, Brand, Category, Description, Prices, Images</td></tr>
+    <tr><td>APROD-03</td><td>Sửa sản phẩm</td><td>Edit tất cả thông tin</td></tr>
+    <tr><td>APROD-04</td><td>Xóa sản phẩm</td><td>Soft delete với confirmation</td></tr>
+    <tr><td>APROD-05</td><td>Quản lý Variants</td><td>CRUD: Size, Color, Status (Available/Sold)</td></tr>
+</table>
+
+<h3>3.3.3. Các chức năng khác</h3>
+<table>
+    <tr><th>Mã</th><th>Chức năng</th><th>Mô tả chi tiết</th></tr>
+    <tr><td>AORD-01</td><td>Quản lý đơn hàng</td><td>Danh sách, Chi tiết, Cập nhật trạng thái</td></tr>
+    <tr><td>AUSER-01</td><td>Quản lý Users</td><td>Danh sách, View details, Activate/Deactivate</td></tr>
+    <tr><td>AREV-01</td><td>Quản lý Reviews</td><td>Approve/Reject/Delete reviews</td></tr>
+    <tr><td>ACOUP-01</td><td>Quản lý Coupons</td><td>CRUD mã giảm giá</td></tr>
+    <tr><td>ABAN-01</td><td>Quản lý Banners</td><td>CRUD banner quảng cáo</td></tr>
+    <tr><td>AAI-01</td><td>AI Configuration</td><td>Edit system prompts cho AI</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h1>CHƯƠNG 4: KIẾN TRÚC HỆ THỐNG</h1>
+
+<h2>4.1. Kiến trúc tổng quan</h2>
+<table>
+    <tr><th>Layer</th><th>Service</th><th>Technology</th><th>Port</th></tr>
+    <tr><td>Presentation</td><td>Client</td><td>Nuxt.js 3</td><td>3000</td></tr>
+    <tr><td>Application</td><td>Server</td><td>Express.js</td><td>5000</td></tr>
+    <tr><td>Application</td><td>AI Service</td><td>FastAPI</td><td>8000</td></tr>
+    <tr><td>Data</td><td>Database</td><td>PostgreSQL</td><td>5432</td></tr>
+    <tr><td>Gateway</td><td>Nginx</td><td>Nginx</td><td>80</td></tr>
+</table>
+
+<h2>4.2. API Endpoints chính</h2>
+<table>
+    <tr><th>Method</th><th>Endpoint</th><th>Mô tả</th><th>Auth</th></tr>
+    <tr><td>POST</td><td>/auth/register</td><td>Đăng ký tài khoản</td><td>No</td></tr>
+    <tr><td>POST</td><td>/auth/login</td><td>Đăng nhập</td><td>No</td></tr>
+    <tr><td>GET</td><td>/products</td><td>Danh sách sản phẩm</td><td>No</td></tr>
+    <tr><td>GET</td><td>/products/:id</td><td>Chi tiết sản phẩm</td><td>No</td></tr>
+    <tr><td>POST</td><td>/orders</td><td>Tạo đơn hàng</td><td>Yes</td></tr>
+    <tr><td>GET</td><td>/orders</td><td>Đơn hàng của user</td><td>Yes</td></tr>
+    <tr><td>GET</td><td>/admin/stats</td><td>Thống kê dashboard</td><td>Admin</td></tr>
+    <tr><td>POST</td><td>/chat</td><td>AI Stylist chat</td><td>No</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h1>CHƯƠNG 5: CÔNG NGHỆ SỬ DỤNG</h1>
+
+<h2>5.1. Frontend</h2>
+<table>
+    <tr><th>Công nghệ</th><th>Phiên bản</th><th>Mục đích</th></tr>
+    <tr><td>Nuxt.js</td><td>3.15</td><td>Vue-based framework với SSR</td></tr>
+    <tr><td>Vue.js</td><td>3.5</td><td>Progressive JavaScript framework</td></tr>
+    <tr><td>TailwindCSS</td><td>3.x</td><td>Utility-first CSS</td></tr>
+    <tr><td>Pinia</td><td>2.2</td><td>State management</td></tr>
+    <tr><td>Chart.js</td><td>4.5</td><td>Charts cho dashboard</td></tr>
+    <tr><td>@nuxtjs/i18n</td><td>8.2</td><td>Internationalization</td></tr>
+    <tr><td>TypeScript</td><td>5.6</td><td>Type safety</td></tr>
+</table>
+
+<h2>5.2. Backend</h2>
+<table>
+    <tr><th>Công nghệ</th><th>Phiên bản</th><th>Mục đích</th></tr>
+    <tr><td>Node.js</td><td>18+</td><td>JavaScript runtime</td></tr>
+    <tr><td>Express.js</td><td>4.21</td><td>Web framework</td></tr>
+    <tr><td>Sequelize</td><td>6.37</td><td>ORM cho PostgreSQL</td></tr>
+    <tr><td>PostgreSQL</td><td>15</td><td>Relational database</td></tr>
+    <tr><td>JWT</td><td>9.0</td><td>Authentication</td></tr>
+    <tr><td>Helmet</td><td>8.0</td><td>Security headers</td></tr>
+</table>
+
+<h2>5.3. AI Service</h2>
+<table>
+    <tr><th>Công nghệ</th><th>Mục đích</th></tr>
+    <tr><td>Python 3.10+</td><td>Programming language</td></tr>
+    <tr><td>FastAPI</td><td>Async web framework</td></tr>
+    <tr><td>OpenAI API</td><td>GPT language model</td></tr>
+</table>
+
+<h2>5.4. DevOps</h2>
+<table>
+    <tr><th>Công nghệ</th><th>Mục đích</th></tr>
+    <tr><td>Docker</td><td>Containerization</td></tr>
+    <tr><td>Docker Compose</td><td>Multi-container orchestration</td></tr>
+    <tr><td>Nginx</td><td>Reverse proxy</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h1>CHƯƠNG 6: THIẾT KẾ CƠ SỞ DỮ LIỆU</h1>
+
+<h2>6.1. Danh sách các bảng</h2>
+<table>
+    <tr><th>STT</th><th>Tên bảng</th><th>Mô tả</th></tr>
+    <tr><td>1</td><td>users</td><td>Thông tin người dùng</td></tr>
+    <tr><td>2</td><td>products</td><td>Thông tin sản phẩm</td></tr>
+    <tr><td>3</td><td>variants</td><td>Biến thể sản phẩm (size, color)</td></tr>
+    <tr><td>4</td><td>orders</td><td>Đơn hàng</td></tr>
+    <tr><td>5</td><td>order_items</td><td>Chi tiết đơn hàng</td></tr>
+    <tr><td>6</td><td>reviews</td><td>Đánh giá sản phẩm</td></tr>
+    <tr><td>7</td><td>wishlists</td><td>Danh sách yêu thích</td></tr>
+    <tr><td>8</td><td>addresses</td><td>Địa chỉ giao hàng</td></tr>
+    <tr><td>9</td><td>coupons</td><td>Mã giảm giá</td></tr>
+    <tr><td>10</td><td>banners</td><td>Banner quảng cáo</td></tr>
+    <tr><td>11</td><td>system_prompts</td><td>AI prompts</td></tr>
+</table>
+
+<h2>6.2. Chi tiết bảng products</h2>
+<table>
+    <tr><th>Cột</th><th>Kiểu</th><th>Mô tả</th></tr>
+    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+    <tr><td>name</td><td>VARCHAR(255)</td><td>Tên sản phẩm</td></tr>
+    <tr><td>slug</td><td>VARCHAR(300)</td><td>URL slug (unique)</td></tr>
+    <tr><td>brand</td><td>VARCHAR(100)</td><td>Thương hiệu</td></tr>
+    <tr><td>description</td><td>TEXT</td><td>Mô tả</td></tr>
+    <tr><td>base_price</td><td>DECIMAL(12,2)</td><td>Giá gốc</td></tr>
+    <tr><td>sale_price</td><td>DECIMAL(12,2)</td><td>Giá khuyến mãi</td></tr>
+    <tr><td>category</td><td>VARCHAR(100)</td><td>Danh mục</td></tr>
+    <tr><td>images</td><td>JSONB</td><td>Mảng URLs ảnh</td></tr>
+    <tr><td>is_active</td><td>BOOLEAN</td><td>Trạng thái</td></tr>
+</table>
+
+<h2>6.3. Chi tiết bảng orders</h2>
+<table>
+    <tr><th>Cột</th><th>Kiểu</th><th>Mô tả</th></tr>
+    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+    <tr><td>user_id</td><td>UUID</td><td>FK → users</td></tr>
+    <tr><td>status</td><td>ENUM</td><td>PENDING/CONFIRMED/SHIPPED/DELIVERED</td></tr>
+    <tr><td>total_amount</td><td>DECIMAL(12,2)</td><td>Tổng thanh toán</td></tr>
+    <tr><td>payment_method</td><td>VARCHAR(50)</td><td>COD/VNPAY</td></tr>
+    <tr><td>shipping_address</td><td>JSONB</td><td>Địa chỉ</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h1>CHƯƠNG 7: KẾ HOẠCH TRIỂN KHAI</h1>
+
+<table>
+    <tr><th>Giai đoạn</th><th>Thời gian</th><th>Nội dung</th><th>Trạng thái</th></tr>
+    <tr class="highlight"><td><strong>Phase 1: Foundation</strong></td><td>Tuần 1-4</td><td>Setup project, Database, Auth, Core CRUD</td><td>✅ Hoàn thành</td></tr>
+    <tr class="highlight"><td><strong>Phase 2: Features</strong></td><td>Tuần 5-10</td><td>Shopping flow, Admin, i18n, AI</td><td>✅ Hoàn thành</td></tr>
+    <tr><td><strong>Phase 3: Polish</strong></td><td>Tuần 11-14</td><td>UI/UX, Performance, Testing</td><td>🔄 Đang thực hiện</td></tr>
+    <tr><td><strong>Phase 4: Deploy</strong></td><td>Tuần 15-16</td><td>Docker, Cloud, Demo</td><td>⏳ Chưa bắt đầu</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h1>CHƯƠNG 8: KẾT LUẬN</h1>
+
+<h2>8.1. Tổng kết</h2>
+<p><strong>AURA ARCHIVE</strong> là một hệ thống thương mại điện tử hoàn chỉnh với:</p>
+<ul>
+    <li><strong>Full-stack:</strong> Frontend (Nuxt.js) + Backend (Express.js) + AI (FastAPI)</li>
+    <li><strong>AI Integration:</strong> Trợ lý AI với OpenAI GPT</li>
+    <li><strong>Production-Ready:</strong> Docker, VNPay, Admin dashboard</li>
+    <li><strong>Multilingual:</strong> Tiếng Việt và Tiếng Anh</li>
+</ul>
+
+<h2>8.2. Đóng góp</h2>
+<table>
+    <tr><th>Đóng góp</th><th>Chi tiết</th></tr>
+    <tr><td>Ứng dụng AI trong E-commerce</td><td>Tích hợp LLM vào hệ thống bán hàng</td></tr>
+    <tr><td>Full-stack Development</td><td>Quy trình phát triển web hiện đại</td></tr>
+    <tr><td>Microservices</td><td>Kiến trúc 3-tier với API Gateway</td></tr>
+</table>
+
+<h2>8.3. Hướng phát triển</h2>
+<ul>
+    <li>Mobile application</li>
+    <li>Visual search với AI</li>
+    <li>Analytics dashboard với ML</li>
+</ul>
+
+<br><br>
+<p class="center"><strong>--- HẾT ---</strong></p>
+
+</body>
+</html>

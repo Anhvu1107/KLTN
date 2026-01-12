@@ -12,8 +12,12 @@ definePageMeta({
 })
 
 const { t } = useI18n()
+<<<<<<< HEAD
 
+=======
+>>>>>>> newtab
 const config = useRuntimeConfig()
+const getToken = () => process.client ? localStorage.getItem('token') : null
 
 // State
 const banners = ref<any[]>([])
@@ -115,7 +119,11 @@ const submitForm = async () => {
 
 // Delete banner
 const deleteBanner = async (id: string) => {
+<<<<<<< HEAD
   if (!confirm(t('common.confirmDelete'))) return
+=======
+  if (!confirm(t('admin.deleteConfirm'))) return
+>>>>>>> newtab
 
   try {
     const token = localStorage.getItem('token')
@@ -139,7 +147,11 @@ useSeoMeta({ title: 'Banner Management | Admin' })
     <div class="flex items-center justify-between mb-6">
       <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.banners.title') }}</h1>
       <button @click="openCreateModal" class="btn-primary">
+<<<<<<< HEAD
         + {{ t('admin.banners.add') }}
+=======
+        + {{ t('admin.banners.addBanner') }}
+>>>>>>> newtab
       </button>
     </div>
 
@@ -204,54 +216,58 @@ useSeoMeta({ title: 'Banner Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
           <div class="p-6 border-b border-neutral-200">
+<<<<<<< HEAD
             <h2 class="font-serif text-heading-4">{{ editingBanner ? t('admin.banners.edit') : t('admin.banners.create') }}</h2>
+=======
+            <h2 class="font-serif text-heading-4">{{ editingBanner ? t('admin.banners.editBanner') : t('admin.banners.createBanner') }}</h2>
+>>>>>>> newtab
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
             <div>
-              <label class="input-label">Title *</label>
+              <label class="input-label">{{ t('admin.form.title') }} *</label>
               <input v-model="formData.title" type="text" class="input-field" required />
             </div>
 
             <div>
-              <label class="input-label">Subtitle</label>
+              <label class="input-label">{{ t('admin.form.subtitle') }}</label>
               <input v-model="formData.subtitle" type="text" class="input-field" />
             </div>
 
             <div>
-              <label class="input-label">Image URL *</label>
+              <label class="input-label">{{ t('admin.form.imageUrl') }} *</label>
               <input v-model="formData.image_url" type="url" class="input-field" placeholder="https://..." required />
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Link URL</label>
+                <label class="input-label">{{ t('admin.form.linkUrl') }}</label>
                 <input v-model="formData.link_url" type="text" class="input-field" placeholder="/shop" />
               </div>
               <div>
-                <label class="input-label">Button Text</label>
+                <label class="input-label">{{ t('admin.form.buttonText') }}</label>
                 <input v-model="formData.button_text" type="text" class="input-field" />
               </div>
             </div>
 
             <div class="grid grid-cols-3 gap-4">
               <div>
-                <label class="input-label">Position</label>
+                <label class="input-label">{{ t('admin.form.position') }}</label>
                 <input v-model.number="formData.position" type="number" min="0" class="input-field" />
               </div>
               <div>
-                <label class="input-label">Start Date</label>
+                <label class="input-label">{{ t('admin.form.startDate') }}</label>
                 <input v-model="formData.starts_at" type="date" class="input-field" />
               </div>
               <div>
-                <label class="input-label">End Date</label>
+                <label class="input-label">{{ t('admin.form.endDate') }}</label>
                 <input v-model="formData.ends_at" type="date" class="input-field" />
               </div>
             </div>
 
             <div class="flex items-center gap-2">
               <input v-model="formData.is_active" type="checkbox" id="is_active" class="w-4 h-4" />
-              <label for="is_active" class="text-body-sm">Active</label>
+              <label for="is_active" class="text-body-sm">{{ t('common.active') }}</label>
             </div>
 
             <p v-if="formError" class="text-red-600 text-body-sm">{{ formError }}</p>
@@ -261,7 +277,11 @@ useSeoMeta({ title: 'Banner Management | Admin' })
                 {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="isSubmitting" class="btn-primary">
+<<<<<<< HEAD
                 {{ isSubmitting ? t('common.saving') : t('admin.banners.save') }}
+=======
+                {{ isSubmitting ? t('common.saving') : t('common.save') }}
+>>>>>>> newtab
               </button>
             </div>
           </form>
