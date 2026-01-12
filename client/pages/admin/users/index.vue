@@ -4,18 +4,12 @@
  * AURA ARCHIVE - Customer list and management
  */
 
-import { useI18n } from '#imports'
-
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
 
 const { t } = useI18n()
-<<<<<<< HEAD
-
-=======
->>>>>>> newtab
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
 const token = computed(() => authStore.token)
@@ -81,11 +75,7 @@ useSeoMeta({
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
         <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.users') }}</h1>
-<<<<<<< HEAD
-        <p class="text-body text-neutral-600">{{ pagination.total || 0 }} {{ t('admin.totalUsersLabel') }}</p>
-=======
         <p class="text-body text-neutral-600">{{ pagination.total || 0 }} {{ t('admin.totalUsers').toLowerCase() }}</p>
->>>>>>> newtab
       </div>
       
       <div class="flex gap-4">
@@ -95,11 +85,7 @@ useSeoMeta({
             v-model="search"
             @keyup.enter="handleSearch"
             type="text"
-<<<<<<< HEAD
-            :placeholder="t('admin.searchUsers')"
-=======
             :placeholder="t('common.search') + '...'"
->>>>>>> newtab
             class="input-field w-64 pr-10"
           />
           <button @click="handleSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-aura-black">
@@ -113,11 +99,7 @@ useSeoMeta({
         <select v-model="role" class="input-field w-40">
           <option value="">{{ t('admin.allRoles') }}</option>
           <option value="CUSTOMER">{{ t('admin.customer') }}</option>
-<<<<<<< HEAD
-          <option value="ADMIN">Admin</option>
-=======
           <option value="ADMIN">{{ t('admin.adminRole') }}</option>
->>>>>>> newtab
         </select>
       </div>
     </div>
@@ -132,11 +114,7 @@ useSeoMeta({
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
-<<<<<<< HEAD
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.user') }}</th>
-=======
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.users') }}</th>
->>>>>>> newtab
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.role') }}</th>
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('common.status') }}</th>
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.joined') }}</th>
@@ -196,11 +174,7 @@ useSeoMeta({
 
       <!-- Empty -->
       <div v-if="users.length === 0" class="text-center py-16">
-<<<<<<< HEAD
-        <p class="text-neutral-500">{{ t('admin.noUsers') }}</p>
-=======
         <p class="text-neutral-500">{{ t('common.noResults') }}</p>
->>>>>>> newtab
       </div>
     </div>
 

@@ -94,11 +94,7 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
       <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.popups.title') }}</h1>
-<<<<<<< HEAD
-      <button @click="openCreate" class="btn-primary">+ {{ t('admin.popups.add') }}</button>
-=======
       <button @click="openCreate" class="btn-primary">+ {{ t('admin.popups.addPopup') }}</button>
->>>>>>> newtab
     </div>
 
     <div v-if="isLoading" class="text-center py-12">
@@ -126,11 +122,7 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto p-6">
-<<<<<<< HEAD
-          <h2 class="font-serif text-heading-4 mb-6">{{ editingPopup ? t('admin.popups.edit') : t('admin.popups.create') }}</h2>
-=======
           <h2 class="font-serif text-heading-4 mb-6">{{ editingPopup ? t('admin.popups.editPopup') : t('admin.popups.createPopup') }}</h2>
->>>>>>> newtab
           <form @submit.prevent="savePopup" class="space-y-4">
             <div><label class="input-label">Name *</label><input v-model="formData.name" class="input-field" required /></div>
             <div><label class="input-label">Title</label><input v-model="formData.title" class="input-field" /></div>

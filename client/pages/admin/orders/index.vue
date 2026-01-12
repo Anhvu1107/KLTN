@@ -4,18 +4,12 @@
  * AURA ARCHIVE - Orders list with status management
  */
 
-import { useI18n } from '#imports'
-
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
 
 const { t } = useI18n()
-<<<<<<< HEAD
-
-=======
->>>>>>> newtab
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
 const token = computed(() => authStore.token)
@@ -103,34 +97,20 @@ useSeoMeta({
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div>
-<<<<<<< HEAD
-        <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.orders') }}</h1>
-        <p class="text-body text-neutral-600">{{ pagination.total || 0 }} {{ t('admin.totalOrdersLabel') }}</p>
-=======
         <h1 class="font-serif text-heading-2 text-aura-black">{{ $t('admin.orders') }}</h1>
         <p class="text-body text-neutral-600">{{ pagination.total || 0 }} {{ $t('admin.totalOrders').toLowerCase() }}</p>
->>>>>>> newtab
       </div>
       
       <!-- Filter by status -->
       <select v-model="status" class="input-field w-48">
-<<<<<<< HEAD
-        <option value="">{{ t('admin.allStatuses') }}</option>
-        <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
-=======
         <option value="">{{ $t('admin.allStatuses') }}</option>
         <option v-for="s in statuses" :key="s" :value="s">{{ $t(`orders.${s.toLowerCase()}`) }}</option>
->>>>>>> newtab
       </select>
     </div>
 
     <!-- Loading -->
     <div v-if="pending" class="text-center py-16">
-<<<<<<< HEAD
-      <p class="text-neutral-500">{{ t('common.loading') }}</p>
-=======
       <p class="text-neutral-500">{{ $t('common.loading') }}</p>
->>>>>>> newtab
     </div>
 
     <!-- Table -->
@@ -138,15 +118,6 @@ useSeoMeta({
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
-<<<<<<< HEAD
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.orderId') }}</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.customer') }}</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.amount') }}</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('common.status') }}</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.payment') }}</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.date') }}</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('common.actions') }}</th>
-=======
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ $t('orders.orderId') }}</th>
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ $t('admin.reviews.customer') }}</th>
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ $t('orders.total') }}</th>
@@ -154,7 +125,6 @@ useSeoMeta({
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ $t('orders.payment') }}</th>
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ $t('orders.date') }}</th>
             <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ $t('common.actions') }}</th>
->>>>>>> newtab
           </tr>
         </thead>
         <tbody>
@@ -198,11 +168,7 @@ useSeoMeta({
 
       <!-- Empty -->
       <div v-if="orders.length === 0" class="text-center py-16">
-<<<<<<< HEAD
-        <p class="text-neutral-500">{{ t('admin.noOrders') }}</p>
-=======
         <p class="text-neutral-500">{{ $t('admin.orders') }} {{ $t('common.noResults').toLowerCase() }}</p>
->>>>>>> newtab
       </div>
     </div>
 

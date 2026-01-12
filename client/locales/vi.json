@@ -89,15 +89,12 @@
         "status": "Trạng thái",
         "active": "Hoạt động",
         "inactive": "Tạm dừng",
-<<<<<<< HEAD
-=======
         "saving": "Đang lưu...",
         "deleting": "Đang xóa...",
         "uploading": "Đang tải lên...",
         "creating": "Đang tạo...",
         "add": "Thêm",
         "saveChanges": "Lưu thay đổi",
->>>>>>> newtab
         "success": "Thành công",
         "error": "Lỗi",
         "confirm": "Xác nhận",
@@ -155,15 +152,6 @@
         "curatedDesc": "Sản phẩm được chọn lọc từ các nhà thiết kế hàng đầu",
         "sustainable": "Thời trang bền vững",
         "sustainableDesc": "Kéo dài vòng đời của những sản phẩm thời trang đẹp",
-<<<<<<< HEAD
-        "collection": "Bộ sưu tập",
-        "women": "Nữ",
-        "men": "Nam",
-        "bestSellers": "Bán chạy nhất",
-        "mostPopular": "Phổ biến nhất",
-        "onSale": "Đang giảm giá",
-        "limitedTime": "Thời gian có hạn"
-=======
         "featuredCollection": "Bộ sưu tập nổi bật",
         "season": "Xuân 2026",
         "collection": "Bộ sưu tập",
@@ -220,7 +208,6 @@
         "polyester": "Polyester",
         "linen": "Lanh",
         "mixed": "Pha trộn"
->>>>>>> newtab
     },
     "shop": {
         "title": "Cửa hàng",
@@ -446,7 +433,6 @@
         "monthlyRevenue": "Doanh thu theo tháng",
         "recentOrders": "Đơn hàng gần đây",
         "quickActions": "Thao tác nhanh",
-<<<<<<< HEAD
         "manageOrders": "Quản lý đơn hàng",
         "manageProducts": "Quản lý sản phẩm",
         "manageUsers": "Quản lý người dùng",
@@ -468,9 +454,6 @@
         "joined": "Ngày tham gia",
         "noUsers": "Không tìm thấy người dùng",
         "payment": "Thanh toán",
-=======
-        "noRevenueData": "Chưa có dữ liệu doanh thu",
->>>>>>> newtab
         "addProduct": "Thêm sản phẩm",
         "editProduct": "Sửa sản phẩm",
         "productName": "Tên sản phẩm",
@@ -519,7 +502,6 @@
         "userDetail": "Chi tiết người dùng",
         "orderManagement": "Quản lý đơn hàng",
         "userManagement": "Quản lý người dùng",
-<<<<<<< HEAD
         "dragDropImages": "Kéo thả hình ảnh vào đây hoặc nhấp để chọn",
         "imageLimits": "Còn {remaining}/{max} vị trí",
         "maxImagesError": "Tối đa {max} hình ảnh",
@@ -573,7 +555,7 @@
             "tip2": "Bao gồm các ví dụ về cách AI nên phản hồi",
             "tip3": "Đề cập các thương hiệu hoặc phong cách AI nên ưu tiên",
             "tip4": "Thay đổi có hiệu lực ngay với các cuộc hội thoại mới"
-=======
+        },
         "form": {
             "title": "Tiêu đề",
             "subtitle": "Phụ đề",
@@ -613,7 +595,6 @@
             "color": "Màu sắc",
             "material": "Chất liệu",
             "createProduct": "Tạo sản phẩm"
->>>>>>> newtab
         },
         "reviews": {
             "title": "Quản lý đánh giá",
@@ -633,8 +614,6 @@
             "date": "Ngày",
             "content": "Nội dung"
         },
-<<<<<<< HEAD
-=======
         "coupons": {
             "title": "Quản lý mã giảm giá",
             "addCoupon": "Thêm mã",
@@ -688,7 +667,6 @@
             "published": "Đã xuất bản",
             "archived": "Lưu trữ"
         },
->>>>>>> newtab
         "popups": {
             "title": "Quản lý popup",
             "content": "Nội dung",

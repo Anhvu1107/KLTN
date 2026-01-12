@@ -4,18 +4,12 @@
  * AURA ARCHIVE - Manage homepage banners
  */
 
-import { useI18n } from '#imports'
-
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
 })
 
 const { t } = useI18n()
-<<<<<<< HEAD
-
-=======
->>>>>>> newtab
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
 
@@ -119,11 +113,7 @@ const submitForm = async () => {
 
 // Delete banner
 const deleteBanner = async (id: string) => {
-<<<<<<< HEAD
-  if (!confirm(t('common.confirmDelete'))) return
-=======
   if (!confirm(t('admin.deleteConfirm'))) return
->>>>>>> newtab
 
   try {
     const token = localStorage.getItem('token')
@@ -147,11 +137,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
     <div class="flex items-center justify-between mb-6">
       <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.banners.title') }}</h1>
       <button @click="openCreateModal" class="btn-primary">
-<<<<<<< HEAD
-        + {{ t('admin.banners.add') }}
-=======
         + {{ t('admin.banners.addBanner') }}
->>>>>>> newtab
       </button>
     </div>
 
@@ -176,7 +162,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
             class="w-full h-full object-cover"
           />
           <div v-else class="w-full h-full flex items-center justify-center text-neutral-400">
-            {{ t('admin.banners.noImage') }}
+            No Image
           </div>
           <div class="absolute top-2 right-2">
             <span 
@@ -216,11 +202,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
           <div class="p-6 border-b border-neutral-200">
-<<<<<<< HEAD
-            <h2 class="font-serif text-heading-4">{{ editingBanner ? t('admin.banners.edit') : t('admin.banners.create') }}</h2>
-=======
             <h2 class="font-serif text-heading-4">{{ editingBanner ? t('admin.banners.editBanner') : t('admin.banners.createBanner') }}</h2>
->>>>>>> newtab
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
@@ -277,11 +259,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
                 {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="isSubmitting" class="btn-primary">
-<<<<<<< HEAD
-                {{ isSubmitting ? t('common.saving') : t('admin.banners.save') }}
-=======
                 {{ isSubmitting ? t('common.saving') : t('common.save') }}
->>>>>>> newtab
               </button>
             </div>
           </form>
