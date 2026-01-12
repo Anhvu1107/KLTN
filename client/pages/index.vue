@@ -6,6 +6,12 @@
 
 const config = useRuntimeConfig()
 
+// Fetch banners for hero section
+const { data: bannersData } = await useFetch<{
+  success: boolean
+  data: { banners: any[] }
+}>(`${config.public.apiUrl}/banners`)
+
 // Fetch new arrivals
 const { data: featuredProducts } = await useFetch<{
   success: boolean
@@ -23,6 +29,12 @@ const { data: saleProductsData } = await useFetch<{
   success: boolean
   data: { products: any[] }
 }>(`${config.public.apiUrl}/products/sale?limit=4`)
+
+// Get hero banner (position = 0)
+const heroBanner = computed(() => {
+  const banners = bannersData.value?.data?.banners || []
+  return banners.find((b: any) => b.position === 0) || null
+})
 
 const products = computed(() => featuredProducts.value?.data?.products || [])
 const bestSellers = computed(() => bestSellersData.value?.data?.products || [])
@@ -95,23 +107,31 @@ useSeoMeta({
             </div>
           </div>
 
-          <!-- Right: Featured Image Placeholder -->
+          <!-- Right: Featured Image from Banner -->
           <div class="hidden lg:block">
             <div class="relative">
               <div class="aspect-[3/4] bg-neutral-200 rounded-sm overflow-hidden shadow-elevated">
-                <div class="w-full h-full flex items-center justify-center text-neutral-400">
+                <!-- Display banner image if available -->
+                <img 
+                  v-if="heroBanner?.image_url"
+                  :src="heroBanner.image_url"
+                  :alt="heroBanner.title || 'Featured Collection'"
+                  class="w-full h-full object-cover"
+                />
+                <!-- Fallback placeholder -->
+                <div v-else class="w-full h-full flex items-center justify-center text-neutral-400">
                   <div class="text-center p-8">
                     <svg class="w-24 h-24 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p class="text-body-sm">Featured Collection</p>
+                    <p class="text-body-sm">{{ $t('home.featuredCollection') }}</p>
                   </div>
                 </div>
               </div>
               <!-- Decorative badge -->
               <div class="absolute -bottom-6 -left-6 bg-aura-white shadow-medium p-6 rounded-sm">
-                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">New Arrivals</p>
-                <p class="font-serif text-heading-4 text-aura-black">Spring 2026</p>
+                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">{{ $t('home.newArrivals') }}</p>
+                <p class="font-serif text-heading-4 text-aura-black">{{ $t('home.season') }}</p>
               </div>
             </div>
           </div>
@@ -150,10 +170,10 @@ useSeoMeta({
           >
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">Collection</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">Women</h2>
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">{{ $t('home.collection') }}</span>
+              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ $t('home.women') }}</h2>
               <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                Shop Now
+                {{ $t('home.shopNow') }}
               </span>
             </div>
           </NuxtLink>
@@ -165,10 +185,10 @@ useSeoMeta({
           >
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">Collection</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">Men</h2>
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">{{ $t('home.collection') }}</span>
+              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ $t('home.men') }}</h2>
               <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                Shop Now
+                {{ $t('home.shopNow') }}
               </span>
             </div>
           </NuxtLink>
@@ -181,7 +201,7 @@ useSeoMeta({
       <div class="container-aura">
         <!-- Section Header -->
         <div class="text-center mb-16">
-          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">New In</span>
+          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">{{ $t('home.newIn') }}</span>
           <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.newArrivals') }}</h2>
         </div>
 
@@ -256,8 +276,8 @@ useSeoMeta({
       <div class="container-aura">
         <!-- Section Header -->
         <div class="text-center mb-16">
-          <span class="text-caption uppercase tracking-[0.3em] text-accent-gold mb-4 block">Most Popular</span>
-          <h2 class="font-serif text-heading-1 text-aura-black">Best Sellers</h2>
+          <span class="text-caption uppercase tracking-[0.3em] text-accent-gold mb-4 block">{{ $t('home.mostPopular') }}</span>
+          <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.bestSellers') }}</h2>
         </div>
 
         <!-- Products Grid -->
@@ -283,7 +303,7 @@ useSeoMeta({
               </div>
               <!-- View count badge -->
               <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-caption text-neutral-600">
-                {{ product.view_count || 0 }} views
+                {{ product.view_count || 0 }} {{ $t('home.views') }}
               </div>
             </div>
             <!-- Product Info -->
@@ -307,8 +327,8 @@ useSeoMeta({
       <div class="container-aura">
         <!-- Section Header -->
         <div class="text-center mb-16">
-          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">Limited Time</span>
-          <h2 class="font-serif text-heading-1 text-aura-black">On Sale</h2>
+          <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">{{ $t('home.limitedTime') }}</span>
+          <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.onSale') }}</h2>
         </div>
 
         <!-- Products Grid -->
@@ -334,7 +354,7 @@ useSeoMeta({
               </div>
               <!-- Sale badge -->
               <div class="absolute top-3 left-3 bg-accent-burgundy text-white px-3 py-1 text-caption uppercase tracking-wider">
-                Sale
+                {{ $t('home.sale') }}
               </div>
             </div>
             <!-- Product Info -->
@@ -352,7 +372,7 @@ useSeoMeta({
         <!-- View All -->
         <div class="text-center mt-12">
           <NuxtLink to="/sale" class="text-body uppercase tracking-wider text-accent-burgundy underline underline-offset-4 hover:text-aura-black transition-colors">
-            View All Sale Items →
+            {{ $t('home.viewAllSale') }} →
           </NuxtLink>
         </div>
       </div>
@@ -368,19 +388,19 @@ useSeoMeta({
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           <NuxtLink
             v-for="(cat, index) in [
-              { name: 'Bags', color: 'from-amber-50 to-orange-50' },
-              { name: 'Outerwear', color: 'from-slate-50 to-gray-100' },
-              { name: 'Accessories', color: 'from-rose-50 to-pink-50' }
+              { key: 'bags', name: $t('home.catBags'), color: 'from-amber-50 to-orange-50' },
+              { key: 'outerwear', name: $t('home.catOuterwear'), color: 'from-slate-50 to-gray-100' },
+              { key: 'accessories', name: $t('home.catAccessories'), color: 'from-rose-50 to-pink-50' }
             ]"
-            :key="cat.name"
-            :to="`/shop?category=${cat.name}`"
+            :key="cat.key"
+            :to="`/shop?category=${cat.key.charAt(0).toUpperCase() + cat.key.slice(1)}`"
             class="group relative aspect-square overflow-hidden bg-gradient-to-br"
             :class="cat.color"
           >
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
               <h3 class="font-serif text-heading-2 text-aura-black mb-3">{{ cat.name }}</h3>
               <span class="text-caption uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                Shop Now
+                {{ $t('home.shopNow') }}
               </span>
             </div>
           </NuxtLink>

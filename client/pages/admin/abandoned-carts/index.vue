@@ -9,7 +9,9 @@ definePageMeta({
   middleware: 'admin',
 })
 
+const { t } = useI18n()
 const config = useRuntimeConfig()
+const getToken = () => process.client ? localStorage.getItem('token') : null
 const carts = ref<any[]>([])
 const pagination = ref<any>({})
 const isLoading = ref(true)
@@ -18,7 +20,7 @@ const statusFilter = ref('')
 const fetchCarts = async () => {
   isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     const url = `${config.public.apiUrl}/admin/abandoned-carts?status=${statusFilter.value}`
     const response = await $fetch<{ success: boolean; data: { carts: any[]; pagination: any } }>(
       url,
@@ -59,12 +61,12 @@ useSeoMeta({ title: 'Abandoned Carts | Admin' })
 <template>
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-serif text-heading-2 text-aura-black">Giỏ hàng bỏ rơi</h1>
+      <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.abandonedCarts.title') }}</h1>
       <select v-model="statusFilter" class="input-field w-auto">
-        <option value="">Tất cả trạng thái</option>
-        <option value="active">Active</option>
-        <option value="recovered">Recovered</option>
-        <option value="expired">Expired</option>
+        <option value="">{{ t('admin.allStatuses') }}</option>
+        <option value="active">{{ t('common.active') }}</option>
+        <option value="recovered">{{ t('admin.abandonedCarts.recovered') }}</option>
+        <option value="expired">{{ t('admin.abandonedCarts.expired') }}</option>
       </select>
     </div>
 
@@ -73,18 +75,18 @@ useSeoMeta({ title: 'Abandoned Carts | Admin' })
     </div>
 
     <div v-else-if="carts.length === 0" class="text-center py-12 text-neutral-500">
-      Không có giỏ hàng bỏ rơi nào
+      {{ t('admin.abandonedCarts.noCarts') }}
     </div>
 
     <div v-else class="bg-white border rounded-sm overflow-hidden">
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
-            <th class="text-left p-4 text-body-sm font-medium text-neutral-600">Khách hàng</th>
-            <th class="text-left p-4 text-body-sm font-medium text-neutral-600">Sản phẩm</th>
-            <th class="text-right p-4 text-body-sm font-medium text-neutral-600">Tổng tiền</th>
-            <th class="text-center p-4 text-body-sm font-medium text-neutral-600">Trạng thái</th>
-            <th class="text-left p-4 text-body-sm font-medium text-neutral-600">Thời gian</th>
+            <th class="text-left p-4 text-body-sm font-medium text-neutral-600">{{ t('admin.abandonedCarts.customer') }}</th>
+            <th class="text-left p-4 text-body-sm font-medium text-neutral-600">{{ t('admin.products') }}</th>
+            <th class="text-right p-4 text-body-sm font-medium text-neutral-600">{{ t('orders.total') }}</th>
+            <th class="text-center p-4 text-body-sm font-medium text-neutral-600">{{ t('common.status') }}</th>
+            <th class="text-left p-4 text-body-sm font-medium text-neutral-600">{{ t('admin.abandonedCarts.time') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -95,7 +97,7 @@ useSeoMeta({ title: 'Abandoned Carts | Admin' })
               <p class="text-caption text-neutral-400">{{ cart.phone || cart.user?.phone }}</p>
             </td>
             <td class="p-4">
-              <p class="text-body-sm">{{ cart.items?.length || 0 }} sản phẩm</p>
+              <p class="text-body-sm">{{ cart.items?.length || 0 }} {{ t('shop.products').toLowerCase() }}</p>
             </td>
             <td class="p-4 text-right font-medium">
               {{ formatPrice(cart.total_amount) }}
@@ -108,7 +110,7 @@ useSeoMeta({ title: 'Abandoned Carts | Admin' })
             <td class="p-4 text-body-sm text-neutral-500">
               {{ formatDate(cart.created_at) }}
               <p v-if="cart.reminder_count" class="text-caption text-neutral-400">
-                Đã gửi {{ cart.reminder_count }} nhắc nhở
+                {{ t('admin.abandonedCarts.remindersSent', { count: cart.reminder_count }) }}
               </p>
             </td>
           </tr>
@@ -120,19 +122,19 @@ useSeoMeta({ title: 'Abandoned Carts | Admin' })
     <div class="grid grid-cols-4 gap-4 mt-6">
       <div class="bg-white border rounded-sm p-4 text-center">
         <p class="text-heading-3 font-serif text-aura-black">{{ pagination.total || 0 }}</p>
-        <p class="text-body-sm text-neutral-500">Tổng giỏ hàng</p>
+        <p class="text-body-sm text-neutral-500">{{ t('admin.abandonedCarts.totalCarts') }}</p>
       </div>
       <div class="bg-yellow-50 border border-yellow-200 rounded-sm p-4 text-center">
         <p class="text-heading-3 font-serif text-yellow-700">{{ carts.filter(c => c.status === 'active').length }}</p>
-        <p class="text-body-sm text-yellow-600">Đang chờ</p>
+        <p class="text-body-sm text-yellow-600">{{ t('admin.abandonedCarts.pending') }}</p>
       </div>
       <div class="bg-green-50 border border-green-200 rounded-sm p-4 text-center">
         <p class="text-heading-3 font-serif text-green-700">{{ carts.filter(c => c.status === 'recovered').length }}</p>
-        <p class="text-body-sm text-green-600">Đã khôi phục</p>
+        <p class="text-body-sm text-green-600">{{ t('admin.abandonedCarts.recovered') }}</p>
       </div>
       <div class="bg-blue-50 border border-blue-200 rounded-sm p-4 text-center">
         <p class="text-heading-3 font-serif text-blue-700">{{ carts.filter(c => c.status === 'converted').length }}</p>
-        <p class="text-body-sm text-blue-600">Đã mua</p>
+        <p class="text-body-sm text-blue-600">{{ t('admin.abandonedCarts.converted') }}</p>
       </div>
     </div>
   </div>

@@ -9,7 +9,9 @@ definePageMeta({
   middleware: 'admin',
 })
 
+const { t } = useI18n()
 const config = useRuntimeConfig()
+const getToken = () => process.client ? localStorage.getItem('token') : null
 
 // State
 const banners = ref<any[]>([])
@@ -111,7 +113,7 @@ const submitForm = async () => {
 
 // Delete banner
 const deleteBanner = async (id: string) => {
-  if (!confirm('Delete this banner?')) return
+  if (!confirm(t('admin.deleteConfirm'))) return
 
   try {
     const token = localStorage.getItem('token')
@@ -133,9 +135,9 @@ useSeoMeta({ title: 'Banner Management | Admin' })
 <template>
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-serif text-heading-2 text-aura-black">Banner Management</h1>
+      <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.banners.title') }}</h1>
       <button @click="openCreateModal" class="btn-primary">
-        + Add Banner
+        + {{ t('admin.banners.addBanner') }}
       </button>
     </div>
 
@@ -167,7 +169,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
               class="px-2 py-1 rounded text-caption"
               :class="banner.is_active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'"
             >
-              {{ banner.is_active ? 'Active' : 'Inactive' }}
+              {{ banner.is_active ? t('common.active') : t('common.inactive') }}
             </span>
           </div>
         </div>
@@ -180,10 +182,10 @@ useSeoMeta({ title: 'Banner Management | Admin' })
           
           <div class="flex gap-2 mt-4">
             <button @click="openEditModal(banner)" class="flex-1 py-2 text-body-sm border border-neutral-300 hover:border-neutral-400 transition-colors">
-              Edit
+              {{ t('common.edit') }}
             </button>
             <button @click="deleteBanner(banner.id)" class="px-4 py-2 text-body-sm text-red-600 border border-red-200 hover:border-red-300 transition-colors">
-              Delete
+              {{ t('common.delete') }}
             </button>
           </div>
         </div>
@@ -191,7 +193,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
 
       <!-- Empty -->
       <div v-if="banners.length === 0" class="col-span-full text-center py-12 text-neutral-500">
-        No banners yet. Create one to get started.
+        {{ t('admin.banners.noBanners') }}
       </div>
     </div>
 
@@ -200,64 +202,64 @@ useSeoMeta({ title: 'Banner Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
           <div class="p-6 border-b border-neutral-200">
-            <h2 class="font-serif text-heading-4">{{ editingBanner ? 'Edit Banner' : 'Create Banner' }}</h2>
+            <h2 class="font-serif text-heading-4">{{ editingBanner ? t('admin.banners.editBanner') : t('admin.banners.createBanner') }}</h2>
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
             <div>
-              <label class="input-label">Title *</label>
+              <label class="input-label">{{ t('admin.form.title') }} *</label>
               <input v-model="formData.title" type="text" class="input-field" required />
             </div>
 
             <div>
-              <label class="input-label">Subtitle</label>
+              <label class="input-label">{{ t('admin.form.subtitle') }}</label>
               <input v-model="formData.subtitle" type="text" class="input-field" />
             </div>
 
             <div>
-              <label class="input-label">Image URL *</label>
+              <label class="input-label">{{ t('admin.form.imageUrl') }} *</label>
               <input v-model="formData.image_url" type="url" class="input-field" placeholder="https://..." required />
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Link URL</label>
+                <label class="input-label">{{ t('admin.form.linkUrl') }}</label>
                 <input v-model="formData.link_url" type="text" class="input-field" placeholder="/shop" />
               </div>
               <div>
-                <label class="input-label">Button Text</label>
+                <label class="input-label">{{ t('admin.form.buttonText') }}</label>
                 <input v-model="formData.button_text" type="text" class="input-field" />
               </div>
             </div>
 
             <div class="grid grid-cols-3 gap-4">
               <div>
-                <label class="input-label">Position</label>
+                <label class="input-label">{{ t('admin.form.position') }}</label>
                 <input v-model.number="formData.position" type="number" min="0" class="input-field" />
               </div>
               <div>
-                <label class="input-label">Start Date</label>
+                <label class="input-label">{{ t('admin.form.startDate') }}</label>
                 <input v-model="formData.starts_at" type="date" class="input-field" />
               </div>
               <div>
-                <label class="input-label">End Date</label>
+                <label class="input-label">{{ t('admin.form.endDate') }}</label>
                 <input v-model="formData.ends_at" type="date" class="input-field" />
               </div>
             </div>
 
             <div class="flex items-center gap-2">
               <input v-model="formData.is_active" type="checkbox" id="is_active" class="w-4 h-4" />
-              <label for="is_active" class="text-body-sm">Active</label>
+              <label for="is_active" class="text-body-sm">{{ t('common.active') }}</label>
             </div>
 
             <p v-if="formError" class="text-red-600 text-body-sm">{{ formError }}</p>
 
             <div class="flex justify-end gap-3 pt-4">
               <button type="button" @click="showModal = false" class="px-4 py-2 text-body-sm text-neutral-600 hover:text-aura-black">
-                Cancel
+                {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="isSubmitting" class="btn-primary">
-                {{ isSubmitting ? 'Saving...' : 'Save Banner' }}
+                {{ isSubmitting ? t('common.saving') : t('common.save') }}
               </button>
             </div>
           </form>

@@ -9,6 +9,7 @@ definePageMeta({
   middleware: ['admin'],
 })
 
+const { t } = useI18n()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -38,17 +39,55 @@ const success = ref('')
 // File input ref
 const fileInput = ref<HTMLInputElement | null>(null)
 
-// Options
+// Options with i18n labels (value stays English for DB, label is translated)
 const brands = [
   'Rick Owens', 'Acronym', 'Comme des Garçons', 'Ralph Lauren', 'Prada',
   'Balenciaga', 'Maison Margiela', 'Yohji Yamamoto', 'Fear of God', 'Off-White'
 ]
-const categories = ['Tops', 'Pants', 'Outerwear', 'Shoes', 'Bags', 'Accessories', 'Dresses']
-const subcategories = ['Men', 'Women', 'Unisex']
-const conditions = ['10/10 - New with tags', '9/10 - Like New', '8/10 - Excellent', '7/10 - Good', 'Vintage']
+const categories = computed(() => [
+  { value: 'Tops', label: t('categories.tops') },
+  { value: 'Pants', label: t('categories.pants') },
+  { value: 'Outerwear', label: t('categories.outerwear') },
+  { value: 'Shoes', label: t('categories.shoes') },
+  { value: 'Bags', label: t('categories.bags') },
+  { value: 'Accessories', label: t('categories.accessories') },
+  { value: 'Dresses', label: t('categories.dresses') },
+])
+const subcategories = computed(() => [
+  { value: 'Men', label: t('home.men') },
+  { value: 'Women', label: t('home.women') },
+  { value: 'Unisex', label: t('categories.unisex') },
+])
+const conditions = computed(() => [
+  { value: '10/10 - New with tags', label: t('conditions.newWithTags') },
+  { value: '9/10 - Like New', label: t('conditions.likeNew') },
+  { value: '8/10 - Excellent', label: t('conditions.excellent') },
+  { value: '7/10 - Good', label: t('conditions.good') },
+  { value: 'Vintage', label: t('conditions.vintage') },
+])
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size']
-const colors = ['Black', 'White', 'Grey', 'Navy', 'Olive', 'Burgundy', 'Cream', 'Brown', 'Multi']
-const materials = ['Leather', 'Cotton', 'Wool', 'Nylon', 'Silk', 'Cashmere', 'Polyester', 'Linen', 'Mixed']
+const colors = computed(() => [
+  { value: 'Black', label: t('colors.black') },
+  { value: 'White', label: t('colors.white') },
+  { value: 'Grey', label: t('colors.grey') },
+  { value: 'Navy', label: t('colors.navy') },
+  { value: 'Olive', label: t('colors.olive') },
+  { value: 'Burgundy', label: t('colors.burgundy') },
+  { value: 'Cream', label: t('colors.cream') },
+  { value: 'Brown', label: t('colors.brown') },
+  { value: 'Multi', label: t('colors.multi') },
+])
+const materials = computed(() => [
+  { value: 'Leather', label: t('materials.leather') },
+  { value: 'Cotton', label: t('materials.cotton') },
+  { value: 'Wool', label: t('materials.wool') },
+  { value: 'Nylon', label: t('materials.nylon') },
+  { value: 'Silk', label: t('materials.silk') },
+  { value: 'Cashmere', label: t('materials.cashmere') },
+  { value: 'Polyester', label: t('materials.polyester') },
+  { value: 'Linen', label: t('materials.linen') },
+  { value: 'Mixed', label: t('materials.mixed') },
+])
 
 // Handle file selection
 const handleFileSelect = async (event: Event) => {
@@ -160,11 +199,11 @@ useSeoMeta({
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="font-serif text-heading-2 text-aura-black">Add New Product</h1>
-          <p class="text-body text-neutral-600 mt-1">Create a new product listing with variant</p>
+          <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.productForm.addNew') }}</h1>
+          <p class="text-body text-neutral-600 mt-1">{{ t('admin.productForm.createDescription') }}</p>
         </div>
         <NuxtLink to="/admin/products" class="text-body-sm text-neutral-600 hover:text-aura-black">
-          ← Back to Products
+          ← {{ t('admin.productForm.backToProducts') }}
         </NuxtLink>
       </div>
 
@@ -180,7 +219,7 @@ useSeoMeta({
       <form @submit.prevent="handleSubmit" class="space-y-8">
         <!-- Product Images -->
         <div class="bg-white p-6 rounded-sm shadow-card">
-          <h2 class="font-serif text-heading-4 text-aura-black mb-6">Product Images</h2>
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('admin.productForm.productImages') }}</h2>
           
           <!-- Image Preview Grid -->
           <div class="grid grid-cols-5 gap-4 mb-4">
@@ -213,7 +252,7 @@ useSeoMeta({
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span class="text-caption text-neutral-400 mt-1">{{ isUploading ? 'Uploading...' : 'Add' }}</span>
+              <span class="text-caption text-neutral-400 mt-1">{{ isUploading ? t('common.uploading') : t('common.add') }}</span>
             </div>
           </div>
           
@@ -227,89 +266,89 @@ useSeoMeta({
           />
           
           <p class="text-caption text-neutral-500">
-            Upload up to 5 images. Accepted formats: JPEG, PNG, WebP. Max 5MB each.
+            {{ t('admin.productForm.imageUploadHint') }}
           </p>
         </div>
 
         <!-- Product Info -->
         <div class="bg-white p-6 rounded-sm shadow-card">
-          <h2 class="font-serif text-heading-4 text-aura-black mb-6">Product Information</h2>
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('admin.productForm.productInfo') }}</h2>
           
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
-              <label class="input-label">Product Name *</label>
-              <input v-model="form.name" type="text" class="input-field" placeholder="e.g. Rick Owens Geobasket Sneakers" />
+              <label class="input-label">{{ t('admin.productForm.productName') }} *</label>
+              <input v-model="form.name" type="text" class="input-field" :placeholder="t('admin.productForm.productNamePlaceholder')" />
             </div>
 
             <div>
-              <label class="input-label">Brand *</label>
+              <label class="input-label">{{ t('admin.productForm.brand') }} *</label>
               <select v-model="form.brand" class="input-field">
-                <option value="">Select brand</option>
+                <option value="">{{ t('admin.productForm.selectBrand') }}</option>
                 <option v-for="brand in brands" :key="brand" :value="brand">{{ brand }}</option>
               </select>
             </div>
 
             <div>
-              <label class="input-label">Category *</label>
+              <label class="input-label">{{ t('shop.category') }} *</label>
               <select v-model="form.category" class="input-field">
-                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                <option v-for="cat in categories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
               </select>
             </div>
 
             <div>
-              <label class="input-label">Subcategory</label>
+              <label class="input-label">{{ t('admin.productForm.subcategory') }}</label>
               <select v-model="form.subcategory" class="input-field">
-                <option v-for="sub in subcategories" :key="sub" :value="sub">{{ sub }}</option>
+                <option v-for="sub in subcategories" :key="sub.value" :value="sub.value">{{ sub.label }}</option>
               </select>
             </div>
 
             <div>
-              <label class="input-label">Condition *</label>
+              <label class="input-label">{{ t('admin.productForm.condition') }} *</label>
               <select v-model="form.conditionText" class="input-field">
-                <option v-for="cond in conditions" :key="cond" :value="cond">{{ cond }}</option>
+                <option v-for="cond in conditions" :key="cond.value" :value="cond.value">{{ cond.label }}</option>
               </select>
             </div>
 
             <div>
-              <label class="input-label">Base Price ($) *</label>
+              <label class="input-label">{{ t('admin.productForm.basePrice') }} *</label>
               <input v-model.number="form.basePrice" type="number" min="0" class="input-field" placeholder="0" />
             </div>
 
             <div>
-              <label class="input-label">Sale Price ($)</label>
-              <input v-model.number="form.salePrice" type="number" min="0" class="input-field" placeholder="Optional" />
+              <label class="input-label">{{ t('admin.productForm.salePrice') }}</label>
+              <input v-model.number="form.salePrice" type="number" min="0" class="input-field" :placeholder="t('admin.productForm.optional')" />
             </div>
 
             <div class="md:col-span-2">
-              <label class="input-label">Description</label>
-              <textarea v-model="form.description" rows="4" class="input-field" placeholder="Describe the product..."></textarea>
+              <label class="input-label">{{ t('admin.productForm.description') }}</label>
+              <textarea v-model="form.description" rows="4" class="input-field" :placeholder="t('admin.productForm.descriptionPlaceholder')"></textarea>
             </div>
           </div>
         </div>
 
         <!-- Variant Info -->
         <div class="bg-white p-6 rounded-sm shadow-card">
-          <h2 class="font-serif text-heading-4 text-aura-black mb-6">Variant Details</h2>
+          <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('admin.productForm.variantDetails') }}</h2>
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label class="input-label">Size *</label>
+              <label class="input-label">{{ t('admin.productForm.size') }} *</label>
               <select v-model="form.size" class="input-field">
                 <option v-for="size in sizes" :key="size" :value="size">{{ size }}</option>
               </select>
             </div>
 
             <div>
-              <label class="input-label">Color *</label>
+              <label class="input-label">{{ t('admin.productForm.color') }} *</label>
               <select v-model="form.color" class="input-field">
-                <option v-for="color in colors" :key="color" :value="color">{{ color }}</option>
+                <option v-for="color in colors" :key="color.value" :value="color.value">{{ color.label }}</option>
               </select>
             </div>
 
             <div>
-              <label class="input-label">Material</label>
+              <label class="input-label">{{ t('admin.productForm.material') }}</label>
               <select v-model="form.material" class="input-field">
-                <option v-for="mat in materials" :key="mat" :value="mat">{{ mat }}</option>
+                <option v-for="mat in materials" :key="mat.value" :value="mat.value">{{ mat.label }}</option>
               </select>
             </div>
           </div>
@@ -323,10 +362,10 @@ useSeoMeta({
             class="btn-primary"
             :class="{ 'opacity-70': isSubmitting || isUploading }"
           >
-            {{ isSubmitting ? 'Creating...' : 'Create Product' }}
+            {{ isSubmitting ? t('common.creating') : t('admin.productForm.createProduct') }}
           </button>
           <NuxtLink to="/admin/products" class="btn-secondary">
-            Cancel
+            {{ t('common.cancel') }}
           </NuxtLink>
         </div>
       </form>

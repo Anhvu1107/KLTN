@@ -16,7 +16,7 @@ const menuItems = computed(() => [
   { path: '/admin/coupons', label: t('admin.coupons.title'), icon: 'tag' },
   { path: '/admin/reviews', label: t('admin.reviews.title'), icon: 'star' },
   { path: '/admin/banners', label: t('admin.banners.title'), icon: 'image' },
-  { path: '/admin/blogs', label: 'Blogs', icon: 'document' },
+  { path: '/admin/blogs', label: t('admin.blogs.title'), icon: 'document' },
   { path: '/admin/popups', label: t('admin.popups.title'), icon: 'popup' },
   { path: '/admin/abandoned-carts', label: t('admin.abandonedCarts.title'), icon: 'cart-abandon' },
   { path: '/admin/settings', label: t('admin.settings.title'), icon: 'cog' },

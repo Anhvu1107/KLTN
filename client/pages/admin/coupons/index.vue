@@ -9,7 +9,9 @@ definePageMeta({
   middleware: 'admin',
 })
 
+const { t } = useI18n()
 const config = useRuntimeConfig()
+const getToken = () => process.client ? localStorage.getItem('token') : null
 
 // State
 const coupons = ref<any[]>([])
@@ -120,7 +122,7 @@ const submitForm = async () => {
 
 // Delete coupon
 const deleteCoupon = async (id: string) => {
-  if (!confirm('Are you sure you want to delete this coupon?')) return
+  if (!confirm(t('admin.deleteConfirm'))) return
 
   try {
     const token = localStorage.getItem('token')
@@ -154,9 +156,9 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
 <template>
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-serif text-heading-2 text-aura-black">Coupon Management</h1>
+      <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.coupons.title') }}</h1>
       <button @click="openCreateModal" class="btn-primary">
-        + Add Coupon
+        + {{ t('admin.coupons.addCoupon') }}
       </button>
     </div>
 
@@ -170,14 +172,14 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
       <table class="w-full">
         <thead class="bg-neutral-50 border-b border-neutral-200">
           <tr>
-            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">Code</th>
-            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">Name</th>
-            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">Type</th>
-            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">Value</th>
-            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">Usage</th>
-            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">Expires</th>
-            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">Status</th>
-            <th class="text-right px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">Actions</th>
+            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.code') }}</th>
+            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.name') }}</th>
+            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.type') }}</th>
+            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.value') }}</th>
+            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.usage') }}</th>
+            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.expires') }}</th>
+            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('common.status') }}</th>
+            <th class="text-right px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -200,19 +202,19 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
             </td>
             <td class="px-4 py-3">
               <span class="px-2 py-1 rounded text-caption" :class="coupon.is_active && !isExpired(coupon.expires_at) ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'">
-                {{ coupon.is_active && !isExpired(coupon.expires_at) ? 'Active' : 'Inactive' }}
+                {{ coupon.is_active && !isExpired(coupon.expires_at) ? t('common.active') : t('common.inactive') }}
               </span>
             </td>
             <td class="px-4 py-3 text-right">
-              <button @click="openEditModal(coupon)" class="text-neutral-600 hover:text-aura-black mr-3">Edit</button>
-              <button @click="deleteCoupon(coupon.id)" class="text-red-600 hover:text-red-700">Delete</button>
+              <button @click="openEditModal(coupon)" class="text-neutral-600 hover:text-aura-black mr-3">{{ t('common.edit') }}</button>
+              <button @click="deleteCoupon(coupon.id)" class="text-red-600 hover:text-red-700">{{ t('common.delete') }}</button>
             </td>
           </tr>
         </tbody>
       </table>
 
       <div v-if="coupons.length === 0" class="text-center py-12 text-neutral-500">
-        No coupons yet
+        {{ t('admin.coupons.noCoupons') }}
       </div>
     </div>
 
@@ -221,81 +223,81 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
           <div class="p-6 border-b border-neutral-200">
-            <h2 class="font-serif text-heading-4">{{ editingCoupon ? 'Edit Coupon' : 'Create Coupon' }}</h2>
+            <h2 class="font-serif text-heading-4">{{ editingCoupon ? t('admin.coupons.editCoupon') : t('admin.coupons.createCoupon') }}</h2>
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Code *</label>
+                <label class="input-label">{{ t('admin.coupons.code') }} *</label>
                 <input v-model="formData.code" type="text" class="input-field uppercase" required />
               </div>
               <div>
-                <label class="input-label">Name *</label>
+                <label class="input-label">{{ t('admin.coupons.name') }} *</label>
                 <input v-model="formData.name" type="text" class="input-field" required />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Type *</label>
+                <label class="input-label">{{ t('admin.coupons.type') }} *</label>
                 <select v-model="formData.type" class="input-field">
-                  <option value="PERCENTAGE">Percentage (%)</option>
-                  <option value="FIXED_AMOUNT">Fixed Amount ($)</option>
+                  <option value="PERCENTAGE">{{ t('admin.coupons.percentage') }} (%)</option>
+                  <option value="FIXED_AMOUNT">{{ t('admin.coupons.fixedAmount') }} ($)</option>
                 </select>
               </div>
               <div>
-                <label class="input-label">Value *</label>
+                <label class="input-label">{{ t('admin.coupons.value') }} *</label>
                 <input v-model.number="formData.value" type="number" step="0.01" class="input-field" required />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Min Order Amount</label>
+                <label class="input-label">{{ t('admin.form.minOrderAmount') }}</label>
                 <input v-model.number="formData.min_order_amount" type="number" step="0.01" class="input-field" />
               </div>
               <div v-if="formData.type === 'PERCENTAGE'">
-                <label class="input-label">Max Discount</label>
+                <label class="input-label">{{ t('admin.form.maxDiscount') }}</label>
                 <input v-model.number="formData.max_discount_amount" type="number" step="0.01" class="input-field" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Max Uses (Total)</label>
-                <input v-model.number="formData.max_uses" type="number" class="input-field" placeholder="Unlimited" />
+                <label class="input-label">{{ t('admin.form.maxUsesTotal') }}</label>
+                <input v-model.number="formData.max_uses" type="number" class="input-field" :placeholder="t('admin.form.unlimited')" />
               </div>
               <div>
-                <label class="input-label">Max Uses Per User</label>
+                <label class="input-label">{{ t('admin.form.maxUsesPerUser') }}</label>
                 <input v-model.number="formData.max_uses_per_user" type="number" class="input-field" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Start Date</label>
+                <label class="input-label">{{ t('admin.form.startDate') }}</label>
                 <input v-model="formData.starts_at" type="date" class="input-field" />
               </div>
               <div>
-                <label class="input-label">Expiry Date</label>
+                <label class="input-label">{{ t('admin.form.expiryDate') }}</label>
                 <input v-model="formData.expires_at" type="date" class="input-field" />
               </div>
             </div>
 
             <div class="flex items-center gap-2">
               <input v-model="formData.is_active" type="checkbox" id="is_active" class="w-4 h-4" />
-              <label for="is_active" class="text-body-sm">Active</label>
+              <label for="is_active" class="text-body-sm">{{ t('common.active') }}</label>
             </div>
 
             <p v-if="formError" class="text-red-600 text-body-sm">{{ formError }}</p>
 
             <div class="flex justify-end gap-3 pt-4">
               <button type="button" @click="showModal = false" class="px-4 py-2 text-body-sm text-neutral-600 hover:text-aura-black">
-                Cancel
+                {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="isSubmitting" class="btn-primary">
-                {{ isSubmitting ? 'Saving...' : 'Save Coupon' }}
+                {{ isSubmitting ? t('common.saving') : t('common.save') }}
               </button>
             </div>
           </form>

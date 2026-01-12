@@ -9,8 +9,10 @@ definePageMeta({
   middleware: ['admin'],
 })
 
+const { t } = useI18n()
 const config = useRuntimeConfig()
-const token = localStorage.getItem('token')
+const authStore = useAuthStore()
+const token = computed(() => authStore.token)
 
 const page = ref(1)
 const search = ref('')
@@ -26,8 +28,9 @@ const { data, pending, refresh } = await useFetch<{
   if (role.value) url += `&role=${role.value}`
   return url
 }, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: { Authorization: `Bearer ${token.value}` },
   watch: [page, role],
+  server: false,
 })
 
 const users = computed(() => data.value?.data?.users || [])
@@ -44,12 +47,12 @@ const toggleStatus = async (userId: string, currentStatus: boolean) => {
   try {
     await $fetch(`${config.public.apiUrl}/admin/users/${userId}/status`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token.value}` },
       body: { is_active: !currentStatus },
     })
     await refresh()
   } catch (error: any) {
-    alert(error?.data?.message || 'Failed to update user status')
+    alert(error?.data?.message || t('notifications.updateError'))
   }
 }
 
@@ -71,8 +74,8 @@ useSeoMeta({
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
-        <h1 class="font-serif text-heading-2 text-aura-black">Users</h1>
-        <p class="text-body text-neutral-600">{{ pagination.total || 0 }} total users</p>
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.users') }}</h1>
+        <p class="text-body text-neutral-600">{{ pagination.total || 0 }} {{ t('admin.totalUsers').toLowerCase() }}</p>
       </div>
       
       <div class="flex gap-4">
@@ -82,7 +85,7 @@ useSeoMeta({
             v-model="search"
             @keyup.enter="handleSearch"
             type="text"
-            placeholder="Search email, name..."
+            :placeholder="t('common.search') + '...'"
             class="input-field w-64 pr-10"
           />
           <button @click="handleSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-aura-black">
@@ -94,16 +97,16 @@ useSeoMeta({
 
         <!-- Role Filter -->
         <select v-model="role" class="input-field w-40">
-          <option value="">All Roles</option>
-          <option value="CUSTOMER">Customer</option>
-          <option value="ADMIN">Admin</option>
+          <option value="">{{ t('admin.allRoles') }}</option>
+          <option value="CUSTOMER">{{ t('admin.customer') }}</option>
+          <option value="ADMIN">{{ t('admin.adminRole') }}</option>
         </select>
       </div>
     </div>
 
     <!-- Loading -->
     <div v-if="pending" class="text-center py-16">
-      <p class="text-neutral-500">Loading users...</p>
+      <p class="text-neutral-500">{{ t('common.loading') }}</p>
     </div>
 
     <!-- Table -->
@@ -111,11 +114,11 @@ useSeoMeta({
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">User</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Role</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Status</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Joined</th>
-            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">Actions</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.users') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.role') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('common.status') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('admin.joined') }}</th>
+            <th class="text-left py-4 px-4 text-caption font-medium text-neutral-500 uppercase">{{ t('common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -141,7 +144,7 @@ useSeoMeta({
                 class="px-2 py-1 text-caption rounded-sm"
                 :class="user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
               >
-                {{ user.is_active ? 'Active' : 'Inactive' }}
+                {{ user.is_active ? t('common.active') : t('common.inactive') }}
               </span>
             </td>
             <td class="py-4 px-4 text-body-sm text-neutral-600">
@@ -153,7 +156,7 @@ useSeoMeta({
                   :to="`/admin/users/${user.id}`"
                   class="text-caption px-2 py-1 bg-neutral-100 hover:bg-neutral-200 rounded-sm"
                 >
-                  View
+                  {{ t('common.view') }}
                 </NuxtLink>
                 <button
                   v-if="user.role !== 'ADMIN'"
@@ -161,7 +164,7 @@ useSeoMeta({
                   class="text-caption px-2 py-1 rounded-sm"
                   :class="user.is_active ? 'bg-red-100 hover:bg-red-200 text-red-800' : 'bg-green-100 hover:bg-green-200 text-green-800'"
                 >
-                  {{ user.is_active ? 'Deactivate' : 'Activate' }}
+                  {{ user.is_active ? t('admin.deactivate') : t('admin.activate') }}
                 </button>
               </div>
             </td>
@@ -171,7 +174,7 @@ useSeoMeta({
 
       <!-- Empty -->
       <div v-if="users.length === 0" class="text-center py-16">
-        <p class="text-neutral-500">No users found</p>
+        <p class="text-neutral-500">{{ t('common.noResults') }}</p>
       </div>
     </div>
 
