@@ -244,6 +244,8 @@ const seedOrders = async (customer, products) => {
         const shippingFee = faker.helpers.arrayElement([0, 30000, 50000]);
 
         const order = await db.Order.create({
+            // THÊM DÒNG NÀY ĐỂ SỬA LỖI
+            order_number: `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`, 
             user_id: customer.id,
             status,
             subtotal: price,
