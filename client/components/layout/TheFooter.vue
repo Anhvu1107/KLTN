@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Elegant multi-column footer with prominent newsletter
  */
 
-import { useI18n } from '#imports'
 const { t } = useI18n()
 const config = useRuntimeConfig()
 
