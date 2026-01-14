@@ -15,14 +15,15 @@ const { t } = useI18n()
 
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
-const token = localStorage.getItem('token')
+const { getToken, getAuthHeaders } = useAuthToken()
 
 // Fetch profile
 const { data: profileData, refresh } = await useFetch<{
   success: boolean
   data: { user: any }
 }>(`${config.public.apiUrl}/users/profile`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: getAuthHeaders(),
+  server: false,
 })
 
 const user = computed(() => profileData.value?.data?.user)
@@ -69,7 +70,7 @@ const updateProfile = async () => {
   try {
     await $fetch(`${config.public.apiUrl}/users/profile`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeaders(),
       body: profileForm,
     })
 
@@ -101,7 +102,7 @@ const changePassword = async () => {
   try {
     await $fetch(`${config.public.apiUrl}/users/password`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeaders(),
       body: {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
@@ -149,19 +150,19 @@ useSeoMeta({
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <label class="input-label">First Name</label>
+            <label class="input-label">{{ $t('profile.firstName') }}</label>
             <input v-model="profileForm.first_name" type="text" class="input-field" />
           </div>
           <div>
-            <label class="input-label">Last Name</label>
+            <label class="input-label">{{ $t('profile.lastName') }}</label>
             <input v-model="profileForm.last_name" type="text" class="input-field" />
           </div>
           <div>
-            <label class="input-label">Phone</label>
+            <label class="input-label">{{ $t('profile.phone') }}</label>
             <input v-model="profileForm.phone" type="tel" class="input-field" />
           </div>
           <div class="md:col-span-2">
-            <label class="input-label">Address</label>
+            <label class="input-label">{{ $t('profile.address') }}</label>
             <textarea v-model="profileForm.address" rows="2" class="input-field"></textarea>
           </div>
         </div>
@@ -185,15 +186,15 @@ useSeoMeta({
 
         <div class="space-y-4 mb-6">
           <div>
-            <label class="input-label">Current Password</label>
+            <label class="input-label">{{ $t('profile.currentPassword') }}</label>
             <input v-model="passwordForm.currentPassword" type="password" class="input-field" />
           </div>
           <div>
-            <label class="input-label">New Password</label>
+            <label class="input-label">{{ $t('profile.newPassword') }}</label>
             <input v-model="passwordForm.newPassword" type="password" class="input-field" />
           </div>
           <div>
-            <label class="input-label">Confirm New Password</label>
+            <label class="input-label">{{ $t('profile.confirmPassword') }}</label>
             <input v-model="passwordForm.confirmPassword" type="password" class="input-field" />
           </div>
         </div>

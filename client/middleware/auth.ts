@@ -4,11 +4,26 @@
  */
 
 export default defineNuxtRouteMiddleware((to, from) => {
+    // Skip on server
     if (process.server) return
 
+    // Check localStorage token (most reliable)
     const token = localStorage.getItem('token')
 
-    if (!token) {
+    // Also check pinia persisted store
+    const persistedAuth = localStorage.getItem('auth')
+    let hasPersistedToken = false
+
+    if (persistedAuth) {
+        try {
+            const parsed = JSON.parse(persistedAuth)
+            hasPersistedToken = !!parsed.token
+        } catch (e) {
+            // Invalid JSON, ignore
+        }
+    }
+
+    if (!token && !hasPersistedToken) {
         return navigateTo('/auth/login?redirect=' + encodeURIComponent(to.fullPath))
     }
 })

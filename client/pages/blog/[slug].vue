@@ -8,12 +8,21 @@ const config = useRuntimeConfig()
 const route = useRoute()
 const slug = route.params.slug as string
 
+// Import sanitizer for XSS protection
+const { sanitize } = useSanitizeHtml()
+
 const { data, pending, error } = await useFetch<{
   success: boolean
   data: { blog: any }
 }>(`${config.public.apiUrl}/blogs/${slug}`)
 
 const blog = computed(() => data.value?.data?.blog)
+
+// Sanitize blog content to prevent XSS
+const sanitizedContent = computed(() => {
+  if (!blog.value?.content) return ''
+  return sanitize(blog.value.content)
+})
 
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -71,10 +80,10 @@ useSeoMeta({
           />
         </div>
 
-        <!-- Content -->
+        <!-- Content - SANITIZED for XSS protection -->
         <div 
           class="prose prose-lg max-w-none"
-          v-html="blog.content"
+          v-html="sanitizedContent"
         />
 
         <!-- Tags -->

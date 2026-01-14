@@ -229,55 +229,55 @@ useSeoMeta({ title: 'Address Book | AURA ARCHIVE' })
 
           <form @submit.prevent="submitForm" class="p-6 space-y-4">
             <div>
-              <label class="input-label">Nhãn (Home, Office...)</label>
-              <input v-model="formData.label" type="text" class="input-field" placeholder="VD: Nhà, Công ty" />
+              <label class="input-label">{{ $t('address.label') }}</label>
+              <input v-model="formData.label" type="text" class="input-field" :placeholder="$t('address.labelPlaceholder')" />
             </div>
 
             <div>
-              <label class="input-label">Họ và tên *</label>
+              <label class="input-label">{{ $t('checkout.fullName') }} *</label>
               <input v-model="formData.full_name" type="text" class="input-field" required />
             </div>
 
             <div>
-              <label class="input-label">Số điện thoại *</label>
+              <label class="input-label">{{ $t('checkout.phone') }} *</label>
               <input v-model="formData.phone" type="tel" class="input-field" required />
             </div>
 
             <div>
-              <label class="input-label">Địa chỉ *</label>
-              <input v-model="formData.address_line1" type="text" class="input-field" placeholder="Số nhà, tên đường" required />
+              <label class="input-label">{{ $t('checkout.address') }} *</label>
+              <input v-model="formData.address_line1" type="text" class="input-field" :placeholder="$t('address.addressPlaceholder')" required />
             </div>
 
             <div>
-              <label class="input-label">Địa chỉ bổ sung</label>
-              <input v-model="formData.address_line2" type="text" class="input-field" placeholder="Tòa nhà, tầng..." />
+              <label class="input-label">{{ $t('address.addressLine2') }}</label>
+              <input v-model="formData.address_line2" type="text" class="input-field" :placeholder="$t('address.addressLine2Placeholder')" />
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Phường/Xã</label>
+                <label class="input-label">{{ $t('checkout.ward') }}</label>
                 <input v-model="formData.ward" type="text" class="input-field" />
               </div>
               <div>
-                <label class="input-label">Quận/Huyện</label>
+                <label class="input-label">{{ $t('checkout.district') }}</label>
                 <input v-model="formData.district" type="text" class="input-field" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Thành phố *</label>
+                <label class="input-label">{{ $t('checkout.city') }} *</label>
                 <input v-model="formData.city" type="text" class="input-field" required />
               </div>
               <div>
-                <label class="input-label">Mã bưu chính</label>
+                <label class="input-label">{{ $t('address.postalCode') }}</label>
                 <input v-model="formData.postal_code" type="text" class="input-field" />
               </div>
             </div>
 
             <div class="flex items-center gap-2">
               <input v-model="formData.is_default" type="checkbox" id="is_default" class="w-4 h-4" />
-              <label for="is_default" class="text-body-sm">Đặt làm địa chỉ mặc định</label>
+              <label for="is_default" class="text-body-sm">{{ $t('address.setAsDefault') }}</label>
             </div>
 
             <p v-if="formError" class="text-red-600 text-body-sm">{{ formError }}</p>

@@ -83,7 +83,7 @@ useSeoMeta({
           <!-- Left: Text Content -->
           <div class="text-center lg:text-left">
             <span class="inline-block text-caption uppercase tracking-[0.4em] text-accent-burgundy mb-6">
-              The Archive Collection
+              {{ $t('home.archiveCollection') }}
             </span>
             <h1 class="font-serif text-display-2 lg:text-display-1 text-aura-black mb-8 leading-[1.1]">
               {{ $t('hero.title') }}
@@ -251,8 +251,8 @@ useSeoMeta({
           >
             <div class="relative aspect-product bg-neutral-100 mb-4 shadow-soft" />
             <div class="text-center">
-              <p class="text-caption text-neutral-400 uppercase tracking-wider mb-1">Brand</p>
-              <h3 class="text-body text-neutral-400 mb-2">Product Name</h3>
+              <p class="text-caption text-neutral-400 uppercase tracking-wider mb-1">{{ $t('common.brand') }}</p>
+              <h3 class="text-body text-neutral-400 mb-2">{{ $t('common.productName') }}</h3>
               <p class="text-body text-neutral-400">$0</p>
             </div>
           </div>
@@ -448,7 +448,7 @@ useSeoMeta({
     <!-- Newsletter CTA (Light version) -->
     <section class="py-24 lg:py-32 bg-gradient-to-br from-neutral-100 to-aura-cream">
       <div class="container-aura text-center max-w-2xl mx-auto">
-        <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">Stay Updated</span>
+        <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-4 block">{{ $t('home.stayUpdated') }}</span>
         <h2 class="font-serif text-heading-1 text-aura-black mb-6">{{ $t('footer.newsletter') }}</h2>
         <p class="text-body-lg text-neutral-600 mb-10 leading-relaxed">
           {{ $t('footer.newsletterText') }}

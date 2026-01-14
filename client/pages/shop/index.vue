@@ -64,15 +64,30 @@ const { data: categoriesData } = await useFetch<{ success: boolean; data: { cate
 
 const products = computed(() => data.value?.data?.products || [])
 const pagination = computed(() => data.value?.data?.pagination || { total: 0, page: 1, totalPages: 1 })
-const brands = computed(() => brandsData.value?.data?.brands || [])
-const categories = computed(() => categoriesData.value?.data?.categories || [])
 
-const sortOptions = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'name_asc', label: 'A - Z' },
-]
+// API returns objects like {category: 'Pants', count: 1}, extract just the name
+const brands = computed(() => {
+  const raw = brandsData.value?.data?.brands || []
+  return raw.map((b: any) => typeof b === 'string' ? b : b.brand).filter(Boolean)
+})
+const categories = computed(() => {
+  const raw = categoriesData.value?.data?.categories || []
+  return raw.map((c: any) => typeof c === 'string' ? c : c.category).filter(Boolean)
+})
+
+const sortOptions = computed(() => [
+  { value: 'newest', label: t('shop.sortNewest') },
+  { value: 'price_asc', label: t('shop.sortPriceLow') },
+  { value: 'price_desc', label: t('shop.sortPriceHigh') },
+  { value: 'name_asc', label: t('shop.sortAZ') },
+])
+
+// Subcategories with translations
+const subcategories = computed(() => [
+  { value: 'Women', label: t('shop.women') },
+  { value: 'Men', label: t('shop.men') },
+  { value: 'Unisex', label: t('shop.unisex') },
+])
 
 // Apply filters
 const applyFilters = () => {
@@ -183,21 +198,21 @@ useSeoMeta({
 
         <!-- Desktop: Active Filters -->
         <div class="hidden lg:flex items-center gap-4">
-          <span class="text-body-sm text-neutral-500">{{ pagination.total }} products</span>
+          <span class="text-body-sm text-neutral-500">{{ pagination.total }} {{ $t('shop.products') }}</span>
           <div v-if="activeFiltersCount > 0" class="flex items-center gap-2">
             <span class="text-body-sm text-neutral-400">|</span>
             <button 
               @click="clearFilters" 
               class="text-body-sm text-neutral-600 hover:text-aura-black underline underline-offset-2"
             >
-              Clear all filters
+              {{ $t('shop.clearFilters') }}
             </button>
           </div>
         </div>
 
         <!-- Sort Dropdown -->
         <div class="flex items-center gap-3">
-          <span class="text-body-sm text-neutral-500 hidden sm:block">Sort by:</span>
+          <span class="text-body-sm text-neutral-500 hidden sm:block">{{ $t('shop.sort') }}:</span>
           <select 
             v-model="sort" 
             @change="applyFilters" 
@@ -225,7 +240,7 @@ useSeoMeta({
                   v-model="search"
                   @keyup.enter="handleSearch"
                   type="text"
-                  placeholder="Search..."
+                  :placeholder="$t('shop.searchPlaceholder')"
                   class="w-full px-4 py-3 bg-transparent border border-neutral-300 text-body-sm placeholder-neutral-400 focus:outline-none focus:border-aura-black transition-colors"
                 />
                 <button @click="handleSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-aura-black">
@@ -245,7 +260,7 @@ useSeoMeta({
                   class="block w-full text-left text-body-sm py-1 transition-colors"
                   :class="!category ? 'text-aura-black font-medium' : 'text-neutral-600 hover:text-aura-black'"
                 >
-                  All Categories
+                  {{ $t('shop.allCategories') }}
                 </button>
                 <button 
                   v-for="cat in categories" 
@@ -261,23 +276,23 @@ useSeoMeta({
 
             <!-- Subcategory / Gender -->
             <div>
-              <h3 class="text-caption uppercase tracking-[0.2em] text-neutral-500 mb-4">Collection</h3>
+              <h3 class="text-caption uppercase tracking-[0.2em] text-neutral-500 mb-4">{{ $t('shop.collection') }}</h3>
               <div class="space-y-2">
                 <button 
                   @click="subcategory = ''; applyFilters()"
                   class="block w-full text-left text-body-sm py-1 transition-colors"
                   :class="!subcategory ? 'text-aura-black font-medium' : 'text-neutral-600 hover:text-aura-black'"
                 >
-                  All
+                  {{ $t('common.all') }}
                 </button>
                 <button 
-                  v-for="sub in ['Women', 'Men', 'Unisex']" 
-                  :key="sub"
-                  @click="subcategory = sub; applyFilters()"
+                  v-for="sub in subcategories" 
+                  :key="sub.value"
+                  @click="subcategory = sub.value; applyFilters()"
                   class="block w-full text-left text-body-sm py-1 transition-colors"
-                  :class="subcategory === sub ? 'text-aura-black font-medium' : 'text-neutral-600 hover:text-aura-black'"
+                  :class="subcategory === sub.value ? 'text-aura-black font-medium' : 'text-neutral-600 hover:text-aura-black'"
                 >
-                  {{ sub }}
+                  {{ sub.label }}
                 </button>
               </div>
             </div>
@@ -291,7 +306,7 @@ useSeoMeta({
                   class="block w-full text-left text-body-sm py-1 transition-colors"
                   :class="!brand ? 'text-aura-black font-medium' : 'text-neutral-600 hover:text-aura-black'"
                 >
-                  All Brands
+                  {{ $t('shop.allBrands') }}
                 </button>
                 <button 
                   v-for="b in brands" 
@@ -343,7 +358,7 @@ useSeoMeta({
                   @click="minPrice = null; maxPrice = null; applyFilters()"
                   class="w-full py-2 text-body-sm text-neutral-600 hover:text-aura-black transition-colors"
                 >
-                  Clear Price
+                  {{ $t('shop.clearPrice') }}
                 </button>
               </div>
             </div>
@@ -368,9 +383,9 @@ useSeoMeta({
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
             <h3 class="font-serif text-heading-4 text-aura-black mb-2">{{ t('common.noResults') }}</h3>
-            <p class="text-body text-neutral-500 mb-6">Try adjusting your filters</p>
+            <p class="text-body text-neutral-500 mb-6">{{ $t('shop.adjustFilters') }}</p>
             <button @click="clearFilters" class="text-body-sm uppercase tracking-wider text-aura-black underline underline-offset-4">
-              Clear all filters
+              {{ $t('shop.clearFilters') }}
             </button>
           </div>
 
@@ -411,7 +426,7 @@ useSeoMeta({
                 <!-- Quick View Overlay -->
                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100">
                   <span class="px-6 py-2 bg-white text-aura-black text-caption uppercase tracking-wider">
-                    Quick View
+                    {{ $t('shop.quickView') }}
                   </span>
                 </div>
               </div>

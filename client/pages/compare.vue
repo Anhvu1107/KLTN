@@ -55,7 +55,7 @@ useSeoMeta({
           {{ $t('common.noResults') || 'No products to compare' }}
         </h2>
         <p class="text-body text-neutral-500 mb-6">
-          Add products to compare from the shop
+          {{ $t('shop.addProductsToCompare') }}
         </p>
         <NuxtLink to="/shop" class="btn-primary">
           {{ $t('common.shop') || 'Shop Now' }}

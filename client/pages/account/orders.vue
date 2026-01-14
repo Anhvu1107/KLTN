@@ -13,7 +13,7 @@ definePageMeta({
 const { t } = useI18n()
 
 const config = useRuntimeConfig()
-const token = localStorage.getItem('token')
+const { getAuthHeaders } = useAuthToken()
 
 const page = ref(1)
 
@@ -21,8 +21,9 @@ const { data, pending, refresh } = await useFetch<{
   success: boolean
   data: { orders: any[]; pagination: any }
 }>(() => `${config.public.apiUrl}/users/orders?page=${page.value}&limit=10`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: getAuthHeaders(),
   watch: [page],
+  server: false,
 })
 
 const orders = computed(() => data.value?.data?.orders || [])
@@ -114,19 +115,19 @@ useSeoMeta({
           <div class="mt-4 pt-4 border-t border-neutral-100">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-body-sm">
               <div>
-                <p class="text-neutral-500">Subtotal</p>
+                <p class="text-neutral-500">{{ $t('cart.subtotal') }}</p>
                 <p class="font-medium">{{ formatPrice(order.subtotal) }}</p>
               </div>
               <div>
-                <p class="text-neutral-500">Shipping</p>
+                <p class="text-neutral-500">{{ $t('cart.shipping') }}</p>
                 <p class="font-medium">{{ formatPrice(order.shipping_fee || 0) }}</p>
               </div>
               <div>
-                <p class="text-neutral-500">Payment</p>
+                <p class="text-neutral-500">{{ $t('orders.payment') }}</p>
                 <p class="font-medium">{{ order.payment_method }}</p>
               </div>
               <div v-if="order.shipped_at">
-                <p class="text-neutral-500">Shipped</p>
+                <p class="text-neutral-500">{{ $t('orders.shipped') }}</p>
                 <p class="font-medium">{{ formatDate(order.shipped_at).split(',')[0] }}</p>
               </div>
             </div>

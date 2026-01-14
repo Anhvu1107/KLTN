@@ -36,7 +36,7 @@ const formData = ref({
 
 const fetchPopups = async () => {
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     const response = await $fetch<{ success: boolean; data: { popups: any[] } }>(
       `${config.public.apiUrl}/admin/popups`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -62,7 +62,7 @@ const openEdit = (popup: any) => {
 }
 
 const savePopup = async () => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   const url = editingPopup.value
     ? `${config.public.apiUrl}/admin/popups/${editingPopup.value.id}`
     : `${config.public.apiUrl}/admin/popups`

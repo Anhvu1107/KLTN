@@ -16,13 +16,18 @@ definePageMeta({
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
 
-// Fetch user profile
-const token = localStorage.getItem('token')
+// Use token from store (will be restored by persist plugin on client)
+const authHeaders = computed(() => ({
+  Authorization: `Bearer ${authStore.token || ''}`
+}))
+
+// Fetch user profile - lazy to avoid SSR issues
 const { data: profileData } = await useFetch<{
   success: boolean
   data: { user: any }
 }>(`${config.public.apiUrl}/users/profile`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: authHeaders.value,
+  server: false, // Only fetch on client
 })
 
 // Fetch recent orders
@@ -30,7 +35,8 @@ const { data: ordersData } = await useFetch<{
   success: boolean
   data: { orders: any[]; pagination: any }
 }>(`${config.public.apiUrl}/users/orders?limit=3`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: authHeaders.value,
+  server: false,
 })
 
 // Fetch wishlist count
@@ -38,7 +44,8 @@ const { data: wishlistData } = await useFetch<{
   success: boolean
   data: { items: any[]; count: number }
 }>(`${config.public.apiUrl}/wishlist`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: authHeaders.value,
+  server: false,
 })
 
 const user = computed(() => profileData.value?.data?.user || authStore.user)
@@ -97,7 +104,7 @@ useSeoMeta({
       <!-- Welcome -->
       <div class="card p-6 mb-8">
         <h2 class="font-serif text-heading-3 text-aura-black">
-          {{ t('account.welcome') }}, {{ user?.first_name || 'Guest' }}
+          {{ t('account.welcome') }}, {{ user?.first_name || $t('common.guest') }}
         </h2>
         <p class="text-body text-neutral-600 mt-1">{{ user?.email }}</p>
       </div>
@@ -119,7 +126,7 @@ useSeoMeta({
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <p class="text-body-sm text-neutral-600">Sổ địa chỉ</p>
+          <p class="text-body-sm text-neutral-600">{{ $t('account.addressBook') }}</p>
         </NuxtLink>
         <NuxtLink to="/account/profile" class="card p-6 hover:border-aura-black transition-colors">
           <div class="text-heading-2 font-serif text-aura-black">

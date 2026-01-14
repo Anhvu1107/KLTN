@@ -6,14 +6,21 @@
 const crypto = require('crypto');
 const querystring = require('qs');
 
-// VNPay Config
+// VNPay Config - NO hardcoded credentials for security
 const VNPAY_CONFIG = {
-    vnp_TmnCode: process.env.VNPAY_TMN_CODE || 'DEMO',
-    vnp_HashSecret: process.env.VNPAY_HASH_SECRET || 'DEMOSECRETKEY',
+    vnp_TmnCode: process.env.VNPAY_TMN_CODE,
+    vnp_HashSecret: process.env.VNPAY_HASH_SECRET,
     vnp_Url: process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
     vnp_ReturnUrl: process.env.VNPAY_RETURN_URL || 'http://localhost:3000/payment/vnpay-return',
 };
 
+// Validate VNPay credentials on startup (production mode)
+if (process.env.NODE_ENV === 'production') {
+    if (!VNPAY_CONFIG.vnp_TmnCode || !VNPAY_CONFIG.vnp_HashSecret) {
+        console.error('[VNPay] CRITICAL: Missing required VNPay credentials in production!');
+        console.error('[VNPay] Please set VNPAY_TMN_CODE and VNPAY_HASH_SECRET environment variables.');
+    }
+}
 /**
  * Sort object by keys
  */

@@ -12,6 +12,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const router = useRouter()
+const { getToken } = useAuthToken()
 
 // Form state
 const form = reactive({
@@ -104,7 +105,6 @@ const handleFileSelect = async (event: Event) => {
   error.value = ''
 
   try {
-    const token = localStorage.getItem('token')
     const formData = new FormData()
     
     for (let i = 0; i < files.length; i++) {
@@ -116,7 +116,7 @@ const handleFileSelect = async (event: Event) => {
       data: { urls: string[] }
     }>(`${config.public.apiUrl}/admin/upload/product-images`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
       body: formData,
     })
 
@@ -150,11 +150,9 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    const token = localStorage.getItem('token')
-    
     await $fetch(`${config.public.apiUrl}/admin/products`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
       body: {
         product: {
           name: form.name,

@@ -41,7 +41,7 @@ const formData = ref({
 const fetchCoupons = async () => {
   isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     const response = await $fetch<{ success: boolean; data: { coupons: any[] } }>(
       `${config.public.apiUrl}/admin/coupons`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -100,7 +100,7 @@ const submitForm = async () => {
   isSubmitting.value = true
 
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     const url = editingCoupon.value
       ? `${config.public.apiUrl}/admin/coupons/${editingCoupon.value.id}`
       : `${config.public.apiUrl}/admin/coupons`
@@ -125,7 +125,7 @@ const deleteCoupon = async (id: string) => {
   if (!confirm(t('admin.deleteConfirm'))) return
 
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     await $fetch(`${config.public.apiUrl}/admin/coupons/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },

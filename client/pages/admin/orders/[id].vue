@@ -15,6 +15,7 @@ const { t } = useI18n()
 
 const route = useRoute()
 const config = useRuntimeConfig()
+const { getToken } = useAuthToken()
 const orderId = route.params.id as string
 
 const order = ref<any>(null)
@@ -26,10 +27,9 @@ const statuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 
 // Fetch order
 const fetchOrder = async () => {
   try {
-    const token = localStorage.getItem('token')
     const response = await $fetch<{ success: boolean; data: { order: any } }>(
       `${config.public.apiUrl}/admin/orders/${orderId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${getToken()}` } }
     )
     order.value = response.data.order
   } catch (error) {
@@ -43,10 +43,9 @@ const fetchOrder = async () => {
 const updateStatus = async (newStatus: string) => {
   isUpdating.value = true
   try {
-    const token = localStorage.getItem('token')
     await $fetch(`${config.public.apiUrl}/admin/orders/${orderId}/status`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
       body: { status: newStatus },
     })
     await fetchOrder()

@@ -5,20 +5,25 @@ AURA ARCHIVE - Core AI logic with dynamic system prompt support
 
 from typing import Optional, List, Dict, Any
 from openai import AsyncOpenAI
+import time
 
 from app.core.config import settings
+
+# Session TTL in seconds (30 minutes)
+SESSION_TTL = 30 * 60
 
 
 class StylistEngine:
     """
     AI Stylist Engine for AURA ARCHIVE.
     Handles conversation with OpenAI and supports dynamic system prompts.
+    Sessions expire after 30 minutes to prevent memory leaks.
     """
     
     def __init__(self):
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
         self.model = settings.OPENAI_MODEL
-        self.sessions: Dict[str, List[Dict[str, str]]] = {}
+        self.sessions: Dict[str, Dict[str, Any]] = {}  # {session_id: {messages: [], last_access: timestamp}}
         
         # Default system prompt (used if none provided from Node.js)
         self.default_system_prompt = """You are AURA, an elegant and knowledgeable AI fashion stylist for AURA ARCHIVE, 
@@ -57,12 +62,21 @@ Communication style:
         Returns:
             Dict with 'message' and optional 'metadata'
         """
+        # Cleanup expired sessions periodically
+        self._cleanup_expired_sessions()
+        
         # Initialize session if needed
         if session_id not in self.sessions:
-            self.sessions[session_id] = []
+            self.sessions[session_id] = {
+                "messages": [],
+                "last_access": time.time()
+            }
+        else:
+            # Update last access time
+            self.sessions[session_id]["last_access"] = time.time()
         
         # Add user message to history
-        self.sessions[session_id].append({
+        self.sessions[session_id]["messages"].append({
             "role": "user",
             "content": message,
         })
@@ -70,7 +84,7 @@ Communication style:
         # If no OpenAI key, return demo response
         if not self.client:
             demo_response = self._get_demo_response(message)
-            self.sessions[session_id].append({
+            self.sessions[session_id]["messages"].append({
                 "role": "assistant",
                 "content": demo_response,
             })
@@ -92,7 +106,7 @@ Communication style:
             messages = [{"role": "system", "content": prompt}]
             
             # Add conversation history (last 10 messages)
-            messages.extend(self.sessions[session_id][-10:])
+            messages.extend(self.sessions[session_id]["messages"][-10:])
             
             # Call OpenAI
             completion = await self.client.chat.completions.create(
@@ -105,7 +119,7 @@ Communication style:
             ai_message = completion.choices[0].message.content
             
             # Add to session history
-            self.sessions[session_id].append({
+            self.sessions[session_id]["messages"].append({
                 "role": "assistant",
                 "content": ai_message,
             })
@@ -127,7 +141,24 @@ Communication style:
     
     async def get_session_history(self, session_id: str) -> List[Dict[str, str]]:
         """Get conversation history for a session"""
-        return self.sessions.get(session_id, [])
+        session = self.sessions.get(session_id)
+        if session:
+            session["last_access"] = time.time()  # Update last access
+            return session["messages"]
+        return []
+    
+    def _cleanup_expired_sessions(self) -> None:
+        """Remove expired sessions to prevent memory leaks"""
+        current_time = time.time()
+        expired_sessions = [
+            session_id for session_id, data in self.sessions.items()
+            if current_time - data.get("last_access", 0) > SESSION_TTL
+        ]
+        for session_id in expired_sessions:
+            del self.sessions[session_id]
+        
+        if expired_sessions:
+            print(f"[StylistEngine] Cleaned up {len(expired_sessions)} expired sessions")
     
     def _format_context(self, context: Dict[str, Any]) -> str:
         """Format context dictionary into readable string"""

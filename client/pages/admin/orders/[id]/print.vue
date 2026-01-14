@@ -11,6 +11,7 @@ definePageMeta({
 
 const route = useRoute()
 const config = useRuntimeConfig()
+const { getToken } = useAuthToken()
 const orderId = route.params.id as string
 
 const order = ref<any>(null)
@@ -19,10 +20,9 @@ const isLoading = ref(true)
 // Fetch order
 const fetchOrder = async () => {
   try {
-    const token = localStorage.getItem('token')
     const response = await $fetch<{ success: boolean; data: { order: any } }>(
       `${config.public.apiUrl}/admin/orders/${orderId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${getToken()}` } }
     )
     order.value = response.data.order
   } catch (error) {

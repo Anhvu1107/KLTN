@@ -7,6 +7,35 @@ const { Blog, User } = require('../models');
 const { Op } = require('sequelize');
 
 /**
+ * Sanitize HTML content to prevent XSS attacks
+ * Removes dangerous tags and attributes before storing in DB
+ */
+const sanitizeHtml = (html) => {
+    if (!html || typeof html !== 'string') return '';
+
+    let sanitized = html;
+
+    // Remove script tags and content
+    sanitized = sanitized.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+
+    // Remove other dangerous tags
+    sanitized = sanitized.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '');
+    sanitized = sanitized.replace(/<object\b[^>]*>[\s\S]*?<\/object>/gi, '');
+    sanitized = sanitized.replace(/<embed\b[^>]*>/gi, '');
+    sanitized = sanitized.replace(/<link\b[^>]*>/gi, '');
+
+    // Remove event handlers (onclick, onerror, etc.)
+    sanitized = sanitized.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
+    sanitized = sanitized.replace(/\s+on\w+\s*=\s*[^\s>]+/gi, '');
+
+    // Remove javascript: and data: URLs
+    sanitized = sanitized.replace(/javascript\s*:/gi, '');
+    sanitized = sanitized.replace(/data\s*:/gi, '');
+
+    return sanitized;
+};
+
+/**
  * Get published blogs with pagination
  */
 const getPublishedBlogs = async (page = 1, limit = 10, category = null) => {
@@ -89,6 +118,7 @@ const createBlog = async (data, authorId) => {
 
     const blog = await Blog.create({
         ...data,
+        content: data.content ? sanitizeHtml(data.content) : null, // Sanitize HTML content
         slug,
         author_id: authorId,
         published_at: data.status === 'published' ? new Date() : null,
@@ -107,6 +137,11 @@ const updateBlog = async (id, data) => {
     // If publishing for the first time
     if (data.status === 'published' && blog.status !== 'published') {
         data.published_at = new Date();
+    }
+
+    // Sanitize HTML content if provided
+    if (data.content) {
+        data.content = sanitizeHtml(data.content);
     }
 
     await blog.update(data);

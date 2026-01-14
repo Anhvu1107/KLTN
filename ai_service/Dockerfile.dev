@@ -1,0 +1,21 @@
+# Development Dockerfile - FastAPI AI Service with Hot Reload
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Source code will be mounted as volume
+# No COPY . . here - we use volume mount instead
+
+# Expose port  
+EXPOSE 8001
+
+# Set development environment
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Start with --reload for hot reload
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

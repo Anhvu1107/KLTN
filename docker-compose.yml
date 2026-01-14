@@ -20,7 +20,11 @@ services:
       timeout: 5s
       retries: 5
 
-  # Node.js API Server
+  # ============================================
+  # PRODUCTION SERVICES
+  # ============================================
+
+  # Node.js API Server (Production)
   server:
     build:
       context: ./server
@@ -42,7 +46,7 @@ services:
       postgres:
         condition: service_healthy
 
-  # AI Service (Python/FastAPI)
+  # AI Service (Production)
   ai-service:
     build:
       context: ./ai_service
@@ -56,7 +60,7 @@ services:
     depends_on:
       - server
 
-  # Nuxt.js Client
+  # Nuxt.js Client (Production)
   client:
     build:
       context: ./client
@@ -85,6 +89,70 @@ services:
       - client
       - server
       - ai-service
+
+  # ============================================
+  # DEVELOPMENT SERVICES (Hot Reload)
+  # ============================================
+
+  # Node.js API Server (Development)
+  server-dev:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: aura-server-dev
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: aura_archive
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-aura_secret_2024}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-2024}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # AI Service (Development)
+  ai-service-dev:
+    build:
+      context: ./ai_service
+      dockerfile: Dockerfile.dev
+    container_name: aura-ai-dev
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./ai_service:/app
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-demo_key}
+    depends_on:
+      - server-dev
+
+  # Nuxt.js Client (Development)
+  client-dev:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: aura-client-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - /app/.nuxt
+    environment:
+      NUXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+      NODE_ENV: development
+    depends_on:
+      - server-dev
 
 # Data persistence
 volumes:

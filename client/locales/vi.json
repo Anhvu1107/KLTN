@@ -89,11 +89,6 @@
         "status": "Trạng thái",
         "active": "Hoạt động",
         "inactive": "Tạm dừng",
-        "saving": "Đang lưu...",
-        "deleting": "Đang xóa...",
-        "uploading": "Đang tải lên...",
-        "creating": "Đang tạo...",
-        "add": "Thêm",
         "saveChanges": "Lưu thay đổi",
         "success": "Thành công",
         "error": "Lỗi",
@@ -101,8 +96,12 @@
         "warning": "Cảnh báo",
         "required": "Bắt buộc",
         "optional": "Tùy chọn",
+        "guest": "Khách",
+        "brand": "Thương hiệu",
+        "productName": "Tên sản phẩm",
         "or": "hoặc",
-        "viewAll": "Xem tất cả"
+        "viewAll": "Xem tất cả",
+        "pageLoading": "Đang tải trang..."
     },
     "header": {
         "freeShipping": "Miễn phí vận chuyển & Đổi trả với mọi đơn hàng",
@@ -116,21 +115,6 @@
         "sale": "Giảm giá",
         "adminPanel": "Quản trị",
         "backToStore": "Về cửa hàng"
-    },
-    "footer": {
-        "newsletter": "Đăng ký nhận tin",
-        "newsletterText": "Nhận thông tin về sản phẩm mới, ưu đãi độc quyền và mẹo phối đồ.",
-        "emailPlaceholder": "Nhập email của bạn",
-        "subscribe": "Đăng ký",
-        "help": "Hỗ trợ",
-        "faq": "Câu hỏi thường gặp",
-        "shipping": "Vận chuyển",
-        "returns": "Đổi trả",
-        "about": "Về chúng tôi",
-        "privacy": "Chính sách bảo mật",
-        "terms": "Điều khoản dịch vụ",
-        "company": "Công ty",
-        "copyright": "© 2026 AURA ARCHIVE. Đã đăng ký bản quyền."
     },
     "hero": {
         "title": "Vẻ đẹp vượt thời gian",
@@ -168,7 +152,9 @@
         "views": "lượt xem",
         "catBags": "Túi xách",
         "catOuterwear": "Áo khoác",
-        "catAccessories": "Phụ kiện"
+        "catAccessories": "Phụ kiện",
+        "archiveCollection": "Bộ sưu tập Archive",
+        "stayUpdated": "Cập nhật mới nhất"
     },
     "categories": {
         "tops": "Áo",
@@ -260,14 +246,24 @@
         "compareProducts": "So sánh sản phẩm",
         "removeFromCompare": "Bỏ so sánh",
         "compareFull": "Đã đầy (tối đa 4)",
-        "addToCompare": "Thêm vào so sánh"
+        "addToCompare": "Thêm vào so sánh",
+        "collection": "Bộ sưu tập",
+        "clearPrice": "Xóa giá",
+        "adjustFilters": "Hãy thử điều chỉnh bộ lọc",
+        "subcategory": "Phân loại",
+        "searchPlaceholder": "Tìm kiếm...",
+        "sortAZ": "A - Z",
+        "women": "Nữ",
+        "men": "Nam",
+        "unisex": "Unisex",
+        "addProductsToCompare": "Thêm sản phẩm từ cửa hàng để so sánh"
     },
     "cart": {
         "title": "Giỏ hàng",
         "empty": "Giỏ hàng trống",
         "continueShopping": "Tiếp tục mua sắm",
         "item": "sản phẩm",
-        "items": "sản phẩm",
+        "items": "Sản phẩm",
         "remove": "Xóa",
         "subtotal": "Tạm tính",
         "shipping": "Phí vận chuyển",
@@ -275,7 +271,14 @@
         "proceedToCheckout": "Thanh toán",
         "freeShipping": "Miễn phí vận chuyển cho đơn trên $500",
         "estimatedDelivery": "Giao hàng dự kiến",
-        "orderSummary": "Tóm tắt đơn hàng"
+        "orderSummary": "Tóm tắt đơn hàng",
+        "discount": "Giảm giá",
+        "calculatedAtCheckout": "Tính khi thanh toán",
+        "couponCode": "Mã giảm giá",
+        "enterCode": "Nhập mã",
+        "apply": "Áp dụng",
+        "secureCheckout": "Thanh toán an toàn",
+        "authenticityGuaranteed": "Đảm bảo chính hãng"
     },
     "checkout": {
         "title": "Thanh toán",
@@ -306,6 +309,15 @@
         "checkoutFailed": "Thanh toán thất bại",
         "notesPlaceholder": "Ghi chú giao hàng (tùy chọn)"
     },
+    "address": {
+        "label": "Nhãn (Home, Office...)",
+        "labelPlaceholder": "VD: Nhà, Công ty",
+        "addressPlaceholder": "Số nhà, tên đường",
+        "addressLine2": "Địa chỉ bổ sung",
+        "addressLine2Placeholder": "Tòa nhà, tầng...",
+        "postalCode": "Mã bưu chính",
+        "setAsDefault": "Đặt làm địa chỉ mặc định"
+    },
     "account": {
         "title": "Tài khoản",
         "welcome": "Chào mừng trở lại",
@@ -320,7 +332,8 @@
         "dashboard": "Tổng quan",
         "orders": "Đơn hàng",
         "profile": "Hồ sơ",
-        "settings": "Cài đặt"
+        "settings": "Cài đặt",
+        "addressBook": "Sổ địa chỉ"
     },
     "orders": {
         "title": "Lịch sử đơn hàng",
@@ -470,9 +483,6 @@
         "memberSince": "Thành viên từ",
         "totalOrdersCount": "Tổng đơn hàng",
         "wishlistItemsCount": "Sản phẩm yêu thích",
-        "allRoles": "Tất cả vai trò",
-        "role": "Vai trò",
-        "joined": "Ngày tham gia",
         "customer": "Khách hàng",
         "adminRole": "Quản trị viên",
         "systemPrompts": "System Prompts",
@@ -517,23 +527,6 @@
         "saveChanges": "Lưu thay đổi",
         "createProductDesc": "Tạo danh sách sản phẩm mới với biến thể",
         "product": "Sản phẩm",
-        "coupons": {
-            "title": "Quản lý mã giảm giá",
-            "add": "Thêm mã",
-            "edit": "Sửa mã",
-            "create": "Tạo mã",
-            "save": "Lưu mã",
-            "noCoupons": "Chưa có mã giảm giá nào"
-        },
-        "banners": {
-            "title": "Quản lý banner",
-            "add": "Thêm banner",
-            "edit": "Sửa banner",
-            "create": "Tạo banner",
-            "save": "Lưu banner",
-            "noBanners": "Chưa có banner nào. Tạo mới để bắt đầu.",
-            "noImage": "Chưa có hình"
-        },
         "settings": {
             "title": "Cấu hình hệ thống",
             "general": "Thông tin chung",

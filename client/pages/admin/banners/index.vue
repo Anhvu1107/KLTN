@@ -38,7 +38,7 @@ const formData = ref({
 const fetchBanners = async () => {
   isLoading.value = true
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     const response = await $fetch<{ success: boolean; data: { banners: any[] } }>(
       `${config.public.apiUrl}/admin/banners`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -91,7 +91,7 @@ const submitForm = async () => {
   isSubmitting.value = true
 
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     const url = editingBanner.value
       ? `${config.public.apiUrl}/admin/banners/${editingBanner.value.id}`
       : `${config.public.apiUrl}/admin/banners`
@@ -116,7 +116,7 @@ const deleteBanner = async (id: string) => {
   if (!confirm(t('admin.deleteConfirm'))) return
 
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     await $fetch(`${config.public.apiUrl}/admin/banners/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
