@@ -15,14 +15,15 @@ const { t } = useI18n()
 
 const config = useRuntimeConfig()
 const cartStore = useCartStore()
-const token = localStorage.getItem('token')
+const { getToken, getAuthHeaders } = useAuthToken()
 
 // Fetch wishlist
 const { data, pending, refresh } = await useFetch<{
   success: boolean
   data: { items: any[]; count: number }
 }>(`${config.public.apiUrl}/wishlist`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: getAuthHeaders(),
+  server: false,
 })
 
 const items = computed(() => data.value?.data?.items || [])
@@ -32,7 +33,7 @@ const removeItem = async (productId: string) => {
   try {
     await $fetch(`${config.public.apiUrl}/wishlist/${productId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeaders(),
     })
     await refresh()
   } catch (error) {
@@ -107,7 +108,7 @@ useSeoMeta({
               <div class="aspect-product bg-neutral-100 rounded-sm overflow-hidden mb-4">
                 <!-- Sold Badge -->
                 <div v-if="item.product?.variants?.[0]?.status === 'SOLD'" class="absolute top-3 left-3 z-10">
-                  <span class="px-2 py-1 bg-neutral-900 text-white text-caption">SOLD</span>
+                  <span class="px-2 py-1 bg-neutral-900 text-white text-caption">{{ $t('shop.sold') }}</span>
                 </div>
                 <!-- Placeholder -->
                 <div class="w-full h-full flex items-center justify-center text-neutral-300">

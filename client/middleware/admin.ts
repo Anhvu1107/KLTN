@@ -4,25 +4,49 @@
  */
 
 export default defineNuxtRouteMiddleware((to, from) => {
-    // This runs on client-side only
+    // Skip on server
     if (process.server) return
 
-    const token = localStorage.getItem('token')
+    // Check localStorage token
+    let token = localStorage.getItem('token')
+    let userRole: string | null = null
 
+    // Also check pinia persisted store
+    const persistedAuth = localStorage.getItem('auth')
+
+    if (persistedAuth) {
+        try {
+            const parsed = JSON.parse(persistedAuth)
+            if (!token && parsed.token) {
+                token = parsed.token
+            }
+            if (parsed.user?.role) {
+                userRole = parsed.user.role
+            }
+        } catch (e) {
+            // Invalid JSON, ignore
+        }
+    }
+
+    // No token at all
     if (!token) {
         return navigateTo('/auth/login?redirect=' + encodeURIComponent(to.fullPath))
     }
 
-    // Decode JWT to check role (simple base64 decode)
+    // Check admin role from persisted user or decode JWT
+    if (userRole === 'ADMIN') {
+        return // Allow access
+    }
+
+    // Fallback: decode JWT to check role
     try {
         const payload = JSON.parse(atob(token.split('.')[1]))
-
         if (payload.role !== 'ADMIN') {
             return navigateTo('/')
         }
     } catch (error) {
-        // Invalid token
         localStorage.removeItem('token')
+        localStorage.removeItem('auth')
         return navigateTo('/auth/login')
     }
 })

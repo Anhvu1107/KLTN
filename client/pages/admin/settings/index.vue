@@ -14,6 +14,7 @@ definePageMeta({
 const { t } = useI18n()
 
 const config = useRuntimeConfig()
+const { getToken } = useAuthToken()
 
 const settings = ref<Record<string, any[]>>({})
 const isLoading = ref(true)
@@ -31,10 +32,9 @@ const groupLabels = computed((): Record<string, string> => ({
 // Fetch settings
 const fetchSettings = async () => {
   try {
-    const token = localStorage.getItem('token')
     const response = await $fetch<{ success: boolean; data: { settings: any } }>(
       `${config.public.apiUrl}/admin/settings`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${getToken()}` } }
     )
     settings.value = response.data.settings
   } catch (error) {
@@ -50,8 +50,6 @@ const saveSettings = async () => {
   saveMessage.value = ''
   
   try {
-    const token = localStorage.getItem('token')
-    
     // Flatten all settings into array
     const allSettings = Object.values(settings.value)
       .flat()
@@ -59,7 +57,7 @@ const saveSettings = async () => {
 
     await $fetch(`${config.public.apiUrl}/admin/settings`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
       body: { settings: allSettings },
     })
 
@@ -76,10 +74,9 @@ const saveSettings = async () => {
 // Seed default settings
 const seedDefaults = async () => {
   try {
-    const token = localStorage.getItem('token')
     await $fetch(`${config.public.apiUrl}/admin/settings/seed`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
     })
     await fetchSettings()
   } catch (error) {

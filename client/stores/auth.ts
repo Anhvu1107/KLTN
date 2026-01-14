@@ -17,6 +17,7 @@ export interface AuthState {
     user: User | null
     token: string | null
     isLoading: boolean
+    isHydrated: boolean // Track if state has been restored from localStorage
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -24,10 +25,20 @@ export const useAuthStore = defineStore('auth', {
         user: null,
         token: null,
         isLoading: false,
+        isHydrated: false,
     }),
 
     getters: {
-        isAuthenticated: (state): boolean => !!state.token && !!state.user,
+        // Returns true if user is authenticated (has both token and user)
+        // During hydration, if we have a token, we're "potentially" authenticated
+        isAuthenticated: (state): boolean => {
+            // If we have both token and user, definitely authenticated
+            if (state.token && state.user) return true
+            // If we have token but user not loaded yet, still consider authenticated
+            // This prevents flash of "logged out" state during hydration
+            if (state.token && !state.isHydrated) return true
+            return false
+        },
         isAdmin: (state): boolean => state.user?.role === 'ADMIN',
         fullName: (state): string => {
             if (!state.user) return ''
@@ -59,6 +70,10 @@ export const useAuthStore = defineStore('auth', {
                     this.token = response.data.token
                     if (process.client) {
                         localStorage.setItem('token', response.data.token)
+                        localStorage.setItem('auth', JSON.stringify({
+                            token: response.data.token,
+                            user: response.data.user
+                        }))
                     }
                     return { success: true }
                 }
@@ -100,6 +115,10 @@ export const useAuthStore = defineStore('auth', {
                     this.token = response.data.token
                     if (process.client) {
                         localStorage.setItem('token', response.data.token)
+                        localStorage.setItem('auth', JSON.stringify({
+                            token: response.data.token,
+                            user: response.data.user
+                        }))
                     }
                     return { success: true }
                 }
@@ -121,6 +140,7 @@ export const useAuthStore = defineStore('auth', {
             this.token = null
             if (process.client) {
                 localStorage.removeItem('token')
+                localStorage.removeItem('auth')
             }
             navigateTo('/')
         },
@@ -149,9 +169,14 @@ export const useAuthStore = defineStore('auth', {
                 if (response.success) {
                     this.user = response.data.user
                 }
-            } catch (error) {
-                // Token invalid, clear auth state
-                this.logout()
+            } catch (error: any) {
+                // Only logout on 401 Unauthorized (invalid token)
+                // Don't logout on network errors or other issues
+                if (error?.status === 401 || error?.statusCode === 401) {
+                    this.logout()
+                }
+                // For other errors, just log and keep existing user data
+                console.warn('Failed to fetch user:', error?.message || error)
             } finally {
                 this.isLoading = false
             }
@@ -162,14 +187,21 @@ export const useAuthStore = defineStore('auth', {
          */
         async init(): Promise<void> {
             if (!process.client) return
+
+            // If user already exists from persist, don't fetch again
+            if (this.user && this.token) {
+                return
+            }
+
             const token = localStorage.getItem('token')
-            if (token) {
+            if (token && !this.token) {
+                this.token = token
                 await this.fetchUser()
             }
         },
     },
 
     persist: {
-        pick: ['token'],
+        pick: ['token', 'user'],
     },
 })

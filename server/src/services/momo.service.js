@@ -11,15 +11,23 @@
 const crypto = require('crypto');
 const axios = require('axios');
 
-// MoMo Configuration
+// MoMo Configuration - Validate required env vars
 const config = {
-    partnerCode: process.env.MOMO_PARTNER_CODE || 'MOMO',
-    accessKey: process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85',
-    secretKey: process.env.MOMO_SECRET_KEY || 'K951B6PE1waDMi640xX08PD3vg6EkVlz',
+    partnerCode: process.env.MOMO_PARTNER_CODE,
+    accessKey: process.env.MOMO_ACCESS_KEY,
+    secretKey: process.env.MOMO_SECRET_KEY,
     endpoint: process.env.MOMO_ENDPOINT || 'https://test-payment.momo.vn/v2/gateway/api',
     returnUrl: process.env.MOMO_RETURN_URL || 'http://localhost:3000/payment/momo/return',
     ipnUrl: process.env.MOMO_IPN_URL || 'http://localhost:5000/api/v1/payments/momo/ipn',
 };
+
+// Validate MoMo credentials on startup (production mode)
+if (process.env.NODE_ENV === 'production') {
+    if (!config.partnerCode || !config.accessKey || !config.secretKey) {
+        console.error('[MoMo] CRITICAL: Missing required MoMo credentials in production!');
+        console.error('[MoMo] Please set MOMO_PARTNER_CODE, MOMO_ACCESS_KEY, MOMO_SECRET_KEY environment variables.');
+    }
+}
 
 /**
  * Generate HMAC-SHA256 signature

@@ -98,8 +98,12 @@
         "warning": "Warning",
         "required": "Required",
         "optional": "Optional",
+        "guest": "Guest",
+        "brand": "Brand",
+        "productName": "Product Name",
         "or": "or",
-        "viewAll": "View All"
+        "viewAll": "View All",
+        "pageLoading": "Loading page..."
     },
     "header": {
         "freeShipping": "Free Shipping & Returns On All Orders",
@@ -113,21 +117,6 @@
         "sale": "Sale",
         "adminPanel": "Admin Panel",
         "backToStore": "Back to Store"
-    },
-    "footer": {
-        "newsletter": "Join Our Newsletter",
-        "newsletterText": "Be the first to know about new arrivals, exclusive offers and styling tips.",
-        "emailPlaceholder": "Enter your email",
-        "subscribe": "Subscribe",
-        "help": "Help",
-        "faq": "FAQ",
-        "shipping": "Shipping",
-        "returns": "Returns",
-        "about": "About Us",
-        "privacy": "Privacy Policy",
-        "terms": "Terms of Service",
-        "company": "Company",
-        "copyright": "© 2026 AURA ARCHIVE. All rights reserved."
     },
     "hero": {
         "title": "Timeless Elegance, Reimagined",
@@ -165,7 +154,9 @@
         "views": "views",
         "catBags": "Bags",
         "catOuterwear": "Outerwear",
-        "catAccessories": "Accessories"
+        "catAccessories": "Accessories",
+        "archiveCollection": "The Archive Collection",
+        "stayUpdated": "Stay Updated"
     },
     "categories": {
         "tops": "Tops",
@@ -257,14 +248,24 @@
         "compareProducts": "Compare Products",
         "removeFromCompare": "Remove from Compare",
         "compareFull": "Compare Full (4 max)",
-        "addToCompare": "Add to Compare"
+        "addToCompare": "Add to Compare",
+        "collection": "Collection",
+        "clearPrice": "Clear Price",
+        "adjustFilters": "Try adjusting your filters",
+        "subcategory": "Subcategory",
+        "searchPlaceholder": "Search...",
+        "sortAZ": "A - Z",
+        "women": "Women",
+        "men": "Men",
+        "unisex": "Unisex",
+        "addProductsToCompare": "Add products to compare from the shop"
     },
     "cart": {
         "title": "Shopping Cart",
         "empty": "Your cart is empty",
         "continueShopping": "Continue Shopping",
         "item": "item",
-        "items": "items",
+        "items": "Items",
         "remove": "Remove",
         "subtotal": "Subtotal",
         "shipping": "Shipping",
@@ -272,7 +273,14 @@
         "proceedToCheckout": "Proceed to Checkout",
         "freeShipping": "Free shipping on orders over $500",
         "estimatedDelivery": "Estimated delivery",
-        "orderSummary": "Order Summary"
+        "orderSummary": "Order Summary",
+        "discount": "Discount",
+        "calculatedAtCheckout": "Calculated at checkout",
+        "couponCode": "Coupon Code",
+        "enterCode": "Enter code",
+        "apply": "Apply",
+        "secureCheckout": "Secure Checkout",
+        "authenticityGuaranteed": "Authenticity Guaranteed"
     },
     "checkout": {
         "title": "Checkout",
@@ -303,6 +311,15 @@
         "checkoutFailed": "Checkout failed",
         "notesPlaceholder": "Delivery notes (optional)"
     },
+    "address": {
+        "label": "Label (Home, Office...)",
+        "labelPlaceholder": "e.g. Home, Office",
+        "addressPlaceholder": "House number, street name",
+        "addressLine2": "Additional Address",
+        "addressLine2Placeholder": "Building, floor...",
+        "postalCode": "Postal Code",
+        "setAsDefault": "Set as default address"
+    },
     "account": {
         "title": "My Account",
         "welcome": "Welcome back",
@@ -317,7 +334,8 @@
         "dashboard": "Dashboard",
         "orders": "My Orders",
         "profile": "Profile",
-        "settings": "Settings"
+        "settings": "Settings",
+        "addressBook": "Address Book"
     },
     "orders": {
         "title": "Order History",
@@ -456,9 +474,6 @@
         "memberSince": "Member since",
         "totalOrdersCount": "Total Orders",
         "wishlistItemsCount": "Wishlist Items",
-        "allRoles": "All Roles",
-        "role": "Role",
-        "joined": "Joined",
         "customer": "Customer",
         "adminRole": "Admin",
         "systemPrompts": "System Prompts",
@@ -468,7 +483,6 @@
         "orderDetail": "Order Detail",
         "printInvoice": "Print Invoice",
         "orderItems": "Order Items",
-        "customer": "Customer",
         "productInfo": "Product Information",
         "variantDetails": "Variant Details",
         "basicInfo": "Basic Information",
@@ -507,23 +521,6 @@
         "saveChanges": "Save Changes",
         "createProductDesc": "Create a new product listing with variant",
         "product": "Product",
-        "coupons": {
-            "title": "Coupon Management",
-            "add": "Add Coupon",
-            "edit": "Edit Coupon",
-            "create": "Create Coupon",
-            "save": "Save Coupon",
-            "noCoupons": "No coupons yet"
-        },
-        "banners": {
-            "title": "Banner Management",
-            "add": "Add Banner",
-            "edit": "Edit Banner",
-            "create": "Create Banner",
-            "save": "Save Banner",
-            "noBanners": "No banners yet. Create one to get started.",
-            "noImage": "No Image"
-        },
         "settings": {
             "title": "System Settings",
             "general": "General Information",
@@ -673,9 +670,6 @@
             "onExit": "On Exit Intent",
             "onScroll": "On Scroll",
             "add": "Create Popup"
-        },
-        "blogs": {
-            "title": "Blog Management"
         },
         "abandonedCarts": {
             "title": "Abandoned Carts",

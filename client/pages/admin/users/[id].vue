@@ -11,10 +11,10 @@ definePageMeta({
 
 const route = useRoute()
 const config = useRuntimeConfig()
-const token = localStorage.getItem('token')
+const { getToken } = useAuthToken()
 const userId = route.params.id as string
 
-// Fetch user detail
+// Fetch user detail - client-side only
 const { data, pending } = await useFetch<{
   success: boolean
   data: {
@@ -24,7 +24,8 @@ const { data, pending } = await useFetch<{
     wishlist: any[]
   }
 }>(`${config.public.apiUrl}/admin/users/${userId}`, {
-  headers: { Authorization: `Bearer ${token}` },
+  headers: { Authorization: `Bearer ${getToken()}` },
+  server: false, // Client-side only to avoid SSR token issue
 })
 
 const user = computed(() => data.value?.data?.user)

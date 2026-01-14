@@ -425,7 +425,7 @@ useSeoMeta({
             <ul class="space-y-2 text-body-sm text-neutral-600">
               <li><span class="text-neutral-500">{{ t('shop.sku') }}:</span> {{ variant?.sku || 'N/A' }}</li>
               <li><span class="text-neutral-500">{{ t('shop.category') }}:</span> {{ product.category }}</li>
-              <li><span class="text-neutral-500">Subcategory:</span> {{ product.subcategory }}</li>
+              <li><span class="text-neutral-500">{{ t('shop.subcategory') }}:</span> {{ product.subcategory }}</li>
             </ul>
           </div>
         </div>

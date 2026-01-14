@@ -35,16 +35,34 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Rate limiting
+// Rate limiting - relaxed in development
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit in dev
     message: {
         success: false,
         message: 'Too many requests, please try again later.',
     },
+    skip: (req) => process.env.NODE_ENV === 'development', // Skip rate limiting in dev
 });
 app.use('/api/', limiter);
+
+// STRICT Rate limiting for auth endpoints - NEVER skipped (prevents brute force)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Only 10 attempts per 15 minutes
+    message: {
+        success: false,
+        message: 'Too many authentication attempts. Please try again later.',
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    // DO NOT skip in development - security should always be tested
+});
+app.use('/api/v1/auth/login', authLimiter);
+app.use('/api/v1/auth/register', authLimiter);
+app.use('/api/v1/auth/forgot-password', authLimiter);
+app.use('/api/v1/auth/reset-password', authLimiter);
 
 // ===========================================
 // BODY PARSING MIDDLEWARES

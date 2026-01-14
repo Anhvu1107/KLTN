@@ -1,0 +1,21 @@
+# Development Dockerfile - Nuxt.js Client with Hot Reload
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies first (cached layer)
+COPY package*.json ./
+RUN npm install
+
+# Source code will be mounted as volume
+# No COPY . . here - we use volume mount instead
+
+# Set environment
+ENV HOST=0.0.0.0
+ENV PORT=3000
+ENV NODE_ENV=development
+
+EXPOSE 3000
+
+# Run dev server with hot reload
+CMD ["npm", "run", "dev"]
