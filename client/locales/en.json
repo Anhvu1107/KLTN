@@ -534,6 +534,20 @@
             "noSettings": "No settings found",
             "createDefaults": "Create Default Settings"
         },
+        "attributes": {
+            "title": "Product Attributes",
+            "description": "Manage dynamic options for product creation (brands, categories, colors, sizes, materials)",
+            "brands": "Brands",
+            "brandsDesc": "List of available brands for products",
+            "categories": "Categories",
+            "categoriesDesc": "Product categories with bilingual labels",
+            "colors": "Colors",
+            "colorsDesc": "Available color options",
+            "sizes": "Sizes",
+            "sizesDesc": "Available size options",
+            "materials": "Materials",
+            "materialsDesc": "Available material types"
+        },
         "aiConfig": {
             "title": "AI Configuration",
             "desc": "Customize the AI Stylist's behavior and personality.",

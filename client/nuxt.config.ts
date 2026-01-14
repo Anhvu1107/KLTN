@@ -100,4 +100,20 @@ export default defineNuxtConfig({
       pathPrefix: false,
     },
   ],
+
+  // Vite configuration for Docker HMR on Windows
+  vite: {
+    server: {
+      watch: {
+        // Use polling for file watching in Docker on Windows/WSL
+        usePolling: true,
+        interval: 1000, // Check for changes every 1 second
+      },
+      hmr: {
+        // Required for HMR to work properly in Docker
+        clientPort: 3000,
+        host: 'localhost',
+      },
+    },
+  },
 })

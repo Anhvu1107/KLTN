@@ -540,6 +540,20 @@
             "noSettings": "Chưa có cấu hình nào",
             "createDefaults": "Tạo cấu hình mặc định"
         },
+        "attributes": {
+            "title": "Thuộc tính sản phẩm",
+            "description": "Quản lý các tùy chọn động cho việc tạo sản phẩm (thương hiệu, danh mục, màu sắc, kích cỡ, chất liệu)",
+            "brands": "Thương hiệu",
+            "brandsDesc": "Danh sách thương hiệu có sẵn cho sản phẩm",
+            "categories": "Danh mục",
+            "categoriesDesc": "Danh mục sản phẩm với nhãn song ngữ",
+            "colors": "Màu sắc",
+            "colorsDesc": "Các tùy chọn màu sắc có sẵn",
+            "sizes": "Kích cỡ",
+            "sizesDesc": "Các tùy chọn kích cỡ có sẵn",
+            "materials": "Chất liệu",
+            "materialsDesc": "Các loại chất liệu có sẵn"
+        },
         "aiConfig": {
             "title": "Cấu hình AI",
             "desc": "Tùy chỉnh tính cách và hành vi của AI Stylist.",

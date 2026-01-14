@@ -9,7 +9,7 @@ definePageMeta({
   middleware: ['admin'],
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 const router = useRouter()
 const { getToken } = useAuthToken()
@@ -40,11 +40,28 @@ const success = ref('')
 // File input ref
 const fileInput = ref<HTMLInputElement | null>(null)
 
-// Options with i18n labels (value stays English for DB, label is translated)
-const brands = [
-  'Rick Owens', 'Acronym', 'Comme des Garçons', 'Ralph Lauren', 'Prada',
-  'Balenciaga', 'Maison Margiela', 'Yohji Yamamoto', 'Fear of God', 'Off-White'
-]
+// Default options (always available) - using computed for reactive i18n
+const otherLabel = computed(() => locale.value === 'vi' ? 'Khác' : 'Other')
+
+const brands = computed(() => [
+  { value: 'Rick Owens', label: 'Rick Owens' },
+  { value: 'Acronym', label: 'Acronym' },
+  { value: 'Comme des Garçons', label: 'Comme des Garçons' },
+  { value: 'Ralph Lauren', label: 'Ralph Lauren' },
+  { value: 'Prada', label: 'Prada' },
+  { value: 'Balenciaga', label: 'Balenciaga' },
+  { value: 'Maison Margiela', label: 'Maison Margiela' },
+  { value: 'Yohji Yamamoto', label: 'Yohji Yamamoto' },
+  { value: 'Fear of God', label: 'Fear of God' },
+  { value: 'Off-White', label: 'Off-White' },
+  { value: 'Gucci', label: 'Gucci' },
+  { value: 'Louis Vuitton', label: 'Louis Vuitton' },
+  { value: 'Chanel', label: 'Chanel' },
+  { value: 'Hermès', label: 'Hermès' },
+  { value: 'Dior', label: 'Dior' },
+  { value: 'Other', label: otherLabel.value },
+])
+
 const categories = computed(() => [
   { value: 'Tops', label: t('categories.tops') },
   { value: 'Pants', label: t('categories.pants') },
@@ -53,20 +70,23 @@ const categories = computed(() => [
   { value: 'Bags', label: t('categories.bags') },
   { value: 'Accessories', label: t('categories.accessories') },
   { value: 'Dresses', label: t('categories.dresses') },
+  { value: 'Jewelry', label: locale.value === 'vi' ? 'Trang sức' : 'Jewelry' },
+  { value: 'Watches', label: locale.value === 'vi' ? 'Đồng hồ' : 'Watches' },
+  { value: 'Other', label: otherLabel.value },
 ])
-const subcategories = computed(() => [
-  { value: 'Men', label: t('home.men') },
-  { value: 'Women', label: t('home.women') },
-  { value: 'Unisex', label: t('categories.unisex') },
+
+const sizes = computed(() => [
+  { value: 'XS', label: 'XS' },
+  { value: 'S', label: 'S' },
+  { value: 'M', label: 'M' },
+  { value: 'L', label: 'L' },
+  { value: 'XL', label: 'XL' },
+  { value: 'XXL', label: 'XXL' },
+  { value: 'One Size', label: locale.value === 'vi' ? 'Một cỡ' : 'One Size' },
+  { value: 'Free Size', label: locale.value === 'vi' ? 'Tự do' : 'Free Size' },
+  { value: 'Other', label: otherLabel.value },
 ])
-const conditions = computed(() => [
-  { value: '10/10 - New with tags', label: t('conditions.newWithTags') },
-  { value: '9/10 - Like New', label: t('conditions.likeNew') },
-  { value: '8/10 - Excellent', label: t('conditions.excellent') },
-  { value: '7/10 - Good', label: t('conditions.good') },
-  { value: 'Vintage', label: t('conditions.vintage') },
-])
-const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size']
+
 const colors = computed(() => [
   { value: 'Black', label: t('colors.black') },
   { value: 'White', label: t('colors.white') },
@@ -77,7 +97,11 @@ const colors = computed(() => [
   { value: 'Cream', label: t('colors.cream') },
   { value: 'Brown', label: t('colors.brown') },
   { value: 'Multi', label: t('colors.multi') },
+  { value: 'Gold', label: locale.value === 'vi' ? 'Vàng' : 'Gold' },
+  { value: 'Silver', label: locale.value === 'vi' ? 'Bạc' : 'Silver' },
+  { value: 'Other', label: otherLabel.value },
 ])
+
 const materials = computed(() => [
   { value: 'Leather', label: t('materials.leather') },
   { value: 'Cotton', label: t('materials.cotton') },
@@ -88,7 +112,58 @@ const materials = computed(() => [
   { value: 'Polyester', label: t('materials.polyester') },
   { value: 'Linen', label: t('materials.linen') },
   { value: 'Mixed', label: t('materials.mixed') },
+  { value: 'Canvas', label: locale.value === 'vi' ? 'Vải canvas' : 'Canvas' },
+  { value: 'Metal', label: locale.value === 'vi' ? 'Kim loại' : 'Metal' },
+  { value: 'Other', label: otherLabel.value },
 ])
+
+const subcategories = computed(() => [
+  { value: 'Men', label: t('home.men') },
+  { value: 'Women', label: t('home.women') },
+  { value: 'Unisex', label: t('categories.unisex') },
+  { value: 'Other', label: otherLabel.value },
+])
+
+const conditions = computed(() => [
+  { value: '10/10 - New with tags', label: t('conditions.newWithTags') },
+  { value: '9/10 - Like New', label: t('conditions.likeNew') },
+  { value: '8/10 - Excellent', label: t('conditions.excellent') },
+  { value: '7/10 - Good', label: t('conditions.good') },
+  { value: 'Vintage', label: t('conditions.vintage') },
+  { value: 'Other', label: otherLabel.value },
+])
+
+// Custom input for "Other" option
+const customBrand = ref('')
+const customCategory = ref('')
+const customSubcategory = ref('')
+const customCondition = ref('')
+const customSize = ref('')
+const customColor = ref('')
+const customMaterial = ref('')
+
+// Watch for "Other" selection - reset custom value when not Other
+watch(() => form.brand, (newVal) => {
+  if (newVal !== 'Other') customBrand.value = ''
+})
+watch(() => form.category, (newVal) => {
+  if (newVal !== 'Other') customCategory.value = ''
+})
+watch(() => form.subcategory, (newVal) => {
+  if (newVal !== 'Other') customSubcategory.value = ''
+})
+watch(() => form.conditionText, (newVal) => {
+  if (newVal !== 'Other') customCondition.value = ''
+})
+watch(() => form.size, (newVal) => {
+  if (newVal !== 'Other') customSize.value = ''
+})
+watch(() => form.color, (newVal) => {
+  if (newVal !== 'Other') customColor.value = ''
+})
+watch(() => form.material, (newVal) => {
+  if (newVal !== 'Other') customMaterial.value = ''
+})
 
 // Handle file selection
 const handleFileSelect = async (event: Event) => {
@@ -141,10 +216,21 @@ const removeImage = (index: number) => {
 
 // Submit form
 const handleSubmit = async () => {
-  if (!form.name || !form.brand || !form.basePrice) {
+  // Get actual brand/category values (use custom if 'Other' was selected)
+  const actualBrand = form.brand === 'Other' ? customBrand.value : form.brand
+  const actualCategory = form.category === 'Other' ? customCategory.value : form.category
+  const actualSubcategory = form.subcategory === 'Other' ? customSubcategory.value : form.subcategory
+  const actualCondition = form.conditionText === 'Other' ? customCondition.value : form.conditionText
+
+  if (!form.name || !actualBrand || !form.basePrice) {
     error.value = 'Please fill all required fields'
     return
   }
+
+  // Get actual variant values (use custom if 'Other' was selected)
+  const actualSize = form.size === 'Other' ? customSize.value : form.size
+  const actualColor = form.color === 'Other' ? customColor.value : form.color
+  const actualMaterial = form.material === 'Other' ? customMaterial.value : form.material
 
   isSubmitting.value = true
   error.value = ''
@@ -156,20 +242,20 @@ const handleSubmit = async () => {
       body: {
         product: {
           name: form.name,
-          brand: form.brand,
-          category: form.category,
-          subcategory: form.subcategory,
+          brand: actualBrand,
+          category: actualCategory,
+          subcategory: actualSubcategory,
           base_price: form.basePrice,
           sale_price: form.salePrice || null,
-          condition_text: form.conditionText,
+          condition_text: actualCondition,
           condition_description: form.conditionDescription,
           description: form.description,
           images: form.images,
         },
         variant: {
-          size: form.size,
-          color: form.color,
-          material: form.material,
+          size: actualSize,
+          color: actualColor,
+          material: actualMaterial,
         },
       },
     })
@@ -280,31 +366,59 @@ useSeoMeta({
 
             <div>
               <label class="input-label">{{ t('admin.productForm.brand') }} *</label>
-              <select v-model="form.brand" class="input-field">
+              <select v-model="form.brand" class="input-field select-animated">
                 <option value="">{{ t('admin.productForm.selectBrand') }}</option>
-                <option v-for="brand in brands" :key="brand" :value="brand">{{ brand }}</option>
+                <option v-for="b in brands" :key="b.value" :value="b.value">{{ b.label }}</option>
               </select>
+              <input 
+                v-if="form.brand === 'Other'" 
+                v-model="customBrand" 
+                type="text" 
+                class="input-field mt-2" 
+                placeholder="Nhập tên thương hiệu mới..."
+              />
             </div>
 
             <div>
               <label class="input-label">{{ t('shop.category') }} *</label>
-              <select v-model="form.category" class="input-field">
+              <select v-model="form.category" class="input-field select-animated">
                 <option v-for="cat in categories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
               </select>
+              <input 
+                v-if="form.category === 'Other'" 
+                v-model="customCategory" 
+                type="text" 
+                class="input-field mt-2" 
+                placeholder="Nhập tên danh mục mới..."
+              />
             </div>
 
             <div>
               <label class="input-label">{{ t('admin.productForm.subcategory') }}</label>
-              <select v-model="form.subcategory" class="input-field">
+              <select v-model="form.subcategory" class="input-field select-animated">
                 <option v-for="sub in subcategories" :key="sub.value" :value="sub.value">{{ sub.label }}</option>
               </select>
+              <input 
+                v-if="form.subcategory === 'Other'" 
+                v-model="customSubcategory" 
+                type="text" 
+                class="input-field mt-2" 
+                placeholder="Nhập phân loại mới..."
+              />
             </div>
 
             <div>
               <label class="input-label">{{ t('admin.productForm.condition') }} *</label>
-              <select v-model="form.conditionText" class="input-field">
+              <select v-model="form.conditionText" class="input-field select-animated">
                 <option v-for="cond in conditions" :key="cond.value" :value="cond.value">{{ cond.label }}</option>
               </select>
+              <input 
+                v-if="form.conditionText === 'Other'" 
+                v-model="customCondition" 
+                type="text" 
+                class="input-field mt-2" 
+                placeholder="Nhập tình trạng mới..."
+              />
             </div>
 
             <div>
@@ -331,23 +445,44 @@ useSeoMeta({
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="input-label">{{ t('admin.productForm.size') }} *</label>
-              <select v-model="form.size" class="input-field">
-                <option v-for="size in sizes" :key="size" :value="size">{{ size }}</option>
+              <select v-model="form.size" class="input-field select-animated">
+                <option v-for="s in sizes" :key="s.value" :value="s.value">{{ s.label }}</option>
               </select>
+              <input 
+                v-if="form.size === 'Other'" 
+                v-model="customSize" 
+                type="text" 
+                class="input-field mt-2" 
+                placeholder="Nhập kích cỡ mới..."
+              />
             </div>
 
             <div>
               <label class="input-label">{{ t('admin.productForm.color') }} *</label>
-              <select v-model="form.color" class="input-field">
+              <select v-model="form.color" class="input-field select-animated">
                 <option v-for="color in colors" :key="color.value" :value="color.value">{{ color.label }}</option>
               </select>
+              <input 
+                v-if="form.color === 'Other'" 
+                v-model="customColor" 
+                type="text" 
+                class="input-field mt-2" 
+                placeholder="Nhập màu sắc mới..."
+              />
             </div>
 
             <div>
               <label class="input-label">{{ t('admin.productForm.material') }}</label>
-              <select v-model="form.material" class="input-field">
+              <select v-model="form.material" class="input-field select-animated">
                 <option v-for="mat in materials" :key="mat.value" :value="mat.value">{{ mat.label }}</option>
               </select>
+              <input 
+                v-if="form.material === 'Other'" 
+                v-model="customMaterial" 
+                type="text" 
+                class="input-field mt-2" 
+                placeholder="Nhập chất liệu mới..."
+              />
             </div>
           </div>
         </div>
@@ -370,3 +505,61 @@ useSeoMeta({
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Enhanced select dropdown animation */
+.select-animated {
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23374151'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.select-animated:hover {
+  border-color: #1a1a1a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.select-animated:focus {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+  outline: none;
+}
+
+/* Smooth input animation for "Other" custom inputs */
+.input-field {
+  transition: all 0.2s ease-in-out;
+}
+
+.input-field:focus {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+}
+
+/* Animation for appearing custom input */
+.mt-2 {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effect on option (works in some browsers) */
+.select-animated option:hover {
+  background-color: #f5f5f5;
+}
+</style>
