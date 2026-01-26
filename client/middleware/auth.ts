@@ -23,7 +23,8 @@ export default defineNuxtRouteMiddleware((to, from) => {
         }
     }
 
+    // Use external: true to force full page reload and prevent layout glitches
     if (!token && !hasPersistedToken) {
-        return navigateTo('/auth/login?redirect=' + encodeURIComponent(to.fullPath))
+        return navigateTo('/auth/login?redirect=' + encodeURIComponent(to.fullPath), { external: true })
     }
 })

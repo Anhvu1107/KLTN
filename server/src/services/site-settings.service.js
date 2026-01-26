@@ -24,11 +24,18 @@ const getAllSettings = async () => {
 };
 
 /**
- * Get setting by key
+ * Get setting by key (returns value only)
  */
 const getSetting = async (key) => {
     const setting = await SiteSettings.findOne({ where: { key } });
     return setting?.value || null;
+};
+
+/**
+ * Get setting by key (returns full object)
+ */
+const getSettingByKey = async (key) => {
+    return await SiteSettings.findOne({ where: { key } });
 };
 
 /**
@@ -98,6 +105,7 @@ const seedDefaultSettings = async () => {
 module.exports = {
     getAllSettings,
     getSetting,
+    getSettingByKey,
     getSettings,
     getPublicSettings,
     updateSetting,
