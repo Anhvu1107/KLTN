@@ -142,7 +142,8 @@ export const useAuthStore = defineStore('auth', {
                 localStorage.removeItem('token')
                 localStorage.removeItem('auth')
             }
-            navigateTo('/')
+            // Use external: true to force full page reload and prevent layout glitches
+            navigateTo('/', { external: true })
         },
 
         /**
