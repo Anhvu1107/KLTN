@@ -86,6 +86,10 @@ router.get('/settings', siteSettingsController.getAllSettings);
 router.put('/settings', siteSettingsController.updateSettings);
 router.post('/settings/seed', siteSettingsController.seedSettings);
 
+// Product attributes management
+router.get('/product-attributes', siteSettingsController.getProductAttributes);
+router.put('/product-attributes/:key', siteSettingsController.updateProductAttribute);
+
 // Popups
 const popupService = require('../../services/popup.service');
 router.get('/popups', async (req, res) => {

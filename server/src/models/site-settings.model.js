@@ -76,6 +76,86 @@ module.exports = (sequelize, DataTypes) => {
         { key: 'script_body', value: '', type: 'textarea', group: 'scripts', label: 'Script trong <body>' },
         { key: 'google_analytics', value: '', type: 'text', group: 'scripts', label: 'Google Analytics ID' },
         { key: 'facebook_pixel', value: '', type: 'text', group: 'scripts', label: 'Facebook Pixel ID' },
+
+        // Product Attributes - Dynamic options for product creation
+        {
+            key: 'product_brands',
+            value: JSON.stringify([
+                'Rick Owens', 'Acronym', 'Comme des Garçons', 'Ralph Lauren', 'Prada',
+                'Balenciaga', 'Maison Margiela', 'Yohji Yamamoto', 'Fear of God', 'Off-White',
+                'Gucci', 'Louis Vuitton', 'Chanel', 'Hermès', 'Dior'
+            ]),
+            type: 'json',
+            group: 'product_attributes',
+            label: 'Thương hiệu sản phẩm',
+            description: 'Danh sách thương hiệu có thể chọn khi tạo sản phẩm'
+        },
+        {
+            key: 'product_categories',
+            value: JSON.stringify([
+                { value: 'Tops', label_en: 'Tops', label_vi: 'Áo' },
+                { value: 'Pants', label_en: 'Pants', label_vi: 'Quần' },
+                { value: 'Outerwear', label_en: 'Outerwear', label_vi: 'Áo khoác' },
+                { value: 'Shoes', label_en: 'Shoes', label_vi: 'Giày dép' },
+                { value: 'Bags', label_en: 'Bags', label_vi: 'Túi xách' },
+                { value: 'Accessories', label_en: 'Accessories', label_vi: 'Phụ kiện' },
+                { value: 'Dresses', label_en: 'Dresses', label_vi: 'Váy đầm' },
+                { value: 'Jewelry', label_en: 'Jewelry', label_vi: 'Trang sức' },
+                { value: 'Watches', label_en: 'Watches', label_vi: 'Đồng hồ' }
+            ]),
+            type: 'json',
+            group: 'product_attributes',
+            label: 'Danh mục sản phẩm',
+            description: 'Danh sách danh mục có thể chọn khi tạo sản phẩm'
+        },
+        {
+            key: 'product_colors',
+            value: JSON.stringify([
+                { value: 'Black', label_en: 'Black', label_vi: 'Đen' },
+                { value: 'White', label_en: 'White', label_vi: 'Trắng' },
+                { value: 'Grey', label_en: 'Grey', label_vi: 'Xám' },
+                { value: 'Navy', label_en: 'Navy', label_vi: 'Xanh navy' },
+                { value: 'Olive', label_en: 'Olive', label_vi: 'Xanh ôliu' },
+                { value: 'Burgundy', label_en: 'Burgundy', label_vi: 'Đỏ đô' },
+                { value: 'Cream', label_en: 'Cream', label_vi: 'Kem' },
+                { value: 'Brown', label_en: 'Brown', label_vi: 'Nâu' },
+                { value: 'Multi', label_en: 'Multi', label_vi: 'Nhiều màu' },
+                { value: 'Gold', label_en: 'Gold', label_vi: 'Vàng' },
+                { value: 'Silver', label_en: 'Silver', label_vi: 'Bạc' }
+            ]),
+            type: 'json',
+            group: 'product_attributes',
+            label: 'Màu sắc sản phẩm',
+            description: 'Danh sách màu sắc có thể chọn khi tạo sản phẩm'
+        },
+        {
+            key: 'product_sizes',
+            value: JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size', 'Free Size']),
+            type: 'json',
+            group: 'product_attributes',
+            label: 'Kích cỡ sản phẩm',
+            description: 'Danh sách kích cỡ có thể chọn khi tạo sản phẩm'
+        },
+        {
+            key: 'product_materials',
+            value: JSON.stringify([
+                { value: 'Leather', label_en: 'Leather', label_vi: 'Da' },
+                { value: 'Cotton', label_en: 'Cotton', label_vi: 'Cotton' },
+                { value: 'Wool', label_en: 'Wool', label_vi: 'Len' },
+                { value: 'Nylon', label_en: 'Nylon', label_vi: 'Nylon' },
+                { value: 'Silk', label_en: 'Silk', label_vi: 'Lụa' },
+                { value: 'Cashmere', label_en: 'Cashmere', label_vi: 'Cashmere' },
+                { value: 'Polyester', label_en: 'Polyester', label_vi: 'Polyester' },
+                { value: 'Linen', label_en: 'Linen', label_vi: 'Lanh' },
+                { value: 'Mixed', label_en: 'Mixed', label_vi: 'Hỗn hợp' },
+                { value: 'Canvas', label_en: 'Canvas', label_vi: 'Vải canvas' },
+                { value: 'Metal', label_en: 'Metal', label_vi: 'Kim loại' }
+            ]),
+            type: 'json',
+            group: 'product_attributes',
+            label: 'Chất liệu sản phẩm',
+            description: 'Danh sách chất liệu có thể chọn khi tạo sản phẩm'
+        },
     ];
 
     return SiteSettings;

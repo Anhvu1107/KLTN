@@ -33,6 +33,10 @@ export default defineNuxtConfig({
 
   // App configuration
   app: {
+    // Page transition to prevent layout glitches when navigating
+    pageTransition: { name: 'page', mode: 'out-in' },
+    // Disable layout transition - it causes issues with middleware redirects
+    layoutTransition: false,
     head: {
       title: 'AURA ARCHIVE | Luxury Resell Fashion',
       htmlAttrs: {

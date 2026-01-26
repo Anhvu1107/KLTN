@@ -28,9 +28,10 @@ export default defineNuxtRouteMiddleware((to, from) => {
         }
     }
 
-    // No token at all
+    // No token at all - use external: true to force full page reload
+    // This prevents layout glitches when switching from admin layout to auth layout
     if (!token) {
-        return navigateTo('/auth/login?redirect=' + encodeURIComponent(to.fullPath))
+        return navigateTo('/auth/login?redirect=' + encodeURIComponent(to.fullPath), { external: true })
     }
 
     // Check admin role from persisted user or decode JWT
