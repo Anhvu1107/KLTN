@@ -2,14 +2,81 @@
 /**
  * Admin Layout
  * AURA ARCHIVE - Clean layout with content-area loading
+ * 
+ * Includes auth verification to prevent flash of content before middleware redirect
  */
+
+import { useAuthStore } from '~/stores/auth'
 
 // Inject loading state from app.vue
 const isPageLoading = inject<Ref<boolean>>('isPageLoading', ref(false))
+
+// Auth verification - don't show admin content until confirmed admin
+const authStore = useAuthStore()
+const isVerifying = ref(true)
+const isAuthorized = ref(false)
+
+onMounted(async () => {
+  // Quick check for admin access
+  if (process.client) {
+    const token = localStorage.getItem('token')
+    const persistedAuth = localStorage.getItem('auth')
+    
+    if (!token) {
+      // No token, will be redirected by middleware
+      return
+    }
+    
+    // Check persisted user role
+    if (persistedAuth) {
+      try {
+        const parsed = JSON.parse(persistedAuth)
+        if (parsed.user?.role === 'ADMIN') {
+          isAuthorized.value = true
+          isVerifying.value = false
+          return
+        }
+      } catch (e) {
+        // Invalid JSON
+      }
+    }
+    
+    // Fallback: check store
+    if (authStore.isAdmin) {
+      isAuthorized.value = true
+      isVerifying.value = false
+      return
+    }
+    
+    // Decode JWT to check role
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      if (payload.role === 'ADMIN') {
+        isAuthorized.value = true
+      }
+    } catch (e) {
+      // Invalid token
+    }
+    
+    isVerifying.value = false
+  }
+})
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-neutral-50">
+  <!-- Show blank screen while verifying, preventing flash of admin content -->
+  <div v-if="isVerifying" class="min-h-screen flex items-center justify-center bg-neutral-50">
+    <div class="text-center">
+      <div class="content-loader__spinner mx-auto mb-4">
+        <div class="content-loader__ring" />
+        <div class="content-loader__ring content-loader__ring--delayed" />
+      </div>
+      <p class="text-sm text-neutral-500">{{ $t('common.loading') || 'Loading...' }}</p>
+    </div>
+  </div>
+  
+  <!-- Only show admin layout when verified as admin -->
+  <div v-else-if="isAuthorized" class="min-h-screen flex bg-neutral-50">
     <!-- Sidebar Component - Always visible -->
     <AdminSidebar />
 
@@ -33,6 +100,9 @@ const isPageLoading = inject<Ref<boolean>>('isPageLoading', ref(false))
       <slot />
     </main>
   </div>
+  
+  <!-- Not authorized - show nothing while middleware redirects -->
+  <div v-else class="min-h-screen bg-neutral-50" />
 </template>
 
 <style scoped>
@@ -105,3 +175,4 @@ const isPageLoading = inject<Ref<boolean>>('isPageLoading', ref(false))
   opacity: 0;
 }
 </style>
+

@@ -1,6 +1,9 @@
 /**
  * Admin Middleware
  * AURA ARCHIVE - Protect admin routes
+ * 
+ * Uses external: true for all navigateTo calls to force full page reload
+ * This prevents layout glitches when switching between different layouts
  */
 
 export default defineNuxtRouteMiddleware((to, from) => {
@@ -28,13 +31,12 @@ export default defineNuxtRouteMiddleware((to, from) => {
         }
     }
 
-    // No token at all - use external: true to force full page reload
-    // This prevents layout glitches when switching from admin layout to auth layout
+    // No token at all - redirect to login with full page reload
     if (!token) {
         return navigateTo('/auth/login?redirect=' + encodeURIComponent(to.fullPath), { external: true })
     }
 
-    // Check admin role from persisted user or decode JWT
+    // Check admin role from persisted user
     if (userRole === 'ADMIN') {
         return // Allow access
     }
@@ -43,11 +45,14 @@ export default defineNuxtRouteMiddleware((to, from) => {
     try {
         const payload = JSON.parse(atob(token.split('.')[1]))
         if (payload.role !== 'ADMIN') {
-            return navigateTo('/')
+            // Not admin - redirect to homepage with full page reload
+            return navigateTo('/', { external: true })
         }
     } catch (error) {
+        // Invalid token - clear storage and redirect to login with full page reload
         localStorage.removeItem('token')
         localStorage.removeItem('auth')
-        return navigateTo('/auth/login')
+        return navigateTo('/auth/login', { external: true })
     }
 })
+

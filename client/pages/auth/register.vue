@@ -97,7 +97,8 @@ const handleLoginSuccess = (userData: any, token: string) => {
   localStorage.setItem('token', token)
   authStore.token = token
   authStore.user = userData
-  navigateTo('/')
+  // Use external: true to force full page reload when switching from auth layout to default
+  navigateTo('/', { external: true })
 }
 
 // Google Sign-In

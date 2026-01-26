@@ -32,10 +32,12 @@ const handleLoginSuccess = (userData: any, token: string) => {
   authStore.token = token
   authStore.user = userData
   
+  // Use external: true to force full page reload when switching layouts
+  // This prevents layout glitches between auth → admin or auth → default
   if (userData.role === 'ADMIN') {
-    navigateTo('/admin/dashboard')
+    navigateTo('/admin/dashboard', { external: true })
   } else {
-    navigateTo('/')
+    navigateTo('/', { external: true })
   }
 }
 
