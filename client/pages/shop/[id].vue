@@ -13,6 +13,7 @@ const { t } = useI18n()
 const route = useRoute()
 const config = useRuntimeConfig()
 const cartStore = useCartStore()
+const { getImageUrl } = useImageUrl()
 
 const productId = route.params.id as string
 
@@ -43,7 +44,7 @@ const handleAddToCart = () => {
     productId: product.value.id,
     productName: product.value.name,
     productBrand: product.value.brand,
-    productImage: product.value.images?.[0] || '',
+    productImage: getImageUrl(product.value.images?.[0]) || '',
     variantSize: variant.value.size,
     variantColor: variant.value.color,
     price: parseFloat(product.value.sale_price || product.value.base_price),
@@ -68,7 +69,7 @@ const handleBuyNow = () => {
       productId: product.value.id,
       productName: product.value.name,
       productBrand: product.value.brand,
-      productImage: product.value.images?.[0] || '',
+      productImage: getImageUrl(product.value.images?.[0]) || '',
       variantSize: variant.value.size,
       variantColor: variant.value.color,
       price: parseFloat(product.value.sale_price || product.value.base_price),
@@ -156,7 +157,7 @@ watch(() => product.value, () => {
       id: product.value.id,
       name: product.value.name,
       brand: product.value.brand,
-      image: product.value.images?.[0] || '',
+      image: getImageUrl(product.value.images?.[0]) || '',
       price: parseFloat(product.value.base_price),
       salePrice: product.value.sale_price ? parseFloat(product.value.sale_price) : undefined,
     })
@@ -174,9 +175,10 @@ const formatPrice = (price: number) => {
 const getImages = computed(() => {
   if (!product.value?.images) return []
   try {
-    return typeof product.value.images === 'string' 
+    const images = typeof product.value.images === 'string' 
       ? JSON.parse(product.value.images) 
       : product.value.images
+    return images.map((img: string) => getImageUrl(img) || img)
   } catch {
     return []
   }
@@ -199,7 +201,7 @@ const handleToggleCompare = () => {
     id: product.value.id,
     name: product.value.name,
     brand: product.value.brand,
-    image: product.value.images?.[0] || '',
+    image: getImageUrl(product.value.images?.[0]) || '',
     price: parseFloat(product.value.base_price),
     salePrice: product.value.sale_price ? parseFloat(product.value.sale_price) : undefined,
     category: product.value.category,

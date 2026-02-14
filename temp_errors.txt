@@ -1,0 +1,57 @@
+﻿
+WARN  [Vue warn]: 
+Failed to resolve 
+component: 
+CommonAppToast
+WARN  [Vue Router 
+warn]: No match 
+found for location 
+with path "/faqs"
+WARN  [Vue Router 
+warn]: No match 
+found for location 
+with path "/shipping"
+WARN  [Vue Router 
+warn]: No match 
+found for location 
+with path "/returns"
+WARN  [Vue warn]: 
+Component 
+<Anonymous> is 
+missing template or 
+render function. 
+WARN  [Vue warn]: 
+Component 
+<Anonymous> is 
+missing template or 
+render function. 
+ERROR  
+[unhandledRejection] 
+localStorage is not 
+defined
+    at callWithErrorH
+andling (node_modules
+/@vue/runtime-core/di
+st/runtime-core.cjs.j
+s:200:19)
+    at callWithAsyncE
+rrorHandling (node_mo
+dules/@vue/runtime-co
+re/dist/runtime-core.
+cjs.js:207:17)
+WARN  [nuxt] Failed 
+to stringify dev 
+server logs. 
+Received 
+DevalueError: Cannot 
+stringify arbitrary 
+non-POJOs. You can 
+define your own 
+reducer/reviver for 
+rich types following 
+the instructions in h
+ttps://nuxt.com/docs/
+api/composables/use-n
+uxt-app#payload.
+
+

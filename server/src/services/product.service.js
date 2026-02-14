@@ -274,7 +274,10 @@ const getNewArrivals = async (limit = 12, page = 1) => {
     const { count, rows } = await Product.findAndCountAll({
         where: {
             is_active: true,
-            created_at: { [Op.gte]: fourteenDaysAgo },
+            [Op.or]: [
+                { created_at: { [Op.gte]: fourteenDaysAgo } },
+                { is_new_arrival: true },
+            ],
         },
         include: [{
             model: Variant,

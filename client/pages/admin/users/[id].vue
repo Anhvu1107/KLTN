@@ -9,6 +9,8 @@ definePageMeta({
   middleware: ['admin'],
 })
 
+const { t, locale } = useI18n()
+
 const route = useRoute()
 const config = useRuntimeConfig()
 const { getToken } = useAuthToken()
@@ -41,7 +43,10 @@ const formatPrice = (price: number) => {
 }
 
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('en-US', {
+  if (!date) return locale.value === 'vi' ? 'Không xác định' : 'Unknown'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return locale.value === 'vi' ? 'Không xác định' : 'Unknown'
+  return d.toLocaleDateString(locale.value === 'vi' ? 'vi-VN' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -69,20 +74,20 @@ useSeoMeta({
   <div class="p-8">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
-      <h1 class="font-serif text-heading-2 text-aura-black">User Detail</h1>
+      <h1 class="font-serif text-heading-2 text-aura-black">{{ $t('admin.userDetail') }}</h1>
       <NuxtLink to="/admin/users" class="text-body-sm text-neutral-600 hover:text-aura-black">
-        ← Back to Users
+        ← {{ $t('common.backTo') }} {{ $t('admin.users') }}
       </NuxtLink>
     </div>
 
     <!-- Loading -->
     <div v-if="pending" class="text-center py-16">
-      <p class="text-neutral-500">Loading user...</p>
+      <p class="text-neutral-500">{{ $t('common.loading') }}</p>
     </div>
 
     <!-- Not Found -->
     <div v-else-if="!user" class="text-center py-16 card">
-      <p class="text-neutral-500">User not found</p>
+      <p class="text-neutral-500">{{ $t('admin.noUsers') }}</p>
     </div>
 
     <!-- User Detail -->
@@ -104,18 +109,18 @@ useSeoMeta({
                 class="px-2 py-1 text-caption rounded-sm"
                 :class="user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'"
               >
-                {{ user.role }}
+                {{ user.role === 'ADMIN' ? $t('admin.adminRole') : $t('admin.customer') }}
               </span>
               <span 
                 class="px-2 py-1 text-caption rounded-sm"
                 :class="user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
               >
-                {{ user.is_active ? 'Active' : 'Inactive' }}
+                {{ user.is_active ? $t('common.active') : $t('common.inactive') }}
               </span>
             </div>
           </div>
           <div class="text-right">
-            <p class="text-caption text-neutral-500">Member since</p>
+            <p class="text-caption text-neutral-500">{{ $t('admin.memberSince') }}</p>
             <p class="text-body-sm">{{ formatDate(user.created_at) }}</p>
           </div>
         </div>
@@ -125,20 +130,20 @@ useSeoMeta({
       <div class="grid grid-cols-2 gap-4">
         <div class="card p-6">
           <p class="text-heading-2 font-serif text-aura-black">{{ stats.orderCount }}</p>
-          <p class="text-body-sm text-neutral-600">Total Orders</p>
+          <p class="text-body-sm text-neutral-600">{{ $t('admin.totalOrdersCount') }}</p>
         </div>
         <div class="card p-6">
           <p class="text-heading-2 font-serif text-aura-black">{{ stats.wishlistCount }}</p>
-          <p class="text-body-sm text-neutral-600">Wishlist Items</p>
+          <p class="text-body-sm text-neutral-600">{{ $t('admin.wishlistItemsCount') }}</p>
         </div>
       </div>
 
       <!-- Recent Orders -->
       <div class="card p-6">
-        <h3 class="font-serif text-heading-4 text-aura-black mb-4">Recent Orders</h3>
+        <h3 class="font-serif text-heading-4 text-aura-black mb-4">{{ $t('account.recentOrders') }}</h3>
         
         <div v-if="recentOrders.length === 0" class="text-center py-8">
-          <p class="text-neutral-500">No orders yet</p>
+          <p class="text-neutral-500">{{ $t('admin.noOrders') }}</p>
         </div>
 
         <div v-else class="space-y-3">
@@ -150,7 +155,7 @@ useSeoMeta({
             <div class="text-right">
               <p class="text-body-sm font-medium">{{ formatPrice(order.total_amount) }}</p>
               <span :class="getStatusClass(order.status)" class="px-2 py-0.5 text-caption rounded-sm">
-                {{ order.status }}
+                {{ $t(`orders.${order.status.toLowerCase()}`) }}
               </span>
             </div>
           </div>
@@ -159,10 +164,10 @@ useSeoMeta({
 
       <!-- Wishlist -->
       <div class="card p-6">
-        <h3 class="font-serif text-heading-4 text-aura-black mb-4">Wishlist</h3>
+        <h3 class="font-serif text-heading-4 text-aura-black mb-4">{{ $t('wishlist.title') }}</h3>
         
         <div v-if="wishlist.length === 0" class="text-center py-8">
-          <p class="text-neutral-500">No wishlist items</p>
+          <p class="text-neutral-500">{{ $t('wishlist.empty') }}</p>
         </div>
 
         <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">

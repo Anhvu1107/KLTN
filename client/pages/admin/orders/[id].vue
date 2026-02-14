@@ -16,6 +16,7 @@ const { t } = useI18n()
 const route = useRoute()
 const config = useRuntimeConfig()
 const { getToken } = useAuthToken()
+const { getImageUrl } = useImageUrl()
 const orderId = route.params.id as string
 
 const order = ref<any>(null)
@@ -148,7 +149,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
             <div v-for="item in order.items" :key="item.id" class="flex items-center gap-4 p-4 bg-neutral-50 rounded">
               <img 
                 v-if="item.product?.images?.[0]"
-                :src="item.product.images[0]"
+                :src="getImageUrl(item.product.images[0])"
                 :alt="item.product.name"
                 class="w-16 h-16 object-cover rounded"
               />

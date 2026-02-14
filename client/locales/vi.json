@@ -508,6 +508,7 @@
         "men": "Nam",
         "unisex": "Unisex",
         "productActive": "Sản phẩm đang hiển thị",
+        "productNewArrival": "Đánh dấu là hàng mới",
         "viewUser": "Xem người dùng",
         "userDetail": "Chi tiết người dùng",
         "orderManagement": "Quản lý đơn hàng",
@@ -746,7 +747,9 @@
         "submitReview": "Gửi đánh giá",
         "submitError": "Gửi đánh giá thất bại",
         "thankYou": "Cảm ơn bạn đã đánh giá!",
-        "writeAnother": "Viết đánh giá khác"
+        "writeAnother": "Viết đánh giá khác",
+        "alreadyReviewed": "Bạn đã đánh giá sản phẩm này rồi.",
+        "purchaseRequired": "Bạn cần mua và nhận sản phẩm này trước khi đánh giá."
     },
     "footer": {
         "about": "Về AURA",

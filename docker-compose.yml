@@ -149,7 +149,8 @@ services:
       - /app/node_modules
       - /app/.nuxt
     environment:
-      NUXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+      NUXT_PUBLIC_API_URL: /api/v1
+      NUXT_PROXY_API_URL: http://server-dev:5000
       NODE_ENV: development
     depends_on:
       - server-dev

@@ -138,7 +138,7 @@ useSeoMeta({
 
       <!-- Profile Form -->
       <form @submit.prevent="updateProfile" class="card p-6 mb-8">
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('account.personalInfo') }}</h2>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('profile.personalInfo') }}</h2>
 
         <!-- Messages -->
         <div v-if="profileMessage" class="mb-4 p-3 bg-green-50 text-green-700 text-body-sm rounded-sm">
@@ -174,7 +174,7 @@ useSeoMeta({
 
       <!-- Password Form -->
       <form @submit.prevent="changePassword" class="card p-6">
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('account.changePassword') }}</h2>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ t('profile.changePassword') }}</h2>
 
         <!-- Messages -->
         <div v-if="passwordMessage" class="mb-4 p-3 bg-green-50 text-green-700 text-body-sm rounded-sm">
@@ -200,7 +200,7 @@ useSeoMeta({
         </div>
 
         <button type="submit" :disabled="isChangingPassword" class="btn-secondary">
-          {{ isChangingPassword ? t('account.changing') : t('account.changePassword') }}
+          {{ isChangingPassword ? t('profile.changing') : t('profile.changePassword') }}
         </button>
       </form>
     </div>

@@ -17,6 +17,7 @@ router.get('/products/:productId/reviews/summary', reviewController.getProductRa
 router.post('/reviews/:reviewId/helpful', reviewController.markHelpful);
 
 // Protected routes - Require authentication
+router.get('/products/:productId/reviews/eligibility', protect, reviewController.checkEligibility);
 router.post('/products/:productId/reviews', protect, reviewController.createReview);
 router.put('/reviews/:reviewId', protect, reviewController.updateReview);
 router.delete('/reviews/:reviewId', protect, reviewController.deleteReview);

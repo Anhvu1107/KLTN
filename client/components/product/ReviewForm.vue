@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Review Form Component
- * AURA ARCHIVE - Submit product reviews
+ * AURA ARCHIVE - Submit product reviews (purchase required)
  */
 
 import { useI18n } from '#imports'
@@ -27,9 +27,50 @@ const isSubmitting = ref(false)
 const error = ref('')
 const success = ref(false)
 
+// Eligibility state
+const isCheckingEligibility = ref(true)
+const isEligible = ref(false)
+const ineligibleReason = ref('')
+
 // Check if user is logged in
 const token = process.client ? localStorage.getItem('token') : null
 const isLoggedIn = computed(() => !!token)
+
+// Check review eligibility on mount
+onMounted(async () => {
+  if (!isLoggedIn.value) {
+    isCheckingEligibility.value = false
+    return
+  }
+
+  try {
+    const response = await $fetch<any>(`${config.public.apiUrl}/products/${props.productId}/reviews/eligibility`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    isEligible.value = response.data.eligible
+    ineligibleReason.value = response.data.reason || ''
+  } catch (err: any) {
+    // If error, default to not eligible
+    isEligible.value = false
+    ineligibleReason.value = 'not_purchased'
+  } finally {
+    isCheckingEligibility.value = false
+  }
+})
+
+// Ineligible message
+const ineligibleMessage = computed(() => {
+  if (ineligibleReason.value === 'already_reviewed') {
+    return t('reviews.alreadyReviewed')
+  }
+  if (ineligibleReason.value === 'not_purchased') {
+    return t('reviews.purchaseRequired')
+  }
+  return ''
+})
 
 // Submit review
 const handleSubmit = async () => {
@@ -103,6 +144,23 @@ const displayRating = computed(() => hoverRating.value || rating.value)
       </NuxtLink>
     </div>
 
+    <!-- Checking eligibility -->
+    <div v-else-if="isCheckingEligibility" class="text-center py-4">
+      <div class="animate-spin h-6 w-6 mx-auto border-2 border-neutral-300 border-t-aura-black rounded-full"></div>
+    </div>
+
+    <!-- Not eligible -->
+    <div v-else-if="!isEligible" class="text-center py-4">
+      <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-neutral-100 flex items-center justify-center">
+        <svg class="w-6 h-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-7.364A9 9 0 1112 3a9 9 0 017.364 4.636z"/>
+        </svg>
+      </div>
+      <p class="text-body text-neutral-600">
+        {{ ineligibleMessage }}
+      </p>
+    </div>
+
     <!-- Success message -->
     <div v-else-if="success" class="text-center py-4">
       <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
@@ -113,12 +171,6 @@ const displayRating = computed(() => hoverRating.value || rating.value)
       <p class="text-body text-neutral-700 mb-2">
         {{ t('reviews.thankYou') || 'Thank you for your review!' }}
       </p>
-      <button 
-        @click="success = false" 
-        class="text-body-sm text-aura-black underline"
-      >
-        {{ t('reviews.writeAnother') || 'Write another review' }}
-      </button>
     </div>
 
     <!-- Review form -->

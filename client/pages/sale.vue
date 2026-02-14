@@ -30,14 +30,7 @@ const getDiscount = (basePrice: number, salePrice: number) => {
 }
 
 // Get product image
-const getProductImage = (product: any) => {
-  if (product.images && product.images.length > 0) {
-    return typeof product.images === 'string' 
-      ? JSON.parse(product.images)[0] 
-      : product.images[0]
-  }
-  return null
-}
+const { getProductImage } = useImageUrl()
 
 // Get variant status
 const getVariantStatus = (product: any) => {

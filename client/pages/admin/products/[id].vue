@@ -11,7 +11,7 @@ definePageMeta({
   middleware: ['admin'],
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const config = useRuntimeConfig()
@@ -35,6 +35,7 @@ const form = reactive({
   condition_text: 'Excellent',
   condition_description: '',
   is_active: true,
+  is_new_arrival: false,
 })
 
 // Variants data (array for multi-variant support)
@@ -82,10 +83,54 @@ const activeVariants = computed(() =>
   variants.value.filter(v => !v.isDeleted)
 )
 
-// Categories
-const categories = ['Bags', 'Clothing', 'Shoes', 'Accessories', 'Jewelry', 'Watches']
-const conditions = ['New with Tags', 'Excellent', 'Very Good', 'Good']
-const statuses = ['AVAILABLE', 'RESERVED', 'SOLD']
+// "Other" label (translated)
+const otherLabel = computed(() => locale.value === 'vi' ? 'Khác' : 'Other')
+
+// Categories (translated)
+const categories = computed(() => [
+  { value: 'Bags', label: t('categories.bags') },
+  { value: 'Clothing', label: t('categories.tops') },
+  { value: 'Shoes', label: t('categories.shoes') },
+  { value: 'Accessories', label: t('categories.accessories') },
+  { value: 'Jewelry', label: locale.value === 'vi' ? 'Trang sức' : 'Jewelry' },
+  { value: 'Watches', label: locale.value === 'vi' ? 'Đồng hồ' : 'Watches' },
+  { value: 'Other', label: otherLabel.value },
+])
+const conditions = computed(() => [
+  { value: 'New with Tags', label: t('conditions.newWithTags') },
+  { value: 'Excellent', label: t('conditions.excellent') },
+  { value: 'Very Good', label: t('conditions.likeNew') },
+  { value: 'Good', label: t('conditions.good') },
+  { value: 'Vintage', label: t('conditions.vintage') },
+  { value: 'Other', label: otherLabel.value },
+])
+const statuses = computed(() => [
+  { value: 'AVAILABLE', label: t('shop.available') },
+  { value: 'RESERVED', label: t('shop.reserved') },
+  { value: 'SOLD', label: t('shop.sold') },
+])
+const subcategories = computed(() => [
+  { value: 'Women', label: t('admin.women') },
+  { value: 'Men', label: t('admin.men') },
+  { value: 'Unisex', label: t('admin.unisex') },
+  { value: 'Other', label: otherLabel.value },
+])
+
+// Custom input for "Other" option
+const customCategory = ref('')
+const customSubcategory = ref('')
+const customCondition = ref('')
+
+// Watch for "Other" selection - reset custom value when not Other
+watch(() => form.category, (newVal) => {
+  if (newVal !== 'Other') customCategory.value = ''
+})
+watch(() => form.subcategory, (newVal) => {
+  if (newVal !== 'Other') customSubcategory.value = ''
+})
+watch(() => form.condition_text, (newVal) => {
+  if (newVal !== 'Other') customCondition.value = ''
+})
 
 // Get token
 const getToken = () => {
@@ -122,6 +167,7 @@ const fetchProduct = async () => {
       form.condition_text = product.condition_text
       form.condition_description = product.condition_description || ''
       form.is_active = product.is_active
+      form.is_new_arrival = product.is_new_arrival || false
 
       // Populate variants (all variants)
       if (product.variants && product.variants.length > 0) {
@@ -143,7 +189,7 @@ const fetchProduct = async () => {
       productImages.value = product.images || []
     }
   } catch (error: any) {
-    errorMessage.value = error.data?.message || 'Failed to fetch product'
+    errorMessage.value = error.data?.message || t('notifications.loadError')
   } finally {
     isLoading.value = false
   }
@@ -158,6 +204,11 @@ const saveProduct = async () => {
     
     const token = getToken()
 
+    // Resolve "Other" custom values
+    const actualCategory = form.category === 'Other' ? customCategory.value : form.category
+    const actualSubcategory = form.subcategory === 'Other' ? customSubcategory.value : form.subcategory
+    const actualCondition = form.condition_text === 'Other' ? customCondition.value : form.condition_text
+
     // Update product
     await $fetch(`${config.public.apiUrl}/admin/products/${productId}`, {
       method: 'PUT',
@@ -166,13 +217,14 @@ const saveProduct = async () => {
         name: form.name,
         brand: form.brand,
         description: form.description,
-        category: form.category,
-        subcategory: form.subcategory,
+        category: actualCategory,
+        subcategory: actualSubcategory,
         base_price: form.base_price,
         sale_price: form.sale_price || null,
-        condition_text: form.condition_text,
+        condition_text: actualCondition,
         condition_description: form.condition_description,
         is_active: form.is_active,
+        is_new_arrival: form.is_new_arrival,
         images: productImages.value,
       },
     })
@@ -202,13 +254,13 @@ const saveProduct = async () => {
       }
     }
 
-    successMessage.value = 'Product updated successfully!'
+    successMessage.value = t('admin.productUpdated')
     
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
   } catch (error: any) {
-    errorMessage.value = error.data?.message || 'Failed to update product'
+    errorMessage.value = error.data?.message || t('notifications.updateError')
   } finally {
     isSaving.value = false
   }
@@ -216,7 +268,7 @@ const saveProduct = async () => {
 
 // Delete product
 const deleteProduct = async () => {
-  if (!confirm('Are you sure you want to delete this product?')) return
+  if (!confirm(t('admin.deleteConfirm'))) return
 
   try {
     isDeleting.value = true
@@ -229,7 +281,7 @@ const deleteProduct = async () => {
 
     router.push('/admin/products')
   } catch (error: any) {
-    errorMessage.value = error.data?.message || 'Failed to delete product'
+    errorMessage.value = error.data?.message || t('notifications.deleteError')
   } finally {
     isDeleting.value = false
   }
@@ -288,54 +340,66 @@ useSeoMeta({
 
       <!-- Basic Info -->
       <div class="bg-white p-6 rounded-sm shadow-card">
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6">Basic Information</h2>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.basicInfo') }}</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="input-label">Product Name *</label>
+            <label class="input-label">{{ $t('admin.productForm.productName') }} *</label>
             <input
               v-model="form.name"
               type="text"
               required
               class="input-field"
-              placeholder="e.g. Classic Flap Bag"
+              :placeholder="$t('admin.productForm.productNamePlaceholder')"
             />
           </div>
           
           <div>
-            <label class="input-label">Brand *</label>
+            <label class="input-label">{{ $t('admin.productForm.brand') }} *</label>
             <input
               v-model="form.brand"
               type="text"
               required
               class="input-field"
-              placeholder="e.g. Chanel"
+              :placeholder="$t('admin.productForm.selectBrand')"
             />
           </div>
 
           <div>
-            <label class="input-label">Category *</label>
+            <label class="input-label">{{ $t('shop.category') }} *</label>
             <select v-model="form.category" class="input-field">
-              <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+              <option v-for="cat in categories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
             </select>
+            <input 
+              v-if="form.category === 'Other'" 
+              v-model="customCategory" 
+              type="text" 
+              class="input-field mt-2" 
+              :placeholder="locale === 'vi' ? 'Nhập tên danh mục mới...' : 'Enter new category...'"
+            />
           </div>
 
           <div>
-            <label class="input-label">Subcategory</label>
+            <label class="input-label">{{ $t('admin.subcategory') }}</label>
             <select v-model="form.subcategory" class="input-field">
-              <option value="Women">Women</option>
-              <option value="Men">Men</option>
-              <option value="Unisex">Unisex</option>
+              <option v-for="sub in subcategories" :key="sub.value" :value="sub.value">{{ sub.label }}</option>
             </select>
+            <input 
+              v-if="form.subcategory === 'Other'" 
+              v-model="customSubcategory" 
+              type="text" 
+              class="input-field mt-2" 
+              :placeholder="locale === 'vi' ? 'Nhập phân loại mới...' : 'Enter new subcategory...'"
+            />
           </div>
 
           <div class="md:col-span-2">
-            <label class="input-label">Description</label>
+            <label class="input-label">{{ $t('admin.productForm.description') }}</label>
             <textarea
               v-model="form.description"
               rows="4"
               class="input-field"
-              placeholder="Product description..."
+              :placeholder="$t('admin.productForm.descriptionPlaceholder')"
             ></textarea>
           </div>
         </div>
@@ -349,11 +413,11 @@ useSeoMeta({
 
       <!-- Pricing -->
       <div class="bg-white p-6 rounded-sm shadow-card">
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6">Pricing</h2>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.pricing') }}</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="input-label">Base Price (USD) *</label>
+            <label class="input-label">{{ $t('admin.productForm.basePrice') }} *</label>
             <input
               v-model.number="form.base_price"
               type="number"
@@ -365,14 +429,13 @@ useSeoMeta({
           </div>
           
           <div>
-            <label class="input-label">Sale Price (USD)</label>
+            <label class="input-label">{{ $t('admin.productForm.salePrice') }} ({{ $t('admin.productForm.optional') }})</label>
             <input
               v-model.number="form.sale_price"
               type="number"
               min="0"
               step="0.01"
               class="input-field"
-              placeholder="Leave empty if no sale"
             />
           </div>
         </div>
@@ -380,23 +443,29 @@ useSeoMeta({
 
       <!-- Condition -->
       <div class="bg-white p-6 rounded-sm shadow-card">
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6">Condition</h2>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.conditionInfo') }}</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="input-label">Condition *</label>
+            <label class="input-label">{{ $t('admin.productForm.condition') }} *</label>
             <select v-model="form.condition_text" class="input-field">
-              <option v-for="cond in conditions" :key="cond" :value="cond">{{ cond }}</option>
+              <option v-for="cond in conditions" :key="cond.value" :value="cond.value">{{ cond.label }}</option>
             </select>
+            <input 
+              v-if="form.condition_text === 'Other'" 
+              v-model="customCondition" 
+              type="text" 
+              class="input-field mt-2" 
+              :placeholder="locale === 'vi' ? 'Nhập tình trạng mới...' : 'Enter new condition...'"
+            />
           </div>
           
           <div>
-            <label class="input-label">Condition Details</label>
+            <label class="input-label">{{ $t('admin.conditionDetails') }}</label>
             <input
               v-model="form.condition_description"
               type="text"
               class="input-field"
-              placeholder="e.g. Minor scratches on hardware"
             />
           </div>
         </div>
@@ -441,54 +510,59 @@ useSeoMeta({
             
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label class="input-label text-sm">Size</label>
+                <label class="input-label text-sm">{{ $t('admin.productForm.size') }}</label>
                 <input
                   v-model="v.size"
                   type="text"
                   class="input-field"
-                  placeholder="e.g. M, 38, OS"
                 />
               </div>
               
               <div>
-                <label class="input-label text-sm">Color</label>
+                <label class="input-label text-sm">{{ $t('admin.productForm.color') }}</label>
                 <input
                   v-model="v.color"
                   type="text"
                   class="input-field"
-                  placeholder="e.g. Black"
                 />
               </div>
 
               <div>
-                <label class="input-label text-sm">Material</label>
+                <label class="input-label text-sm">{{ $t('admin.productForm.material') }}</label>
                 <input
                   v-model="v.material"
                   type="text"
                   class="input-field"
-                  placeholder="e.g. Leather"
                 />
               </div>
 
               <div>
-                <label class="input-label text-sm">Status *</label>
+                <label class="input-label text-sm">{{ $t('common.status') }} *</label>
                 <select v-model="v.status" class="input-field">
-                  <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
+                  <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
                 </select>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Product Active Toggle -->
-        <div class="mt-6 pt-4 border-t border-neutral-100">
+        <!-- Product Toggles -->
+        <div class="mt-6 pt-4 border-t border-neutral-100 space-y-3">
           <label class="flex items-center gap-2">
             <input
               v-model="form.is_active"
               type="checkbox"
               class="w-4 h-4"
             />
-            <span class="text-body-sm">Product is active and visible</span>
+            <span class="text-body-sm">{{ $t('admin.productActive') }}</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input
+              v-model="form.is_new_arrival"
+              type="checkbox"
+              class="w-4 h-4"
+            />
+            <span class="text-body-sm">{{ $t('admin.productNewArrival') }}</span>
           </label>
         </div>
       </div>

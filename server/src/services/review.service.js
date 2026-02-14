@@ -132,14 +132,14 @@ const createReview = async (userId, productId, data) => {
         throw new AppError('You have already reviewed this product', 400);
     }
 
-    // Check if user has purchased this product (for verified purchase badge)
+    // REQUIRE: User must have purchased and received this product
     const hasPurchased = await OrderItem.findOne({
         include: [{
             model: Order,
             as: 'order',
             where: {
                 user_id: userId,
-                status: { [Op.in]: ['DELIVERED', 'COMPLETED'] },
+                status: 'DELIVERED',
             },
             required: true,
         }],
@@ -148,6 +148,10 @@ const createReview = async (userId, productId, data) => {
         },
     });
 
+    if (!hasPurchased) {
+        throw new AppError('You can only review products you have purchased and received', 403);
+    }
+
     const review = await Review.create({
         user_id: userId,
         product_id: productId,
@@ -155,8 +159,8 @@ const createReview = async (userId, productId, data) => {
         title,
         comment,
         images: images || [],
-        is_verified_purchase: !!hasPurchased,
-        is_approved: true, // Auto-approve for now, can be changed to require moderation
+        is_verified_purchase: true, // Always true now since purchase is required
+        is_approved: true,
     });
 
     // Fetch the review with user info
@@ -169,6 +173,40 @@ const createReview = async (userId, productId, data) => {
     });
 
     return createdReview;
+};
+
+/**
+ * Check if user is eligible to review a product
+ */
+const checkReviewEligibility = async (userId, productId) => {
+    // Check if already reviewed
+    const existingReview = await Review.findOne({
+        where: { user_id: userId, product_id: productId },
+    });
+
+    if (existingReview) {
+        return { eligible: false, reason: 'already_reviewed' };
+    }
+
+    // Check if user has a DELIVERED order with this product
+    const hasPurchased = await OrderItem.findOne({
+        include: [{
+            model: Order,
+            as: 'order',
+            where: {
+                user_id: userId,
+                status: 'DELIVERED',
+            },
+            required: true,
+        }],
+        where: { product_id: productId },
+    });
+
+    if (!hasPurchased) {
+        return { eligible: false, reason: 'not_purchased' };
+    }
+
+    return { eligible: true };
 };
 
 /**
@@ -306,6 +344,7 @@ module.exports = {
     getProductReviews,
     getProductRatingSummary,
     createReview,
+    checkReviewEligibility,
     updateReview,
     deleteReview,
     markHelpful,

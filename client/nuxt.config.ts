@@ -79,7 +79,8 @@ export default defineNuxtConfig({
   // Runtime config
   runtimeConfig: {
     public: {
-      apiUrl: process.env.NUXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || '/api/v1',
+      imageBaseUrl: process.env.NUXT_PUBLIC_IMAGE_BASE_URL || '',
       aiServiceUrl: process.env.NUXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000',
     },
   },
@@ -105,6 +106,20 @@ export default defineNuxtConfig({
       pathPrefix: false,
     },
   ],
+
+  // Nitro server configuration
+  nitro: {
+    // Route rules for proxying API and uploads requests to backend server
+    // Works in both dev and production
+    routeRules: {
+      '/api/**': {
+        proxy: (process.env.NUXT_PROXY_API_URL || 'http://localhost:5000') + '/api/**',
+      },
+      '/uploads/**': {
+        proxy: (process.env.NUXT_PROXY_API_URL || 'http://localhost:5000') + '/uploads/**',
+      },
+    },
+  },
 
   // Vite configuration for Docker HMR on Windows
   vite: {
