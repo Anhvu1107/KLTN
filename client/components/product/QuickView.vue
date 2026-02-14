@@ -50,14 +50,7 @@ const formatPrice = (price: number) => {
   }).format(price)
 }
 
-const getProductImage = (product: any) => {
-  if (product?.images?.length > 0) {
-    return typeof product.images === 'string'
-      ? JSON.parse(product.images)[0]
-      : product.images[0]
-  }
-  return null
-}
+const { getProductImage } = useImageUrl()
 
 const handleAddToCart = () => {
   if (selectedVariant.value) {

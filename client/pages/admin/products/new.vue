@@ -26,6 +26,7 @@ const form = reactive({
   conditionDescription: '',
   description: '',
   images: [] as string[],
+  is_new_arrival: false,
   // Variant fields
   size: 'M',
   color: 'Black',
@@ -251,6 +252,7 @@ const handleSubmit = async () => {
           condition_description: form.conditionDescription,
           description: form.description,
           images: form.images,
+          is_new_arrival: form.is_new_arrival,
         },
         variant: {
           size: actualSize,
@@ -485,6 +487,18 @@ useSeoMeta({
               />
             </div>
           </div>
+        </div>
+
+        <!-- Product Options -->
+        <div class="bg-white p-6 rounded-sm shadow-card">
+          <label class="flex items-center gap-2">
+            <input
+              v-model="form.is_new_arrival"
+              type="checkbox"
+              class="w-4 h-4"
+            />
+            <span class="text-body-sm">{{ t('admin.productNewArrival') }}</span>
+          </label>
         </div>
 
         <!-- Submit -->

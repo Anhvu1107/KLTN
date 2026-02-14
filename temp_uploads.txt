@@ -1,0 +1,7 @@
+﻿total 296
+drwxrwxrwx    1 root     root           512 Feb 12 09:10 .
+drwxrwxrwx    1 root     root           512 Jan  9 07:32 ..
+-rw-r--r--    1 root     root         98286 Feb 12 09:06 product-5b297100-88c7-4e9a-a042-5941bb440955.png
+-rw-r--r--    1 root     root         98286 Feb 12 08:56 product-65f797b4-398e-4b02-945b-1cfcd1a96867.png
+-rw-r--r--    1 root     root          7358 Feb 12 09:10 product-6de3d04c-2309-4e76-8daa-ff814fdf9e95.png
+-rw-r--r--    1 root     root         98286 Feb 12 09:02 product-ef192356-f6a1-4fcd-90a4-2e29fb0e2ef6.png

@@ -143,14 +143,7 @@ const getVariantStatus = (product: any) => {
 }
 
 // Get product image
-const getProductImage = (product: any) => {
-  if (product.images && product.images.length > 0) {
-    return typeof product.images === 'string' 
-      ? JSON.parse(product.images)[0] 
-      : product.images[0]
-  }
-  return null
-}
+const { getProductImage } = useImageUrl()
 
 // Active filters count
 const activeFiltersCount = computed(() => {

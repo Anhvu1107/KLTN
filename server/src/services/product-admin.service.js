@@ -40,6 +40,7 @@ const createProduct = async (productData, variantData) => {
             images: productData.images || JSON.stringify([]),
             tags: productData.tags || JSON.stringify([productData.brand.toLowerCase()]),
             is_active: true,
+            is_new_arrival: productData.is_new_arrival || false,
         }, { transaction });
 
         // Create variant

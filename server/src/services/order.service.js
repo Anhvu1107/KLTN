@@ -23,7 +23,14 @@ const createOrder = async (userId, items, orderData) => {
         // Step 1: Validate and lock variants
         const variantIds = items.map(item => item.variantId);
 
-        // Fetch variants with product info and lock for update
+        // Fetch variants and lock for update (without joins to avoid FOR UPDATE error)
+        await Variant.findAll({
+            where: { id: { [Op.in]: variantIds } },
+            lock: transaction.LOCK.UPDATE,
+            transaction,
+        });
+
+        // Now fetch variants with product info (no lock needed)
         const variants = await Variant.findAll({
             where: { id: { [Op.in]: variantIds } },
             include: [{
@@ -31,7 +38,6 @@ const createOrder = async (userId, items, orderData) => {
                 as: 'product',
                 attributes: ['id', 'name', 'brand', 'base_price', 'sale_price'],
             }],
-            lock: transaction.LOCK.UPDATE,
             transaction,
         });
 
@@ -225,10 +231,17 @@ const cancelOrder = async (orderId, userId) => {
     const transaction = await sequelize.transaction();
 
     try {
+        // Lock the order row first (without joins)
+        await Order.findOne({
+            where: { id: orderId, user_id: userId },
+            lock: transaction.LOCK.UPDATE,
+            transaction,
+        });
+
+        // Fetch order with items (no lock)
         const order = await Order.findOne({
             where: { id: orderId, user_id: userId },
             include: [{ model: OrderItem, as: 'items' }],
-            lock: transaction.LOCK.UPDATE,
             transaction,
         });
 

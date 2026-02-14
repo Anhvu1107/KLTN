@@ -1,0 +1,30 @@
+﻿  at <App data-v-inspector="node_modules/nuxt/dist/app/components/nuxt-root.vue:68:5" > 
+  at <NuxtRoot>
+WARN  [Vue warn]: Failed to resolve component: CommonAppToast
+If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement. 
+  at <App data-v-inspector="node_modules/nuxt/dist/app/components/nuxt-root.vue:68:5" > 
+  at <NuxtRoot>
+WARN  [Vue Router warn]: No match found for location with path "/faqs"
+WARN  [Vue Router warn]: No match found for location with path "/shipping"
+WARN  [Vue Router warn]: No match found for location with path "/returns"
+WARN  [Vue warn]: Component <Anonymous> is missing template or render function. 
+  at <Anonymous data-v-inspector="app.vue:68:3" > 
+  at <App data-v-inspector="node_modules/nuxt/dist/app/components/nuxt-root.vue:68:5" > 
+  at <NuxtRoot>
+WARN  [Vue warn]: Component <Anonymous> is missing template or render function. 
+  at <Anonymous data-v-inspector="app.vue:70:3" > 
+  at <App data-v-inspector="node_modules/nuxt/dist/app/components/nuxt-root.vue:68:5" > 
+  at <NuxtRoot>
+ERROR  [unhandledRejection] localStorage is not defined
+
+    at checkWishlist (pages/shop/[id].vue:77:21)
+    at immediate (pages/shop/[id].vue:121:9)
+    at callWithErrorHandling (node_modules/@vue/runtime-core/dist/runtime-core.cjs.js:200:19)
+    at callWithAsyncErrorHandling (node_modules/@vue/runtime-core/dist/runtime-core.cjs.js:207:17)
+    at baseWatchOptions.call (node_modules/@vue/runtime-core/dist/runtime-core.cjs.js:877:47)
+    at job (node_modules/@vue/reactivity/dist/reactivity.cjs.js:1878:18)
+    at Object.watch (node_modules/@vue/reactivity/dist/reactivity.cjs.js:1913:7)
+    at doWatch (node_modules/@vue/runtime-core/dist/runtime-core.cjs.js:905:34)
+    at watch (node_modules/@vue/runtime-core/dist/runtime-core.cjs.js:838:10)
+    at setup (pages/shop/[id].vue:119:37)
+WARN  [nuxt] Failed to stringify dev server logs. Received DevalueError: Cannot stringify arbitrary non-POJOs. You can define your own reducer/reviver for rich types following the instructions in https://nuxt.com/docs/api/composables/use-nuxt-app#payload.

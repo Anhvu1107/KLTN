@@ -128,7 +128,7 @@ const startServer = async () => {
 
         // Sync database in development (creates tables if not exist)
         if (process.env.NODE_ENV === 'development') {
-            await db.syncDatabase({ alter: false });
+            await db.syncDatabase({ alter: true });
         }
 
         // Start server

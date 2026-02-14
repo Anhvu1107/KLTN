@@ -86,6 +86,22 @@ const deleteReview = catchAsync(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/products/:productId/reviews/eligibility
+ * Check if user can review this product
+ */
+const checkEligibility = catchAsync(async (req, res) => {
+    const { productId } = req.params;
+    const userId = req.user.id;
+
+    const result = await reviewService.checkReviewEligibility(userId, productId);
+
+    res.status(200).json({
+        success: true,
+        data: result,
+    });
+});
+
+/**
  * POST /api/v1/reviews/:reviewId/helpful
  * Mark review as helpful
  */
@@ -134,6 +150,7 @@ module.exports = {
     getProductReviews,
     getProductRatingSummary,
     createReview,
+    checkEligibility,
     updateReview,
     deleteReview,
     markHelpful,

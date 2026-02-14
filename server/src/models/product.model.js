@@ -69,6 +69,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
+        is_new_arrival: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+            comment: 'Manually flag product as new arrival',
+        },
         is_active: {
             type: DataTypes.BOOLEAN,
             defaultValue: true,

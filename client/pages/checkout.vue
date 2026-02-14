@@ -7,6 +7,7 @@
 import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
 import { useI18n } from '#imports'
+import { VIETNAM_CITIES, DEFAULT_CITY, getShippingFee } from '~/utils/constants'
 
 const { t } = useI18n()
 const cartStore = useCartStore()
@@ -18,21 +19,21 @@ const shippingForm = reactive({
   fullName: '',
   phone: '',
   address: '',
-  city: 'Hồ Chí Minh',
+  city: DEFAULT_CITY,
   district: '',
   ward: '',
   notes: '',
 })
 
 const paymentMethod = ref('COD')
-const shippingFee = ref(30000)
+const shippingFee = computed(() => getShippingFee(shippingForm.city))
 const isProcessing = ref(false)
 const error = ref('')
 
 // Computed
 const total = computed(() => cartStore.subtotal + shippingFee.value)
 
-const cities = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng']
+const cities = VIETNAM_CITIES
 
 // Payment methods with i18n labels
 const paymentMethods = computed(() => [
