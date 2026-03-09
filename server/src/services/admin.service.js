@@ -127,11 +127,11 @@ const updateOrderStatus = async (orderId, status) => {
 
     const validTransitions = {
         PENDING: ['CONFIRMED', 'CANCELLED'],
-        CONFIRMED: ['PROCESSING', 'CANCELLED'],
-        PROCESSING: ['SHIPPED', 'CANCELLED'],
-        SHIPPED: ['DELIVERED'],
-        DELIVERED: [],
-        CANCELLED: [],
+        CONFIRMED: ['PENDING', 'PROCESSING', 'CANCELLED'],
+        PROCESSING: ['CONFIRMED', 'SHIPPED', 'CANCELLED'],
+        SHIPPED: ['PROCESSING', 'DELIVERED'],
+        DELIVERED: ['SHIPPED'],
+        CANCELLED: ['PENDING'],
     };
 
     if (!validTransitions[order.status]?.includes(status)) {

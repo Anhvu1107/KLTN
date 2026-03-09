@@ -46,21 +46,41 @@ const updateStatus = async (orderId: string, newStatus: string) => {
   }
 }
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
+  if (!date) return '—'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const statusLabel = (s: string) => {
+  const map: Record<string, string> = {
+    PENDING: t('orders.pending'),
+    CONFIRMED: t('orders.confirmed'),
+    PROCESSING: t('orders.processing'),
+    SHIPPED: t('orders.shipped'),
+    DELIVERED: t('orders.delivered'),
+    CANCELLED: t('orders.cancelled'),
+  }
+  return map[s] || s
+}
+
+const paymentStatusLabel = (s: string) => {
+  const map: Record<string, string> = {
+    PENDING: 'Chờ thanh toán',
+    PAID: 'Đã thanh toán',
+    FAILED: 'Thất bại',
+    REFUNDED: 'Đã hoàn tiền',
+  }
+  return map[s] || s
 }
 
 const getStatusClass = (s: string) => {
@@ -78,11 +98,11 @@ const getStatusClass = (s: string) => {
 const getNextStatuses = (current: string) => {
   const transitions: Record<string, string[]> = {
     PENDING: ['CONFIRMED', 'CANCELLED'],
-    CONFIRMED: ['PROCESSING', 'CANCELLED'],
-    PROCESSING: ['SHIPPED', 'CANCELLED'],
-    SHIPPED: ['DELIVERED'],
-    DELIVERED: [],
-    CANCELLED: [],
+    CONFIRMED: ['PENDING', 'PROCESSING', 'CANCELLED'],
+    PROCESSING: ['CONFIRMED', 'SHIPPED', 'CANCELLED'],
+    SHIPPED: ['PROCESSING', 'DELIVERED'],
+    DELIVERED: ['SHIPPED'],
+    CANCELLED: ['PENDING'],
   }
   return transitions[current] || []
 }
@@ -131,14 +151,14 @@ useSeoMeta({
           <tr v-for="order in orders" :key="order.id" class="border-t border-neutral-100">
             <td class="py-4 px-4">
               <NuxtLink :to="`/admin/orders/${order.id}`" class="text-body-sm font-mono hover:underline">
-                {{ order.id.slice(0, 8) }}...
+                {{ order.order_number || order.id.slice(0, 8) + '...' }}
               </NuxtLink>
             </td>
             <td class="py-4 px-4 text-body-sm">{{ order.user?.email || 'N/A' }}</td>
             <td class="py-4 px-4 text-body-sm font-medium">{{ formatPrice(order.total_amount) }}</td>
             <td class="py-4 px-4">
               <span :class="getStatusClass(order.status)" class="px-2 py-1 text-caption rounded-sm">
-                {{ order.status }}
+                {{ statusLabel(order.status) }}
               </span>
             </td>
             <td class="py-4 px-4">
@@ -146,10 +166,10 @@ useSeoMeta({
                 class="px-2 py-1 text-caption rounded-sm"
                 :class="order.payment_status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
               >
-                {{ order.payment_status }}
+                {{ paymentStatusLabel(order.payment_status) }}
               </span>
             </td>
-            <td class="py-4 px-4 text-body-sm text-neutral-600">{{ formatDate(order.created_at) }}</td>
+            <td class="py-4 px-4 text-body-sm text-neutral-600">{{ formatDate(order.created_at || order.createdAt) }}</td>
             <td class="py-4 px-4">
               <div class="flex gap-2">
                 <button
@@ -158,7 +178,7 @@ useSeoMeta({
                   @click="updateStatus(order.id, nextStatus)"
                   class="text-caption px-2 py-1 bg-neutral-100 hover:bg-neutral-200 rounded-sm transition-colors"
                 >
-                  {{ nextStatus === 'CANCELLED' ? '✕' : '→' }} {{ nextStatus }}
+                  {{ nextStatus === 'CANCELLED' ? '✕' : '→' }} {{ statusLabel(nextStatus) }}
                 </button>
               </div>
             </td>

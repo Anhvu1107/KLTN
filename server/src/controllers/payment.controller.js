@@ -5,6 +5,7 @@
 
 const vnpayService = require('../services/vnpay.service');
 const momoService = require('../services/momo.service');
+const paypalService = require('../services/paypal.service');
 const { Order } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 
@@ -235,6 +236,120 @@ const momoIPN = catchAsync(async (req, res) => {
     return res.status(200).json({ resultCode: 0, message: 'Success' });
 });
 
+/**
+ * POST /api/v1/payments/paypal/create
+ * Create PayPal payment (supports PayPal + Visa/Mastercard/AMEX)
+ */
+const createPayPalPayment = catchAsync(async (req, res) => {
+    const { orderId } = req.body;
+    const userId = req.user.id;
+
+    const order = await Order.findOne({
+        where: { id: orderId, user_id: userId },
+    });
+
+    if (!order) {
+        return res.status(404).json({
+            success: false,
+            message: 'Order not found',
+        });
+    }
+
+    if (order.payment_status === 'PAID') {
+        return res.status(400).json({
+            success: false,
+            message: 'Order already paid',
+        });
+    }
+
+    const result = await paypalService.createPayment(order);
+
+    if (result.success) {
+        // Store PayPal order ID for later capture
+        await Order.update(
+            { payment_transaction_id: result.paypalOrderId },
+            { where: { id: orderId } }
+        );
+
+        res.status(200).json({
+            success: true,
+            data: {
+                approvalUrl: result.approvalUrl,
+                paypalOrderId: result.paypalOrderId,
+            },
+        });
+    } else {
+        res.status(400).json({
+            success: false,
+            message: result.message || 'Failed to create PayPal payment',
+        });
+    }
+});
+
+/**
+ * GET /api/v1/payments/paypal/return
+ * Handle PayPal return after user approval
+ */
+const paypalReturn = catchAsync(async (req, res) => {
+    const { token } = req.query; // PayPal sends token as query param
+
+    if (!token) {
+        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=Missing%20payment%20token`);
+    }
+
+    // Capture the payment
+    const captureResult = await paypalService.capturePayment(token);
+
+    if (captureResult.success) {
+        // Update order
+        await Order.update(
+            {
+                payment_status: 'PAID',
+                payment_transaction_id: captureResult.transactionId,
+                status: 'CONFIRMED',
+            },
+            { where: { id: captureResult.orderId } }
+        );
+
+        return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${captureResult.orderId}`);
+    } else {
+        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(captureResult.message || 'Payment failed')}`);
+    }
+});
+
+/**
+ * POST /api/v1/payments/paypal/webhook
+ * PayPal webhook (server-to-server)
+ */
+const paypalWebhook = catchAsync(async (req, res) => {
+    const isValid = await paypalService.verifyWebhook(req.headers, req.body);
+
+    if (!isValid) {
+        return res.status(200).json({ status: 'invalid' });
+    }
+
+    const event = req.body;
+
+    if (event.event_type === 'CHECKOUT.ORDER.APPROVED') {
+        const paypalOrderId = event.resource?.id;
+        if (paypalOrderId) {
+            const captureResult = await paypalService.capturePayment(paypalOrderId);
+            if (captureResult.success) {
+                await Order.update(
+                    {
+                        payment_status: 'PAID',
+                        payment_transaction_id: captureResult.transactionId,
+                        status: 'CONFIRMED',
+                    },
+                    { where: { id: captureResult.orderId } }
+                );
+            }
+        }
+    }
+
+    return res.status(200).json({ status: 'ok' });
+});
+
 module.exports = {
     createVNPayPayment,
     vnpayReturn,
@@ -242,5 +357,8 @@ module.exports = {
     createMoMoPayment,
     momoReturn,
     momoIPN,
+    createPayPalPayment,
+    paypalReturn,
+    paypalWebhook,
 };
 

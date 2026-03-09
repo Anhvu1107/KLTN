@@ -165,12 +165,7 @@ watch(() => product.value, () => {
 }, { immediate: true })
 
 // Format helpers
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 const getImages = computed(() => {
   if (!product.value?.images) return []

@@ -288,12 +288,7 @@ const deleteProduct = async () => {
 }
 
 // Format price for display
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 onMounted(() => {
   fetchProduct()

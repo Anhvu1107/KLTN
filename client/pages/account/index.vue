@@ -52,12 +52,7 @@ const user = computed(() => profileData.value?.data?.user || authStore.user)
 const recentOrders = computed(() => ordersData.value?.data?.orders || [])
 const wishlistCount = computed(() => wishlistData.value?.data?.count || 0)
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString('en-US', {

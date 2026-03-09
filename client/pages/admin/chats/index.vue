@@ -1,0 +1,715 @@
+<script setup lang="ts">
+/**
+ * Admin Chat Management
+ * AURA ARCHIVE - 3-column chat dashboard for managing AI conversations
+ */
+
+definePageMeta({
+  layout: 'admin',
+  middleware: ['admin'],
+})
+
+import { useSocket } from '~/composables/useSocket'
+
+const config = useRuntimeConfig()
+const authStore = useAuthStore()
+const token = computed(() => authStore.token)
+
+// ====== STATE ======
+const sessions = ref<any[]>([])
+const selectedSession = ref<any>(null)
+const messages = ref<any[]>([])
+const sessionInfo = ref<any>(null)
+const isLoadingSessions = ref(true)
+const isLoadingMessages = ref(false)
+const isSavingCustomer = ref(false)
+const saveMessage = ref('')
+const adminMessage = ref('')
+const isSendingAdmin = ref(false)
+
+// Search
+const searchQuery = ref('')
+const searchDebounce = ref<any>(null)
+
+// Message search (in-chat)
+const showMessageSearch = ref(false)
+const messageSearchQuery = ref('')
+const messageSearchResults = ref<any[]>([])
+const highlightedMessageIds = ref<string[]>([])
+
+// Chat container ref
+const chatContainer = ref<HTMLElement | null>(null)
+
+// Customer form
+const customerForm = ref({
+  customer_name: '',
+  customer_email: '',
+  customer_phone: '',
+  customer_address: '',
+  customer_year: '',
+  admin_note: '',
+})
+
+// ====== SOCKET.IO REAL-TIME ======
+const { connect: connectSocket, joinAdmin, joinSession: joinSessionRoom, onNewMessage, onSessionUpdated, disconnect: disconnectSocket } = useSocket()
+
+const setupAdminSocket = async () => {
+  await connectSocket()
+  joinAdmin()
+  
+  // Listen for new messages (for the currently viewed session)
+  onNewMessage((data: any) => {
+    if (selectedSession.value && data.sessionId === selectedSession.value.session_id) {
+      // Add message to current view
+      const msg = data.message
+      const lastMsg = messages.value[messages.value.length - 1]
+      // Avoid duplicates
+      if (!lastMsg || lastMsg.content !== msg.content || lastMsg.role !== msg.role) {
+        messages.value.push(msg)
+        scrollToBottom()
+      }
+    }
+    // Refresh session list to update previews/counts
+    fetchSessions(searchQuery.value, true)
+  })
+  
+  // Listen for session updates
+  onSessionUpdated((_session: any) => {
+    fetchSessions(searchQuery.value, true)
+  })
+}
+
+// ====== FETCH SESSIONS ======
+const fetchSessions = async (search = '', silent = false) => {
+  if (!silent) isLoadingSessions.value = true
+  try {
+    const response = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/admin/chats`,
+      {
+        headers: { Authorization: `Bearer ${token.value}` },
+        params: { search: search || undefined, limit: 50 },
+      }
+    )
+    sessions.value = response.data?.sessions || []
+  } catch (e: any) {
+    console.error('Failed to fetch sessions:', e)
+  } finally {
+    if (!silent) isLoadingSessions.value = false
+  }
+}
+
+// ====== FETCH MESSAGES (with real-time refresh) ======
+const fetchMessages = async (sessionId: string, silent = false) => {
+  if (!silent) isLoadingMessages.value = true
+  try {
+    const response = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/admin/chats/${sessionId}`,
+      {
+        headers: { Authorization: `Bearer ${token.value}` },
+      }
+    )
+    const newMessages = response.data?.messages || []
+    
+    // Only update and scroll if there are new messages
+    const hadNewMessages = newMessages.length > messages.value.length
+    messages.value = newMessages
+    sessionInfo.value = response.data?.session || sessionInfo.value
+
+    if (hadNewMessages) scrollToBottom()
+  } catch (e: any) {
+    console.error('Failed to fetch messages:', e)
+  } finally {
+    if (!silent) isLoadingMessages.value = false
+  }
+}
+
+// ====== SELECT SESSION ======
+const selectSession = async (session: any) => {
+  selectedSession.value = session
+  showMessageSearch.value = false
+  messageSearchQuery.value = ''
+  highlightedMessageIds.value = []
+
+  // Fetch messages (with loading)
+  await fetchMessages(session.session_id, false)
+
+  // Fill customer form
+  if (sessionInfo.value) {
+    customerForm.value = {
+      customer_name: sessionInfo.value.customer_name || sessionInfo.value.user?.first_name || '',
+      customer_email: sessionInfo.value.customer_email || sessionInfo.value.user?.email || '',
+      customer_phone: sessionInfo.value.customer_phone || '',
+      customer_address: sessionInfo.value.customer_address || '',
+      customer_year: sessionInfo.value.customer_year || '',
+      admin_note: sessionInfo.value.admin_note || '',
+    }
+  }
+
+  // Mark as read locally
+  session.is_read = true
+
+  scrollToBottom()
+
+  // Join this session's socket room for real-time messages
+  joinSessionRoom(session.session_id)
+  // Also start polling as fallback
+  startMessagePolling(session.session_id)
+}
+
+
+
+// ====== ACTIONS ======
+const toggleAiPause = async () => {
+  if (!selectedSession.value) return
+  try {
+    const response = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}/pause-ai`,
+      {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token.value}` },
+      }
+    )
+    if (sessionInfo.value) {
+      sessionInfo.value.is_ai_paused = response.data?.session?.is_ai_paused
+    }
+  } catch (e: any) {
+    console.error('Failed to toggle AI pause:', e)
+  }
+}
+
+const toggleJoinRoom = async () => {
+  if (!selectedSession.value) return
+  const action = sessionInfo.value?.admin_joined ? 'leave' : 'join'
+  try {
+    const response = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}/${action}`,
+      {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token.value}` },
+      }
+    )
+    if (sessionInfo.value) {
+      sessionInfo.value.admin_joined = response.data?.session?.admin_joined
+    }
+  } catch (e: any) {
+    console.error('Failed to toggle room:', e)
+  }
+}
+
+// ====== ADMIN SEND MESSAGE ======
+const sendAdminMsg = async () => {
+  const content = adminMessage.value.trim()
+  if (!content || !selectedSession.value || isSendingAdmin.value) return
+  
+  isSendingAdmin.value = true
+  try {
+    const response = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}/message`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token.value}` },
+        body: { content },
+      }
+    )
+    // Add to local messages immediately
+    if (response.data?.message) {
+      messages.value.push(response.data.message)
+    }
+    adminMessage.value = ''
+    scrollToBottom()
+  } catch (e: any) {
+    console.error('Failed to send admin message:', e)
+  } finally {
+    isSendingAdmin.value = false
+  }
+}
+
+// ====== SEARCH MESSAGES ======
+const searchInMessages = async () => {
+  if (!selectedSession.value || !messageSearchQuery.value.trim()) {
+    highlightedMessageIds.value = []
+    messageSearchResults.value = []
+    return
+  }
+  try {
+    const response = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}/search`,
+      {
+        headers: { Authorization: `Bearer ${token.value}` },
+        params: { q: messageSearchQuery.value },
+      }
+    )
+    messageSearchResults.value = response.data?.messages || []
+    highlightedMessageIds.value = messageSearchResults.value.map((m: any) => m.id)
+  } catch (e: any) {
+    console.error('Search failed:', e)
+  }
+}
+
+// ====== SAVE CUSTOMER ======
+const saveCustomerInfo = async () => {
+  if (!selectedSession.value) return
+  isSavingCustomer.value = true
+  saveMessage.value = ''
+  try {
+    await $fetch(
+      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}/customer`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token.value}` },
+        body: customerForm.value,
+      }
+    )
+    saveMessage.value = 'Đã lưu thành công!'
+    setTimeout(() => { saveMessage.value = '' }, 2000)
+  } catch (e: any) {
+    saveMessage.value = 'Lưu thất bại!'
+  } finally {
+    isSavingCustomer.value = false
+  }
+}
+
+// ====== HELPERS ======
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatContainer.value) {
+      chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+    }
+  })
+}
+
+const formatRelativeTime = (dateStr: string) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return 'vừa xong'
+  if (minutes < 60) return `${minutes} phút trước`
+  if (hours < 24) return `${hours} giờ trước`
+  if (days < 7) return `${days} ngày trước`
+  return date.toLocaleDateString('vi-VN')
+}
+
+const formatMessageTime = (dateStr: string) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleString('vi-VN', {
+    hour: '2-digit', minute: '2-digit',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  })
+}
+
+const getDisplayName = (session: any) => {
+  if (session.customer_name) return session.customer_name
+  if (session.user) return `${session.user.first_name || ''} ${session.user.last_name || ''}`.trim()
+  return 'Guest'
+}
+
+const getPreview = (session: any) => {
+  const msg = session.last_message || ''
+  return msg.length > 50 ? msg.substring(0, 50) + '...' : msg
+}
+
+// Debounced search
+watch(searchQuery, (val) => {
+  clearTimeout(searchDebounce.value)
+  searchDebounce.value = setTimeout(() => fetchSessions(val), 300)
+})
+
+// ====== POLLING FALLBACK (safety net alongside socket) ======
+let sessionPollTimer: ReturnType<typeof setInterval> | null = null
+let messagePollTimer: ReturnType<typeof setInterval> | null = null
+
+const startPolling = () => {
+  // Session list: refresh every 5s
+  sessionPollTimer = setInterval(() => {
+    fetchSessions(searchQuery.value, true)
+  }, 2000)
+}
+
+const startMessagePolling = (sid: string) => {
+  stopMessagePolling()
+  messagePollTimer = setInterval(() => {
+    fetchMessages(sid, true)
+  }, 1000)
+}
+
+const stopMessagePolling = () => {
+  if (messagePollTimer) { clearInterval(messagePollTimer); messagePollTimer = null }
+}
+
+const stopAllPolling = () => {
+  if (sessionPollTimer) { clearInterval(sessionPollTimer); sessionPollTimer = null }
+  stopMessagePolling()
+}
+
+// Initial load + connect WebSocket + start polling fallback
+onMounted(() => {
+  fetchSessions()
+  setupAdminSocket()
+  startPolling()
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  disconnectSocket()
+  stopAllPolling()
+})
+
+useSeoMeta({
+  title: 'Quản lý Chat AI | AURA ARCHIVE Admin',
+})
+</script>
+
+<template>
+  <div class="flex h-[calc(100vh-64px)] bg-neutral-50 overflow-hidden">
+
+    <!-- ===== LEFT: SESSION LIST ===== -->
+    <div class="w-80 border-r border-neutral-200 bg-white flex flex-col shrink-0">
+      <!-- Header -->
+      <div class="px-4 py-3 border-b border-neutral-200 bg-gradient-to-r from-orange-500 to-orange-600">
+        <div class="flex items-center gap-2">
+          <span class="text-white font-bold text-body-sm">TRỢ LÝ ẢO AI</span>
+          <span class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold">LIVE</span>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="p-3 border-b border-neutral-100">
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Tìm theo tên..."
+            class="w-full pl-9 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
+          />
+        </div>
+      </div>
+
+      <!-- Session List -->
+      <div class="flex-1 overflow-y-auto">
+        <div v-if="isLoadingSessions" class="p-4 text-center text-neutral-400 text-body-sm">
+          Đang tải...
+        </div>
+        <div v-else-if="sessions.length === 0" class="p-4 text-center text-neutral-400 text-body-sm">
+          Chưa có cuộc trò chuyện nào
+        </div>
+        <div
+          v-for="session in sessions"
+          :key="session.id"
+          @click="selectSession(session)"
+          class="flex items-start gap-3 px-4 py-3 cursor-pointer border-b border-neutral-50 transition-colors"
+          :class="[
+            selectedSession?.session_id === session.session_id
+              ? 'bg-orange-50 border-l-4 border-l-orange-500'
+              : 'hover:bg-neutral-50 border-l-4 border-l-transparent',
+          ]"
+        >
+          <!-- Avatar with status dot -->
+          <div class="relative shrink-0">
+            <div class="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center">
+              <svg class="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+            </div>
+            <!-- Read/Unread dot -->
+            <span
+              class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white"
+              :class="session.is_read ? 'bg-green-500' : 'bg-blue-500'"
+            />
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-body-sm text-neutral-800 truncate">
+                {{ getDisplayName(session) }}
+              </span>
+              <span
+                v-if="session.is_ai_paused"
+                class="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded"
+              >✋</span>
+            </div>
+            <p class="text-caption text-neutral-500 truncate mt-0.5">
+              Bot: {{ getPreview(session) }}
+            </p>
+            <p class="text-xs text-neutral-400 mt-0.5">
+              {{ formatRelativeTime(session.last_activity) }}
+            </p>
+          </div>
+
+          <!-- Join indicator -->
+          <div v-if="session.admin_joined" class="shrink-0">
+            <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active count -->
+      <div class="px-4 py-2 border-t border-neutral-200 bg-neutral-50">
+        <p class="text-caption text-neutral-500">
+          {{ sessions.filter(s => !s.is_read).length }} chưa đọc · {{ sessions.length }} tổng
+        </p>
+      </div>
+    </div>
+
+    <!-- ===== CENTER: CHAT DETAIL ===== -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- No session selected -->
+      <div v-if="!selectedSession" class="flex-1 flex items-center justify-center">
+        <div class="text-center">
+          <svg class="w-16 h-16 mx-auto text-neutral-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+          <p class="text-neutral-400 text-body">Chọn một cuộc trò chuyện để xem</p>
+        </div>
+      </div>
+
+      <!-- Chat view -->
+      <template v-else>
+        <!-- Chat Header -->
+        <div class="px-4 py-3 border-b border-neutral-200 bg-white flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center">
+              <svg class="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-medium text-body-sm text-neutral-800">
+                {{ getDisplayName(selectedSession) }}
+                <span v-if="!selectedSession.user" class="text-neutral-400">(demo)</span>
+              </h3>
+              <p class="text-xs text-neutral-400">
+                {{ messages.length }} tin nhắn
+                <span v-if="sessionInfo?.is_ai_paused" class="text-yellow-600"> · AI đang tạm dừng</span>
+                <span v-if="sessionInfo?.admin_joined" class="text-green-600"> · Đã tham gia</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-1">
+            <!-- Search in messages -->
+            <button
+              @click="showMessageSearch = !showMessageSearch; if(!showMessageSearch) { highlightedMessageIds = []; messageSearchQuery = '' }"
+              class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+              :class="showMessageSearch ? 'bg-orange-100 text-orange-600' : 'text-neutral-500'"
+              title="Tìm kiếm tin nhắn"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </button>
+
+            <!-- Pause AI -->
+            <button
+              @click="toggleAiPause"
+              class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+              :class="sessionInfo?.is_ai_paused ? 'bg-red-100 text-red-600' : 'text-neutral-500'"
+              :title="sessionInfo?.is_ai_paused ? 'Bật lại AI' : 'Tạm dừng AI'"
+            >
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10.5 2C7.46 2 5 4.46 5 7.5S7.46 13 10.5 13H11v7h2v-7h.5c3.04 0 5.5-2.46 5.5-5.5S16.54 2 13.5 2h-3zM11 11H9.5C8.12 11 7 9.88 7 8.5S8.12 6 9.5 6H11v5zm4.5 0H13V6h1.5C15.88 6 17 7.12 17 8.5S15.88 11 15.5 11z"/>
+              </svg>
+            </button>
+
+            <!-- Join/Leave Room -->
+            <button
+              @click="toggleJoinRoom"
+              class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+              :class="sessionInfo?.admin_joined ? 'bg-green-100 text-green-600' : 'text-neutral-500'"
+              :title="sessionInfo?.admin_joined ? 'Rời khỏi phòng' : 'Tham gia phòng'"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path v-if="!sessionInfo?.admin_joined" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Message Search Bar -->
+        <div v-if="showMessageSearch" class="px-4 py-2 bg-orange-50 border-b border-orange-200 shrink-0">
+          <div class="flex gap-2">
+            <input
+              v-model="messageSearchQuery"
+              @input="searchInMessages"
+              type="text"
+              placeholder="Tìm trong cuộc trò chuyện..."
+              class="flex-1 px-3 py-1.5 bg-white border border-orange-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-400"
+            />
+            <span v-if="messageSearchResults.length > 0" class="text-body-sm text-orange-600 self-center whitespace-nowrap">
+              {{ messageSearchResults.length }} kết quả
+            </span>
+          </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
+          <div v-if="isLoadingMessages" class="text-center py-8 text-neutral-400">
+            Đang tải tin nhắn...
+          </div>
+          <template v-else>
+            <div
+              v-for="msg in messages"
+              :key="msg.id"
+              class="flex"
+              :class="[
+                msg.role === 'USER' || msg.role === 'user' ? 'justify-start' : 'justify-end',
+                highlightedMessageIds.includes(msg.id) ? 'ring-2 ring-orange-400 rounded-lg' : ''
+              ]"
+            >
+              <!-- User message (left) -->
+              <div v-if="msg.role === 'USER' || msg.role === 'user'" class="flex items-end gap-2 max-w-[70%]">
+                <div class="w-8 h-8 rounded-full bg-neutral-300 flex items-center justify-center shrink-0">
+                  <svg class="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="bg-white px-4 py-2.5 rounded-2xl rounded-bl-sm shadow-sm border border-neutral-100">
+                    <p class="text-body-sm text-neutral-800 whitespace-pre-wrap">{{ msg.content }}</p>
+                  </div>
+                  <p class="text-xs text-neutral-400 mt-1 ml-1">{{ formatMessageTime(msg.created_at || msg.createdAt) }}</p>
+                </div>
+              </div>
+
+              <!-- AI message (right) -->
+              <div v-else class="flex items-end gap-2 max-w-[70%]">
+                <div>
+                  <div class="bg-gradient-to-br from-orange-400 to-orange-500 px-4 py-2.5 rounded-2xl rounded-br-sm shadow-sm">
+                    <p class="text-body-sm text-white whitespace-pre-wrap">{{ msg.content }}</p>
+                  </div>
+                  <p class="text-xs text-neutral-400 mt-1 text-right mr-1">{{ formatMessageTime(msg.created_at || msg.createdAt) }}</p>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center shrink-0">
+                  <span class="text-white text-xs font-bold">AI</span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Admin input (only when joined) -->
+        <div v-if="sessionInfo?.admin_joined" class="border-t border-neutral-200 p-3 bg-white shrink-0">
+          <p class="text-xs text-green-600 mb-2">✓ Bạn đã tham gia phòng chat này</p>
+          <div class="flex gap-2">
+            <input
+              v-model="adminMessage"
+              @keydown.enter="sendAdminMsg"
+              type="text"
+              placeholder="Nhập nội dung tin nhắn..."
+              class="flex-1 px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
+              :disabled="isSendingAdmin"
+            />
+            <button
+              @click="sendAdminMsg"
+              :disabled="!adminMessage.trim() || isSendingAdmin"
+              class="px-5 py-2.5 bg-orange-500 text-white rounded-lg text-body-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-50"
+            >
+              {{ isSendingAdmin ? '...' : 'Gửi' }}
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ===== RIGHT: INFO PANEL ===== -->
+    <div v-if="selectedSession" class="w-80 border-l border-neutral-200 bg-white flex flex-col shrink-0 overflow-y-auto">
+      <!-- AI Suggestions -->
+      <div class="border-b border-neutral-200">
+        <button class="w-full px-4 py-3 flex items-center justify-between text-body-sm font-medium text-neutral-700 hover:bg-neutral-50">
+          <span>▼ AI đề xuất</span>
+        </button>
+        <div class="px-4 pb-4">
+          <p class="text-body-sm text-neutral-400 text-center py-3">Không có dữ liệu</p>
+        </div>
+      </div>
+
+      <!-- Customer Info -->
+      <div class="flex-1 p-4">
+        <h3 class="text-body-sm font-medium text-neutral-700 mb-4 flex items-center gap-2">
+          <span>▼ Thông tin khách hàng</span>
+        </h3>
+
+        <div class="space-y-3">
+          <div>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Tên khách hàng</label>
+            <input
+              v-model="customerForm.customer_name"
+              type="text"
+              class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300 bg-orange-50"
+            />
+          </div>
+          <div>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Email</label>
+            <input
+              v-model="customerForm.customer_email"
+              type="email"
+              class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
+            />
+          </div>
+          <div>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Số điện thoại</label>
+            <input
+              v-model="customerForm.customer_phone"
+              type="text"
+              class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
+            />
+          </div>
+          <div>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Địa chỉ</label>
+            <textarea
+              v-model="customerForm.customer_address"
+              rows="2"
+              class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300 resize-none"
+            />
+          </div>
+          <div>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Năm</label>
+            <input
+              v-model="customerForm.customer_year"
+              type="text"
+              class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
+            />
+          </div>
+          <div>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Ghi chú</label>
+            <textarea
+              v-model="customerForm.admin_note"
+              rows="3"
+              class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300 resize-none"
+            />
+          </div>
+        </div>
+
+        <!-- Save button -->
+        <div class="mt-4">
+          <p v-if="saveMessage" class="text-body-sm text-green-600 mb-2 text-center">{{ saveMessage }}</p>
+          <button
+            @click="saveCustomerInfo"
+            :disabled="isSavingCustomer"
+            class="w-full py-2.5 bg-blue-500 text-white rounded-lg text-body-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50"
+          >
+            {{ isSavingCustomer ? 'Đang lưu...' : 'LƯU' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel placeholder when no session -->
+    <div v-else class="w-80 border-l border-neutral-200 bg-white flex items-center justify-center shrink-0">
+      <p class="text-neutral-300 text-body-sm">Chọn cuộc trò chuyện</p>
+    </div>
+  </div>
+</template>

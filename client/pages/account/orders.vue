@@ -29,12 +29,7 @@ const { data, pending, refresh } = await useFetch<{
 const orders = computed(() => data.value?.data?.orders || [])
 const pagination = computed(() => data.value?.data?.pagination || {})
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString('en-US', {
@@ -93,7 +88,12 @@ useSeoMeta({
 
       <!-- Orders List -->
       <div v-else class="space-y-4">
-        <div v-for="order in orders" :key="order.id" class="card p-6">
+        <NuxtLink
+          v-for="order in orders"
+          :key="order.id"
+          :to="`/account/orders/${order.id}`"
+          class="card p-6 block hover:shadow-md transition-shadow cursor-pointer"
+        >
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div class="flex items-center gap-3 mb-2">
@@ -132,7 +132,7 @@ useSeoMeta({
               </div>
             </div>
           </div>
-        </div>
+        </NuxtLink>
       </div>
 
       <!-- Pagination -->

@@ -3,12 +3,25 @@
  * AI Chat Widget
  * AURA ARCHIVE - Floating chat button with AI stylist
  */
+import { marked } from 'marked'
+
+// Configure marked for inline rendering (no wrapping <p> tags)
+marked.setOptions({
+  breaks: true,
+})
+
+const renderMarkdown = (text: string): string => {
+  return marked.parse(text, { async: false }) as string
+}
 
 const config = useRuntimeConfig()
+const { locale } = useI18n()
+import { useSocket } from '~/composables/useSocket'
 
 // State
 const isOpen = ref(false)
 const isLoading = ref(false)
+const isWaitingForAdmin = ref(false)
 const sessionId = ref('')
 const inputMessage = ref('')
 const messages = ref<{ role: 'user' | 'assistant'; content: string }[]>([])
@@ -32,14 +45,46 @@ const initChat = async () => {
       role: 'assistant',
       content: response.message,
     })
+
+    // Setup socket immediately so admin messages arrive even before user sends
+    setupSocket(response.sessionId)
+    startWidgetPolling()
   } catch (error) {
     messages.value.push({
       role: 'assistant',
-      content: "Welcome to AURA ARCHIVE! I'm AURA, your personal stylist. How may I help you today?",
+      content: 'Chào mừng bạn đến AURA ARCHIVE! Tôi là AURA, stylist riêng của bạn. Tôi có thể giúp gì cho bạn hôm nay?',
     })
   } finally {
     isLoading.value = false
   }
+}
+
+// ====== WebSocket Real-time ======
+const { connect, joinSession, onNewMessage, disconnect } = useSocket()
+
+const setupSocket = async (sid: string) => {
+  await connect()
+  joinSession(sid)
+  onNewMessage((data: any) => {
+    // Only handle messages for our session
+    if (data.sessionId !== sessionId.value) return
+    
+    // Don't duplicate messages we already sent locally
+    const msg = data.message
+    const role = msg.role === 'USER' ? 'user' as const : 'assistant' as const
+    
+    // When admin replies, clear the waiting indicator
+    if (role === 'assistant') {
+      isWaitingForAdmin.value = false
+    }
+    
+    // Check if this message already exists (avoid duplicates)
+    const lastMsg = messages.value[messages.value.length - 1]
+    if (lastMsg && lastMsg.content === msg.content && lastMsg.role === role) return
+    
+    messages.value.push({ role, content: msg.content })
+    scrollToBottom()
+  })
 }
 
 // Open chat
@@ -48,12 +93,59 @@ const openChat = () => {
   if (messages.value.length === 0) {
     initChat()
   }
+  if (sessionId.value) setupSocket(sessionId.value)
 }
 
 // Close chat
 const closeChat = () => {
   isOpen.value = false
+  stopWidgetPolling()
 }
+
+// Polling fallback for when WebSocket fails
+let widgetPollTimer: ReturnType<typeof setInterval> | null = null
+
+const pollForNewMessages = async () => {
+  if (!sessionId.value || isLoading.value) return
+  try {
+    const token = localStorage.getItem('token')
+    const response = await $fetch<{
+      success: boolean
+      data: { messages: { role: string; content: string }[] }
+    }>(`${config.public.apiUrl}/chat/history/${sessionId.value}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    const dbMessages = response.data?.messages || []
+    if (dbMessages.length > 0) {
+      const mapped = dbMessages.map((m: any) => ({
+        role: m.role === 'USER' ? 'user' as const : 'assistant' as const,
+        content: m.content,
+      }))
+      const localCount = messages.value.length - 1 // -1 for greeting
+      if (mapped.length > localCount) {
+        const greeting = messages.value[0]
+        messages.value = greeting ? [greeting, ...mapped] : mapped
+        // Clear waiting indicator if admin has replied
+        const hasNewAssistant = mapped.some((m: any, i: number) => i >= localCount && m.role === 'assistant')
+        if (hasNewAssistant) isWaitingForAdmin.value = false
+        scrollToBottom()
+      }
+    }
+  } catch (e) { /* ignore */ }
+}
+
+const startWidgetPolling = () => {
+  stopWidgetPolling()
+  widgetPollTimer = setInterval(pollForNewMessages, 1000)
+}
+const stopWidgetPolling = () => {
+  if (widgetPollTimer) { clearInterval(widgetPollTimer); widgetPollTimer = null }
+}
+
+onUnmounted(() => {
+  disconnect()
+  stopWidgetPolling()
+})
 
 // Send message
 const sendMessage = async () => {
@@ -75,8 +167,9 @@ const sendMessage = async () => {
     
     const response = await $fetch<{
       success: boolean
-      message: string
+      message: string | null
       sessionId: string
+      metadata?: { paused?: boolean }
     }>(`${config.public.apiUrl}/chat`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -88,14 +181,29 @@ const sendMessage = async () => {
 
     sessionId.value = response.sessionId
     
-    messages.value.push({
-      role: 'assistant',
-      content: response.message,
-    })
+    // Connect to WebSocket for real-time updates
+    setupSocket(response.sessionId)
+    startWidgetPolling()
+    
+    if (response.metadata?.paused) {
+      // AI is paused, admin will reply manually — show typing indicator
+      isWaitingForAdmin.value = true
+    } else if (response.message) {
+      // Normal AI response
+      messages.value.push({
+        role: 'assistant',
+        content: response.message,
+      })
+    }
   } catch (error) {
+    // Even on error, try to setup socket & polling so admin messages can arrive
+    if (sessionId.value) {
+      setupSocket(sessionId.value)
+      startWidgetPolling()
+    }
     messages.value.push({
       role: 'assistant',
-      content: "I apologize, but I'm having trouble connecting. Please try again.",
+      content: 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.',
     })
   } finally {
     isLoading.value = false
@@ -155,7 +263,7 @@ const handleKeydown = (e: KeyboardEvent) => {
           </div>
           <div>
             <h3 class="text-body-sm font-medium">AURA Stylist</h3>
-            <p class="text-caption text-neutral-400">Your personal fashion assistant</p>
+            <p class="text-caption text-neutral-400">Trợ lý thời trang của bạn</p>
           </div>
         </div>
         <button
@@ -186,12 +294,12 @@ const handleKeydown = (e: KeyboardEvent) => {
               ? 'bg-aura-black text-aura-white' 
               : 'bg-neutral-100 text-neutral-800'"
           >
-            <p class="text-body-sm whitespace-pre-wrap">{{ msg.content }}</p>
+            <div class="text-body-sm chat-markdown" v-html="renderMarkdown(msg.content)"></div>
           </div>
         </div>
 
-        <!-- Loading indicator -->
-        <div v-if="isLoading" class="flex justify-start">
+        <!-- Loading / Waiting for reply indicator -->
+        <div v-if="isLoading || isWaitingForAdmin" class="flex justify-start">
           <div class="bg-neutral-100 px-4 py-3 rounded-lg">
             <div class="flex gap-1">
               <span class="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
@@ -209,19 +317,47 @@ const handleKeydown = (e: KeyboardEvent) => {
             v-model="inputMessage"
             @keydown="handleKeydown"
             type="text"
-            placeholder="Ask about fashion, styling..."
+            placeholder="Hỏi về thời trang, phong cách..."
             class="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-neutral-300"
             :disabled="isLoading"
           />
           <button
             @click="sendMessage"
             :disabled="!inputMessage.trim() || isLoading"
-            class="px-4 py-2 bg-aura-black text-aura-white rounded-lg text-body-sm hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 bg-aura-black text-aura-white rounded-lg text-body-sm hover:bg-neutral-800 transition-colors disabled:opacity-50"
+            :class="(!inputMessage.trim() || isLoading) ? 'cursor-not-allowed' : 'cursor-pointer'"
           >
-            Send
+            Gửi
           </button>
         </div>
       </div>
     </div>
   </Transition>
 </template>
+
+<style scoped>
+.chat-markdown :deep(p) {
+  margin: 0 0 0.25rem 0;
+}
+.chat-markdown :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.chat-markdown :deep(strong) {
+  font-weight: 700;
+}
+.chat-markdown :deep(em) {
+  font-style: italic;
+}
+.chat-markdown :deep(ul),
+.chat-markdown :deep(ol) {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+.chat-markdown :deep(li) {
+  margin-bottom: 0.125rem;
+}
+.chat-markdown :deep(a) {
+  color: inherit;
+  text-decoration: underline;
+}
+</style>

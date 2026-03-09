@@ -50,6 +50,7 @@ db.Blog = require('./blog.model')(sequelize, Sequelize.DataTypes);
 db.SiteSettings = require('./site-settings.model')(sequelize, Sequelize.DataTypes);
 db.Popup = require('./popup.model')(sequelize, Sequelize.DataTypes);
 db.AbandonedCart = require('./abandoned-cart.model')(sequelize, Sequelize.DataTypes);
+db.ChatSession = require('./chat-session.model')(sequelize, Sequelize.DataTypes);
 
 // Set up associations
 Object.keys(db).forEach((modelName) => {

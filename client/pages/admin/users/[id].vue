@@ -35,12 +35,7 @@ const stats = computed(() => data.value?.data?.stats || { orderCount: 0, wishlis
 const recentOrders = computed(() => data.value?.data?.recentOrders || [])
 const wishlist = computed(() => data.value?.data?.wishlist || [])
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 const formatDate = (date: string) => {
   if (!date) return locale.value === 'vi' ? 'Không xác định' : 'Unknown'

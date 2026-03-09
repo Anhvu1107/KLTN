@@ -62,6 +62,7 @@ const getPublicSettings = async () => {
         'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube',
         'seo_title', 'seo_description', 'seo_keywords',
         'google_analytics', 'facebook_pixel',
+        'bank_accounts', 'payment_methods',
     ];
 
     return getSettings(publicKeys);
@@ -71,11 +72,15 @@ const getPublicSettings = async () => {
  * Update setting
  */
 const updateSetting = async (key, value) => {
-    const [setting, created] = await SiteSettings.upsert({
-        key,
-        value,
-    });
-    return setting;
+    const existing = await SiteSettings.findOne({ where: { key } });
+    if (existing) {
+        existing.value = value;
+        await existing.save();
+        return existing;
+    } else {
+        const setting = await SiteSettings.create({ key, value });
+        return setting;
+    }
 };
 
 /**

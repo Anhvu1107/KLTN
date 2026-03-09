@@ -105,7 +105,8 @@
     },
     "header": {
         "freeShipping": "Miễn phí vận chuyển & Đổi trả với mọi đơn hàng",
-        "signInOrCreate": "Đăng nhập hoặc Tạo tài khoản"
+        "signInOrCreate": "Đăng nhập hoặc Tạo tài khoản",
+        "hello": "Xin chào"
     },
     "nav": {
         "newArrivals": "Hàng mới",
@@ -297,6 +298,7 @@
         "creditCard": "Thẻ tín dụng",
         "momo": "Ví MoMo",
         "vnpay": "VNPay",
+        "paypalDesc": "Thanh toán quốc tế qua PayPal",
         "orderSummary": "Tóm tắt đơn hàng",
         "placeOrder": "Đặt hàng",
         "processing": "Đang xử lý...",
@@ -356,7 +358,17 @@
         "shippingAddress": "Địa chỉ giao hàng",
         "paymentMethod": "Phương thức thanh toán",
         "itemsOrdered": "Sản phẩm đã đặt",
-        "trackOrder": "Theo dõi đơn"
+        "trackOrder": "Theo dõi đơn",
+        "orderDetail": "Chi tiết đơn hàng",
+        "backToOrders": "Quay lại đơn hàng",
+        "items": "Sản phẩm",
+        "paymentSummary": "Tóm tắt thanh toán",
+        "timeline": "Tiến trình",
+        "orderPlaced": "Đặt hàng",
+        "confirmCancel": "Bạn có chắc muốn hủy đơn hàng này?",
+        "cancelOrder": "Hủy đơn hàng",
+        "viewReceipt": "Xem biên lai",
+        "transactionId": "Mã giao dịch"
     },
     "profile": {
         "title": "Chỉnh sửa hồ sơ",
@@ -528,6 +540,9 @@
         "saveChanges": "Lưu thay đổi",
         "createProductDesc": "Tạo danh sách sản phẩm mới với biến thể",
         "product": "Sản phẩm",
+        "orderDetail": "Chi tiết đơn hàng",
+        "printInvoice": "In hóa đơn",
+        "orderItems": "Sản phẩm trong đơn",
         "settings": {
             "title": "Cấu hình hệ thống",
             "general": "Thông tin chung",
@@ -554,6 +569,20 @@
             "sizesDesc": "Các tùy chọn kích cỡ có sẵn",
             "materials": "Chất liệu",
             "materialsDesc": "Các loại chất liệu có sẵn"
+        },
+        "paymentSettings": {
+            "title": "Cài đặt thanh toán",
+            "subtitle": "Quản lý phương thức thanh toán, tài khoản ngân hàng và cổng thanh toán",
+            "methodsTitle": "Phương thức thanh toán",
+            "bankAccountsTitle": "Tài khoản ngân hàng (Chuyển khoản)",
+            "addBank": "Thêm tài khoản",
+            "noBanks": "Chưa có tài khoản ngân hàng nào",
+            "bankName": "Tên ngân hàng",
+            "accountNumber": "Số tài khoản",
+            "accountHolder": "Chủ tài khoản",
+            "branch": "Chi nhánh",
+            "gatewayTitle": "Cổng thanh toán",
+            "gatewayEnvNote": "Cấu hình qua biến môi trường (.env) trên server"
         },
         "aiConfig": {
             "title": "Cấu hình AI",

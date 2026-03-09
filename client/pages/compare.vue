@@ -5,18 +5,13 @@
  */
 
 import { useCompare } from '~/composables/useCompare'
+import { useCurrency } from '~/composables/useCurrency' // Added this import
 
 const { t } = useI18n()
 const { products, removeProduct, clear } = useCompare()
 
 // Format price
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 // Comparison attributes
 const attributes = computed(() => [

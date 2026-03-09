@@ -47,16 +47,23 @@ onMounted(() => {
     <!-- Top Announcement Bar - Light Version -->
     <div class="bg-neutral-100 text-neutral-700 border-b border-neutral-200">
       <div class="container-aura">
-        <div class="flex items-center justify-between py-2 text-caption">
-          <span class="hidden md:block">{{ t('header.freeShipping') }}</span>
+        <div class="flex items-center justify-end py-2 text-caption">
           <div class="flex items-center gap-6 w-full md:w-auto justify-center md:justify-end">
             <LanguageSwitcher />
+            <CurrencySwitcher />
             <NuxtLink 
               v-if="!isLoggedIn" 
               to="/auth/login" 
               class="hover:text-aura-black transition-colors"
             >
               {{ t('header.signInOrCreate') }}
+            </NuxtLink>
+            <NuxtLink
+              v-else
+              to="/account"
+              class="hover:text-aura-black transition-colors"
+            >
+              {{ t('header.hello') }}, {{ authStore.fullName || authStore.user?.email }}
             </NuxtLink>
           </div>
         </div>
@@ -141,14 +148,20 @@ onMounted(() => {
             <!-- User Account Dropdown -->
             <Menu as="div" class="relative">
               <MenuButton class="p-2 text-neutral-600 hover:text-aura-black transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                <div class="relative">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                  <span
+                    v-if="isLoggedIn"
+                    class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"
                   />
-                </svg>
+                </div>
               </MenuButton>
 
               <transition
@@ -163,6 +176,15 @@ onMounted(() => {
                   class="absolute right-0 mt-2 w-52 bg-aura-white shadow-elevated py-2 focus:outline-none z-50"
                 >
                   <template v-if="isLoggedIn">
+                    <!-- User info header -->
+                    <div class="px-4 py-3 border-b border-neutral-100">
+                      <p class="text-body-sm font-medium text-aura-black truncate">
+                        {{ authStore.fullName || t('common.account') }}
+                      </p>
+                      <p class="text-caption text-neutral-500 truncate">
+                        {{ authStore.user?.email }}
+                      </p>
+                    </div>
                     <MenuItem v-slot="{ active }">
                       <NuxtLink
                         to="/account"

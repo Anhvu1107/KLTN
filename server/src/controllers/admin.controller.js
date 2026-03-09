@@ -78,6 +78,20 @@ const updateOrderStatus = catchAsync(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/admin/orders/:id
+ * Get order detail (admin)
+ */
+const getOrderById = catchAsync(async (req, res) => {
+    const orderService = require('../services/order.service');
+    const order = await orderService.getOrderById(req.params.id);
+
+    res.status(200).json({
+        success: true,
+        data: { order },
+    });
+});
+
+/**
  * GET /api/v1/admin/system-prompts
  * Get all system prompts
  */
@@ -307,6 +321,7 @@ module.exports = {
     getMonthlyRevenue,
     getRecentOrders,
     getAllOrders,
+    getOrderById,
     updateOrderStatus,
     getSystemPrompts,
     getSystemPromptByKey,

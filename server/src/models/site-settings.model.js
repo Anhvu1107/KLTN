@@ -77,6 +77,29 @@ module.exports = (sequelize, DataTypes) => {
         { key: 'google_analytics', value: '', type: 'text', group: 'scripts', label: 'Google Analytics ID' },
         { key: 'facebook_pixel', value: '', type: 'text', group: 'scripts', label: 'Facebook Pixel ID' },
 
+        // Payment
+        {
+            key: 'payment_methods',
+            value: JSON.stringify({
+                cod: { enabled: true, label: 'Thanh toán khi nhận hàng (COD)' },
+                bank_transfer: { enabled: true, label: 'Chuyển khoản ngân hàng' },
+                momo: { enabled: true, label: 'MoMo' },
+                vnpay: { enabled: true, label: 'VNPay' },
+                paypal: { enabled: true, label: 'PayPal' },
+                credit_card: { enabled: true, label: 'Visa / Mastercard / AMEX' },
+            }),
+            type: 'json',
+            group: 'payment',
+            label: 'Phương thức thanh toán',
+        },
+        {
+            key: 'bank_accounts',
+            value: JSON.stringify([]),
+            type: 'json',
+            group: 'payment',
+            label: 'Tài khoản ngân hàng',
+        },
+
         // Product Attributes - Dynamic options for product creation
         {
             key: 'product_brands',

@@ -11,11 +11,13 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const http = require('http');
 
 const routes = require('./src/routes');
 const db = require('./src/models');
 const { errorHandler, notFound } = require('./src/middlewares/error.middleware');
 const logger = require('./src/utils/logger');
+const { initSocket } = require('./src/socket');
 
 // Initialize Express app
 const app = express();
@@ -128,11 +130,33 @@ const startServer = async () => {
 
         // Sync database in development (creates tables if not exist)
         if (process.env.NODE_ENV === 'development') {
+            // Add PAYPAL to payment_method enum (PostgreSQL doesn't auto-add enum values)
+            try {
+                await db.sequelize.query(
+                    `ALTER TYPE "enum_orders_payment_method" ADD VALUE IF NOT EXISTS 'PAYPAL';`
+                );
+            } catch (enumErr) {
+                // Ignore if already exists or enum doesn't exist yet
+            }
+
             await db.syncDatabase({ alter: true });
         }
 
+        // Auto-seed default settings (creates missing settings, won't overwrite existing)
+        try {
+            const siteSettingsService = require('./src/services/site-settings.service');
+            await siteSettingsService.seedDefaultSettings();
+            logger.info('Default settings seeded successfully');
+        } catch (seedError) {
+            logger.warn('Failed to seed default settings:', seedError.message);
+        }
+
+        // Create HTTP server and attach Socket.io
+        const httpServer = http.createServer(app);
+        initSocket(httpServer);
+
         // Start server
-        app.listen(PORT, () => {
+        httpServer.listen(PORT, () => {
             logger.info(`
 ========================================
   AURA ARCHIVE Server Started
@@ -140,6 +164,7 @@ const startServer = async () => {
   Environment: ${process.env.NODE_ENV || 'development'}
   Port: ${PORT}
   API: http://localhost:${PORT}/api/v1
+  WebSocket: Enabled (Socket.io)
   Health: http://localhost:${PORT}/api/v1/health
 ========================================
       `);

@@ -1,15 +1,13 @@
 # AURA ARCHIVE - AI Stylist Service
-# Python FastAPI with OpenAI integration
+# Python FastAPI with Hybrid AI (Trained KB + Optional API)
 
 # Web Framework
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 
-# AI/ML Libraries
+# AI/ML Libraries (Optional — chatbot works without API keys)
 openai>=1.50.0
-langchain>=0.3.0
-langchain-openai>=0.2.0
-langchain-community>=0.3.0
+google-generativeai>=0.8.0
 
 # Data Processing
 pandas>=2.2.0

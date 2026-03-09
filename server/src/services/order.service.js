@@ -10,11 +10,6 @@ const { Op } = require('sequelize');
 /**
  * Create a new order with transaction support
  * Implements the "Unique Item" logic for resell platform
- * 
- * @param {string} userId - User ID
- * @param {Array} items - Array of { variantId, quantity }
- * @param {Object} orderData - { paymentMethod, shippingAddress, notes }
- * @returns {Object} - Created order with items
  */
 const createOrder = async (userId, items, orderData) => {
     const transaction = await sequelize.transaction();
@@ -23,7 +18,7 @@ const createOrder = async (userId, items, orderData) => {
         // Step 1: Validate and lock variants
         const variantIds = items.map(item => item.variantId);
 
-        // Fetch variants and lock for update (without joins to avoid FOR UPDATE error)
+        // Lock variants first (without joins to avoid FOR UPDATE error)
         await Variant.findAll({
             where: { id: { [Op.in]: variantIds } },
             lock: transaction.LOCK.UPDATE,
@@ -70,7 +65,7 @@ const createOrder = async (userId, items, orderData) => {
                 variant_size: variant.size,
                 variant_color: variant.color,
                 price: price,
-                quantity: 1, // Always 1 for resell items
+                quantity: 1,
                 total: price,
             });
         }
@@ -79,9 +74,16 @@ const createOrder = async (userId, items, orderData) => {
         const discountAmount = orderData.discountAmount || 0;
         const totalAmount = subtotal + shippingFee - discountAmount;
 
-        // Step 3: Create order
+        // Step 3: Generate order number
+        const date = new Date();
+        const prefix = `AA${date.getFullYear().toString().slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const random = Math.floor(1000 + Math.random() * 9000);
+        const orderNumber = `${prefix}${random}`;
+
+        // Step 4: Create order
         const order = await Order.create({
             user_id: userId,
+            order_number: orderNumber,
             status: 'PENDING',
             subtotal,
             shipping_fee: shippingFee,
@@ -136,7 +138,6 @@ const createOrder = async (userId, items, orderData) => {
         return completeOrder;
 
     } catch (error) {
-        // Rollback transaction on error
         await transaction.rollback();
         throw error;
     }

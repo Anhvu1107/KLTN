@@ -20,10 +20,12 @@ const menuItems = computed(() => [
   { path: '/admin/popups', label: t('admin.popups.title'), icon: 'popup' },
   { path: '/admin/abandoned-carts', label: t('admin.abandonedCarts.title'), icon: 'cart-abandon' },
   { path: '/admin/settings', label: t('admin.settings.title'), icon: 'cog' },
-  { path: '/admin/ai-config', label: t('admin.aiConfig'), icon: 'robot' },
+  { path: '/admin/settings/payments', label: t('admin.paymentSettings.title'), icon: 'credit-card' },
+  { path: '/admin/ai-config', label: t('admin.aiConfig.title'), icon: 'robot' },
+  { path: '/admin/chats', label: 'Quản lý Chat AI', icon: 'chat' },
 ])
 
-const isActive = (path: string) => route.path.startsWith(path)
+const isActive = (path: string) => route.path === path
 </script>
 
 <template>
@@ -39,15 +41,16 @@ const isActive = (path: string) => route.path.startsWith(path)
     <!-- Language Switcher -->
     <div class="px-6 py-3 border-b border-neutral-800">
       <LanguageSwitcher />
+      <CurrencySwitcher />
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 p-4 overflow-y-auto">
+    <nav class="flex-1 px-3 py-2 overflow-y-auto sidebar-nav">
       <ul class="space-y-1">
         <li v-for="item in menuItems" :key="item.path">
           <NuxtLink
             :to="item.path"
-            class="flex items-center gap-3 px-4 py-3 rounded-sm transition-colors"
+            class="flex items-center gap-3 px-3 py-2 rounded-sm transition-colors"
             :class="isActive(item.path) ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'"
           >
             <!-- Icons -->
@@ -88,6 +91,12 @@ const isActive = (path: string) => route.path.startsWith(path)
             <svg v-else-if="item.icon === 'cart-abandon'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
+            <svg v-else-if="item.icon === 'credit-card'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            <svg v-else-if="item.icon === 'chat'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
             <span class="text-body-sm">{{ item.label }}</span>
           </NuxtLink>
         </li>
@@ -105,3 +114,14 @@ const isActive = (path: string) => route.path.startsWith(path)
     </div>
   </aside>
 </template>
+
+<style scoped>
+.sidebar-nav::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+.sidebar-nav {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>
