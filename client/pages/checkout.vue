@@ -7,9 +7,10 @@
 import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
 import { useI18n } from '#imports'
-import { VIETNAM_CITIES, DEFAULT_CITY, getShippingFee } from '~/utils/constants'
+import { VIETNAM_CITIES, DEFAULT_CITY } from '~/utils/constants'
 
 const { t } = useI18n()
+const config = useRuntimeConfig()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const router = useRouter()
@@ -26,30 +27,62 @@ const shippingForm = reactive({
 })
 
 const paymentMethod = ref('COD')
-const shippingFee = computed(() => getShippingFee(shippingForm.city))
+const shippingFee = ref(30000)
 const isProcessing = ref(false)
 const error = ref('')
+
+// Enabled payment methods from admin settings
+const enabledMethods = ref<Record<string, { enabled: boolean }>>({})
 
 // Computed
 const total = computed(() => cartStore.subtotal + shippingFee.value)
 
 const cities = VIETNAM_CITIES
 
-// Payment methods with i18n labels
-const paymentMethods = computed(() => [
-  { value: 'COD', label: t('checkout.cod') },
-  { value: 'BANK_TRANSFER', label: t('checkout.bankTransfer') },
-  { value: 'MOMO', label: t('checkout.momo') },
-  { value: 'VNPAY', label: t('checkout.vnpay') },
+// All possible payment methods
+const allPaymentMethods = computed(() => [
+  { value: 'COD', key: 'cod', label: t('checkout.cod'), icon: '🚚' },
+  { value: 'BANK_TRANSFER', key: 'bank_transfer', label: t('checkout.bankTransfer'), icon: '🏦' },
+  { value: 'MOMO', key: 'momo', label: 'MoMo', icon: '📱' },
+  { value: 'VNPAY', key: 'vnpay', label: 'VNPay', icon: '💳' },
+  { value: 'PAYPAL', key: 'paypal', label: 'PayPal', icon: '🌐', desc: t('checkout.paypalDesc') },
+  { value: 'CREDIT_CARD', key: 'credit_card', label: t('checkout.creditCard'), icon: '💳', desc: 'Visa / Mastercard / AMEX' },
 ])
 
-// Format price
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
+// Filter by admin-enabled methods
+const paymentMethods = computed(() => {
+  if (Object.keys(enabledMethods.value).length === 0) return allPaymentMethods.value
+  return allPaymentMethods.value.filter(m => enabledMethods.value[m.key]?.enabled !== false)
+})
+
+// Fetch payment settings from server
+const fetchPaymentSettings = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/settings`
+    )
+    const settings = res.data?.settings || res.data || {}
+
+    // Public API returns flat: { payment_methods: "...", ... }
+    if (settings.payment_methods) {
+      try {
+        enabledMethods.value = JSON.parse(settings.payment_methods)
+      } catch (e) {}
+    }
+
+    // Auto-select first enabled method
+    if (paymentMethods.value.length > 0 && !paymentMethods.value.find(m => m.value === paymentMethod.value)) {
+      paymentMethod.value = paymentMethods.value[0].value
+    }
+  } catch (e) {
+    console.error('Failed to fetch payment settings:', e)
+  }
 }
+
+onMounted(fetchPaymentSettings)
+
+// Format price
+const { formatPrice } = useCurrency()
 
 // Checkout handler
 const handleCheckout = async () => {
@@ -76,22 +109,68 @@ const handleCheckout = async () => {
       return
     }
 
-    // Process checkout
+    // Map CREDIT_CARD to PAYPAL on backend (PayPal handles card payments)
+    const backendPaymentMethod = paymentMethod.value === 'CREDIT_CARD' ? 'PAYPAL' : paymentMethod.value
+
+    // Process checkout — create order
     const result = await cartStore.checkout({
-      paymentMethod: paymentMethod.value,
+      paymentMethod: backendPaymentMethod,
       shippingAddress: { ...shippingForm },
       shippingFee: shippingFee.value,
       notes: shippingForm.notes,
     })
 
-    if (result.success) {
-      // Redirect to order confirmation
-      navigateTo(`/account/orders?new=${result.order.id}`)
-    } else {
-      error.value = result.error || t('checkout.checkoutFailed')
+    if (!result.success) {
+      error.value = t('checkout.checkoutFailed')
+      return
     }
+
+    const orderId = result.order?.id
+    const token = localStorage.getItem('token')
+
+    // Handle payment redirect based on method
+    if (paymentMethod.value === 'VNPAY' && orderId) {
+      try {
+        const res = await $fetch<{ success: boolean; data: { paymentUrl: string } }>(
+          `${config.public.apiUrl}/payments/vnpay/create`,
+          { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId } }
+        )
+        if (res.success && res.data.paymentUrl) {
+          window.location.href = res.data.paymentUrl
+          return
+        }
+      } catch (e: any) { console.error('VNPay error:', e) }
+
+    } else if (paymentMethod.value === 'MOMO' && orderId) {
+      try {
+        const res = await $fetch<{ success: boolean; data: { payUrl: string } }>(
+          `${config.public.apiUrl}/payments/momo/create`,
+          { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId } }
+        )
+        if (res.success && res.data.payUrl) {
+          window.location.href = res.data.payUrl
+          return
+        }
+      } catch (e: any) { console.error('MoMo error:', e) }
+
+    } else if ((paymentMethod.value === 'PAYPAL' || paymentMethod.value === 'CREDIT_CARD') && orderId) {
+      try {
+        const res = await $fetch<{ success: boolean; data: { approvalUrl: string } }>(
+          `${config.public.apiUrl}/payments/paypal/create`,
+          { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId } }
+        )
+        if (res.success && res.data.approvalUrl) {
+          window.location.href = res.data.approvalUrl
+          return
+        }
+      } catch (e: any) { console.error('PayPal error:', e) }
+    }
+
+    // COD / Bank Transfer / gateway failed → go to order detail
+    navigateTo(`/account/orders/${orderId}`)
   } catch (err: any) {
-    error.value = err.message || t('errors.somethingWrong')
+    // Show user-friendly message instead of raw technical errors
+    error.value = t('checkout.checkoutFailed')
   } finally {
     isProcessing.value = false
   }
@@ -212,7 +291,7 @@ useSeoMeta({
             <div class="space-y-2 text-body-sm">
               <div class="flex justify-between">
                 <span class="text-neutral-600">{{ $t('cart.subtotal') }}</span>
-                <span>{{ cartStore.formattedSubtotal }}</span>
+                <span>{{ formatPrice(cartStore.subtotal) }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-neutral-600">{{ $t('cart.shipping') }}</span>

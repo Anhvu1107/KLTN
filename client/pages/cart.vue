@@ -19,12 +19,7 @@ const appliedCoupon = ref<{
 } | null>(null)
 
 // Format price
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 // Remove item
 const removeItem = (variantId: string) => {
@@ -179,7 +174,7 @@ useSeoMeta({
             <div class="space-y-3 text-body-sm mb-6">
               <div class="flex justify-between">
                 <span class="text-neutral-600">{{ $t('cart.items') }} ({{ cartStore.itemCount }})</span>
-                <span>{{ cartStore.formattedSubtotal }}</span>
+                <span>{{ formatPrice(cartStore.subtotal) }}</span>
               </div>
               <div v-if="appliedCoupon" class="flex justify-between text-green-600">
                 <span>{{ $t('cart.discount') }} ({{ appliedCoupon.code }})</span>

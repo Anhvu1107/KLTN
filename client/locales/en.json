@@ -107,7 +107,8 @@
     },
     "header": {
         "freeShipping": "Free Shipping & Returns On All Orders",
-        "signInOrCreate": "Sign In or Create Account"
+        "signInOrCreate": "Sign In or Create Account",
+        "hello": "Hello"
     },
     "nav": {
         "newArrivals": "New Arrivals",
@@ -299,6 +300,7 @@
         "creditCard": "Credit Card",
         "momo": "MoMo Wallet",
         "vnpay": "VNPay",
+        "paypalDesc": "International payment via PayPal",
         "orderSummary": "Order Summary",
         "placeOrder": "Place Order",
         "processing": "Processing...",
@@ -358,7 +360,17 @@
         "shippingAddress": "Shipping Address",
         "paymentMethod": "Payment Method",
         "itemsOrdered": "Items Ordered",
-        "trackOrder": "Track Order"
+        "trackOrder": "Track Order",
+        "orderDetail": "Order Detail",
+        "backToOrders": "Back to Orders",
+        "items": "Items",
+        "paymentSummary": "Payment Summary",
+        "timeline": "Timeline",
+        "orderPlaced": "Order placed",
+        "confirmCancel": "Are you sure you want to cancel this order?",
+        "cancelOrder": "Cancel Order",
+        "viewReceipt": "View Receipt",
+        "transactionId": "Transaction ID"
     },
     "profile": {
         "title": "Edit Profile",
@@ -548,6 +560,20 @@
             "sizesDesc": "Available size options",
             "materials": "Materials",
             "materialsDesc": "Available material types"
+        },
+        "paymentSettings": {
+            "title": "Payment Settings",
+            "subtitle": "Manage payment methods, bank accounts, and payment gateways",
+            "methodsTitle": "Payment Methods",
+            "bankAccountsTitle": "Bank Accounts (Bank Transfer)",
+            "addBank": "Add Account",
+            "noBanks": "No bank accounts added yet",
+            "bankName": "Bank Name",
+            "accountNumber": "Account Number",
+            "accountHolder": "Account Holder",
+            "branch": "Branch",
+            "gatewayTitle": "Payment Gateways",
+            "gatewayEnvNote": "Configured via environment variables (.env) on the server"
         },
         "aiConfig": {
             "title": "AI Configuration",

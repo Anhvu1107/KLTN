@@ -70,12 +70,7 @@ const deleteProduct = async (id: number) => {
 }
 
 // Format helpers
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 const getStatusClass = (status: string) => {
   switch (status) {

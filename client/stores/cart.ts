@@ -225,8 +225,8 @@ export const useCartStore = defineStore('cart', {
 
                 return { success: false, error: response.message || 'Checkout failed' }
             } catch (error: any) {
-                const message = error?.data?.message || error?.message || 'Checkout failed'
-                return { success: false, error: message }
+                console.error('Checkout error:', error?.data?.message || error?.message)
+                return { success: false, error: 'Checkout failed' }
             } finally {
                 this.isLoading = false
             }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Payment Success Page
- * AURA ARCHIVE - Successful payment confirmation
+ * AURA ARCHIVE - Successful payment confirmation with receipt link
  */
 
 import { useI18n } from '#imports'
@@ -32,10 +32,17 @@ useSeoMeta({
       </p>
 
       <div class="space-y-3">
-        <NuxtLink :to="`/account/orders`" class="btn-primary w-full block text-center">
+        <NuxtLink
+          v-if="orderId"
+          :to="`/account/orders/${orderId}`"
+          class="btn-primary w-full block text-center"
+        >
+          {{ $t('orders.viewReceipt') || 'View Receipt' }}
+        </NuxtLink>
+        <NuxtLink :to="`/account/orders`" class="btn-secondary w-full block text-center">
           {{ $t('payment.viewOrders') }}
         </NuxtLink>
-        <NuxtLink to="/shop" class="btn-secondary w-full block text-center">
+        <NuxtLink to="/shop" class="text-body-sm text-neutral-600 hover:text-aura-black block text-center mt-2">
           {{ $t('payment.continueShopping') }}
         </NuxtLink>
       </div>

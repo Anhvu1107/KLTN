@@ -25,6 +25,7 @@ router.get('/revenue/monthly', adminController.getMonthlyRevenue);
 // Orders management
 router.get('/orders', adminController.getAllOrders);
 router.get('/orders/recent', adminController.getRecentOrders);
+router.get('/orders/:id', adminController.getOrderById);
 router.patch('/orders/:id/status', adminController.updateOrderStatus);
 
 // System prompts (AI configuration)
@@ -121,6 +122,68 @@ router.patch('/abandoned-carts/:id/note', async (req, res) => {
     const cart = await abandonedCartService.addNote(req.params.id, req.body.note);
     res.json({ success: true, data: { cart } });
 });
+
+// Chat management
+const chatAdminService = require('../../services/chat-admin.service');
+const catchAsync = require('../../utils/catchAsync');
+
+router.get('/chats', catchAsync(async (req, res) => {
+    // Auto-sync sessions from logs on first visit
+    await chatAdminService.syncSessionsFromLogs();
+
+    const { page, limit, search, filter } = req.query;
+    const result = await chatAdminService.getSessions({
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 30,
+        search,
+        filter,
+    });
+    res.json({ success: true, data: result });
+}));
+
+router.get('/chats/:sessionId', catchAsync(async (req, res) => {
+    const result = await chatAdminService.getSessionMessages(req.params.sessionId);
+    res.json({ success: true, data: result });
+}));
+
+router.get('/chats/:sessionId/search', catchAsync(async (req, res) => {
+    const messages = await chatAdminService.searchMessages(req.params.sessionId, req.query.q);
+    res.json({ success: true, data: { messages } });
+}));
+
+router.patch('/chats/:sessionId/read', catchAsync(async (req, res) => {
+    const session = await chatAdminService.markRead(req.params.sessionId);
+    res.json({ success: true, data: { session } });
+}));
+
+router.patch('/chats/:sessionId/pause-ai', catchAsync(async (req, res) => {
+    const session = await chatAdminService.toggleAiPause(req.params.sessionId);
+    res.json({ success: true, data: { session } });
+}));
+
+router.patch('/chats/:sessionId/join', catchAsync(async (req, res) => {
+    const session = await chatAdminService.joinRoom(req.params.sessionId);
+    res.json({ success: true, data: { session } });
+}));
+
+router.patch('/chats/:sessionId/leave', catchAsync(async (req, res) => {
+    const session = await chatAdminService.leaveRoom(req.params.sessionId);
+    res.json({ success: true, data: { session } });
+}));
+
+router.put('/chats/:sessionId/customer', catchAsync(async (req, res) => {
+    const session = await chatAdminService.saveCustomerInfo(req.params.sessionId, req.body);
+    res.json({ success: true, data: { session } });
+}));
+
+router.post('/chats/:sessionId/message', catchAsync(async (req, res) => {
+    const { content } = req.body;
+    if (!content || !content.trim()) {
+        return res.status(400).json({ success: false, message: 'Content is required' });
+    }
+    const message = await chatAdminService.sendAdminMessage(req.params.sessionId, content.trim());
+    res.json({ success: true, data: { message } });
+}));
 
 // File uploads
 router.post('/upload/product-images', uploadProductImages.array('images', 5), adminController.uploadProductImages);

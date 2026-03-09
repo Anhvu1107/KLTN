@@ -1,6 +1,6 @@
 """
 Core Configuration
-AURA ARCHIVE - AI Service settings
+AURA ARCHIVE - AI Service settings with hybrid chatbot support
 """
 
 from pydantic_settings import BaseSettings
@@ -13,11 +13,19 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     
-    # OpenAI
+    # AI API Keys (optional — chatbot works without them)
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     
-    # Backend API
+    # Chatbot mode: "auto" | "api_only" | "trained_only"
+    # auto = use API if key available, fallback to trained
+    # api_only = only use API (fail if no key)
+    # trained_only = only use trained knowledge base
+    CHATBOT_MODE: str = "auto"
+    
+    # Backend API (for product search)
     BACKEND_URL: str = "http://localhost:5000"
     
     # Database (optional for direct access)

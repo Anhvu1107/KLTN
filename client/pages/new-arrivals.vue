@@ -25,13 +25,7 @@ const products = computed(() => data.value?.data?.products || [])
 const pagination = computed(() => data.value?.data?.pagination || { total: 0, page: 1, totalPages: 1 })
 
 // Format price
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 // Get variant status
 const getVariantStatus = (product: any) => {

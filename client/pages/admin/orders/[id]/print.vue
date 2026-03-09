@@ -33,9 +33,7 @@ const fetchOrder = async () => {
 }
 
 // Format
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price * 24000)
-}
+const { formatPrice } = useCurrency()
 
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleDateString('vi-VN', {

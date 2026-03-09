@@ -22,21 +22,3 @@ export const VIETNAM_CITIES = [
 ] as const
 
 export const DEFAULT_CITY = 'TP. Hồ Chí Minh'
-
-// Shipping fee tiers (USD)
-const MAJOR_CITIES = ['TP. Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng']
-const TIER_2_CITIES = ['Cần Thơ', 'Hải Phòng', 'Bình Dương', 'Đồng Nai', 'Bà Rịa - Vũng Tàu', 'Khánh Hòa', 'Thừa Thiên Huế']
-
-export const SHIPPING_FEES = {
-    MAJOR_CITY: 3,      // TP.HCM, Hà Nội, Đà Nẵng
-    TIER_2: 5,           // Các thành phố lớn khác
-    PROVINCE: 7,         // Các tỉnh còn lại
-    INTERNATIONAL: 15,   // Quốc tế
-} as const
-
-export function getShippingFee(city: string): number {
-    if (city === 'Khác (Quốc tế)') return SHIPPING_FEES.INTERNATIONAL
-    if (MAJOR_CITIES.includes(city)) return SHIPPING_FEES.MAJOR_CITY
-    if (TIER_2_CITIES.includes(city)) return SHIPPING_FEES.TIER_2
-    return SHIPPING_FEES.PROVINCE
-}

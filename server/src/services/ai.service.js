@@ -4,8 +4,10 @@
  */
 
 const axios = require('axios');
-const { SystemPrompt, ChatLog } = require('../models');
+const { SystemPrompt, ChatLog, ChatSession } = require('../models');
 const logger = require('../utils/logger');
+const chatAdminService = require('./chat-admin.service');
+const { emitNewMessage } = require('../socket');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
@@ -47,6 +49,24 @@ const getGreeting = async () => {
  */
 const chat = async (message, sessionId, userId = null, context = null) => {
     try {
+        // Check if AI is paused for this session
+        const isPaused = await chatAdminService.isAiPaused(sessionId);
+        if (isPaused) {
+            // Log user message even when paused (admin will reply manually)
+            await logMessage(userId, sessionId, 'USER', message);
+            await chatAdminService.updateSessionStats(sessionId, message, userId);
+
+            // Emit real-time event so admin sees the message immediately
+            emitNewMessage(sessionId, { role: 'USER', content: message });
+
+            return {
+                success: true,
+                message: null,
+                sessionId,
+                metadata: { paused: true },
+            };
+        }
+
         // Get current persona from database
         const systemPrompt = await getPersona();
 
@@ -66,11 +86,16 @@ const chat = async (message, sessionId, userId = null, context = null) => {
 
         const aiResponse = response.data;
 
-        // Log the conversation
-        if (userId) {
-            await logMessage(userId, sessionId, 'user', message);
-            await logMessage(userId, sessionId, 'assistant', aiResponse.message);
-        }
+        // Log the conversation (always, including guests)
+        await logMessage(userId, sessionId, 'USER', message);
+        await logMessage(userId, sessionId, 'ASSISTANT', aiResponse.message);
+
+        // Emit real-time events
+        emitNewMessage(sessionId, { role: 'USER', content: message });
+        emitNewMessage(sessionId, { role: 'ASSISTANT', content: aiResponse.message });
+
+        // Update session stats for admin view
+        await chatAdminService.updateSessionStats(sessionId, aiResponse.message, userId);
 
         return {
             success: true,
@@ -82,10 +107,20 @@ const chat = async (message, sessionId, userId = null, context = null) => {
     } catch (error) {
         logger.error('AI Service Error:', error.message);
 
+        // Still log the user message and update session even on error
+        const fallbackMessage = "I apologize, but I'm having trouble connecting right now. Please try again in a moment.";
+        try {
+            await logMessage(userId, sessionId, 'USER', message);
+            await logMessage(userId, sessionId, 'ASSISTANT', fallbackMessage);
+            await chatAdminService.updateSessionStats(sessionId, message, userId);
+        } catch (logError) {
+            logger.error('Failed to log error chat:', logError.message);
+        }
+
         // Return fallback message
         return {
             success: false,
-            message: "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
+            message: fallbackMessage,
             sessionId,
             error: error.message,
         };
@@ -113,9 +148,8 @@ const logMessage = async (userId, sessionId, role, content) => {
  */
 const getChatHistory = async (sessionId, userId = null) => {
     const where = { session_id: sessionId };
-    if (userId) {
-        where.user_id = userId;
-    }
+    // Don't filter by user_id — admin messages have user_id: null
+    // and should still appear in the chat history for all participants
 
     const messages = await ChatLog.findAll({
         where,

@@ -58,9 +58,7 @@ const updateStatus = async (newStatus: string) => {
 }
 
 // Formats
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price * 24000)
-}
+const { formatPrice } = useCurrency()
 
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -82,6 +80,40 @@ const getStatusClass = (status: string) => {
     CANCELLED: 'bg-red-100 text-red-800',
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
+}
+
+const statusLabel = (s: string) => {
+  const map: Record<string, string> = {
+    PENDING: t('orders.pending'),
+    CONFIRMED: t('orders.confirmed'),
+    PROCESSING: t('orders.processing'),
+    SHIPPED: t('orders.shipped'),
+    DELIVERED: t('orders.delivered'),
+    CANCELLED: t('orders.cancelled'),
+  }
+  return map[s] || s
+}
+
+const paymentStatusLabel = (s: string) => {
+  const map: Record<string, string> = {
+    PENDING: 'Chờ thanh toán',
+    PAID: 'Đã thanh toán',
+    FAILED: 'Thất bại',
+    REFUNDED: 'Đã hoàn tiền',
+  }
+  return map[s] || s
+}
+
+const paymentMethodLabel = (s: string) => {
+  const map: Record<string, string> = {
+    COD: 'Thanh toán khi nhận hàng',
+    BANK_TRANSFER: 'Chuyển khoản ngân hàng',
+    CREDIT_CARD: 'Thẻ tín dụng',
+    MOMO: 'MoMo',
+    VNPAY: 'VNPay',
+    PAYPAL: 'PayPal',
+  }
+  return map[s] || s
 }
 
 onMounted(fetchOrder)
@@ -124,7 +156,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
               <p class="text-body-sm text-neutral-500">{{ formatDate(order.created_at) }}</p>
             </div>
             <span :class="getStatusClass(order.status)" class="px-3 py-1 rounded text-body-sm">
-              {{ order.status }}
+              {{ statusLabel(order.status) }}
             </span>
           </div>
 
@@ -137,7 +169,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
               :disabled="isUpdating"
               class="input-field w-auto"
             >
-              <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
+              <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
             </select>
           </div>
         </div>
@@ -157,7 +189,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
               <div class="flex-1">
                 <p class="font-medium">{{ item.product?.name }}</p>
                 <p class="text-body-sm text-neutral-500">
-                  Size: {{ item.variant?.size }} | Color: {{ item.variant?.color }}
+                  Size: {{ item.variant?.size }} | Màu: {{ item.variant?.color }}
                 </p>
                 <p class="text-caption text-neutral-400">SKU: {{ item.variant?.sku || 'N/A' }}</p>
               </div>
@@ -195,27 +227,27 @@ useSeoMeta({ title: 'Order Detail | Admin' })
           <h3 class="font-medium mb-4">{{ t('checkout.paymentMethod') }}</h3>
           <div class="space-y-2 text-body-sm">
             <div class="flex justify-between">
-              <span class="text-neutral-500">Method:</span>
-              <span>{{ order.payment_method }}</span>
+              <span class="text-neutral-500">Phương thức:</span>
+              <span>{{ paymentMethodLabel(order.payment_method) }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-neutral-500">Status:</span>
-              <span>{{ order.payment_status }}</span>
+              <span class="text-neutral-500">Trạng thái:</span>
+              <span>{{ paymentStatusLabel(order.payment_status) }}</span>
             </div>
             <div class="flex justify-between pt-2 border-t">
-              <span class="text-neutral-500">Subtotal:</span>
+              <span class="text-neutral-500">Tạm tính:</span>
               <span>{{ formatPrice(order.subtotal) }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-neutral-500">Shipping:</span>
+              <span class="text-neutral-500">Phí vận chuyển:</span>
               <span>{{ formatPrice(order.shipping_fee || 0) }}</span>
             </div>
             <div v-if="order.discount_amount" class="flex justify-between text-green-600">
-              <span>Discount:</span>
+              <span>Giảm giá:</span>
               <span>-{{ formatPrice(order.discount_amount) }}</span>
             </div>
             <div class="flex justify-between font-medium text-lg pt-2 border-t">
-              <span>Total:</span>
+              <span>Tổng cộng:</span>
               <span>{{ formatPrice(order.total_amount) }}</span>
             </div>
           </div>

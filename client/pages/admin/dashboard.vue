@@ -95,24 +95,23 @@ const chartOptions = {
     y: {
       beginAtZero: true,
       ticks: {
-        callback: (value: string | number) => `$${Number(value).toLocaleString()}`,
+        callback: (value: string | number) => formatPrice(Number(value)),
       },
     },
   },
 } as const
 
 // Format helpers
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
+  if (!date) return '—'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   })
@@ -128,6 +127,18 @@ const getStatusClass = (status: string) => {
     CANCELLED: 'bg-red-100 text-red-800',
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
+}
+
+const statusLabel = (s: string) => {
+  const map: Record<string, string> = {
+    PENDING: t('orders.pending'),
+    CONFIRMED: t('orders.confirmed'),
+    PROCESSING: t('orders.processing'),
+    SHIPPED: t('orders.shipped'),
+    DELIVERED: t('orders.delivered'),
+    CANCELLED: t('orders.cancelled'),
+  }
+  return map[s] || s
 }
 
 useSeoMeta({
@@ -192,7 +203,7 @@ useSeoMeta({
               <span class="text-body-sm">{{ $t('admin.products') }}</span>
             </NuxtLink>
             <NuxtLink to="/admin/ai-config" class="block p-3 bg-neutral-50 hover:bg-neutral-100 rounded-sm transition-colors">
-              <span class="text-body-sm">{{ $t('admin.aiConfig') }}</span>
+              <span class="text-body-sm">{{ $t('admin.aiConfig.title') }}</span>
             </NuxtLink>
             <NuxtLink to="/admin/users" class="block p-3 bg-neutral-50 hover:bg-neutral-100 rounded-sm transition-colors">
               <span class="text-body-sm">{{ $t('admin.userManagement') }}</span>
@@ -230,15 +241,15 @@ useSeoMeta({
           </thead>
           <tbody>
             <tr v-for="order in recentOrders" :key="order.id" class="border-b border-neutral-100">
-              <td class="py-4 text-body-sm font-mono">{{ order.id.slice(0, 8) }}...</td>
+              <td class="py-4 text-body-sm font-mono">{{ order.order_number || order.id.slice(0, 8) + '...' }}</td>
               <td class="py-4 text-body-sm">{{ order.user?.email || 'N/A' }}</td>
               <td class="py-4 text-body-sm font-medium">{{ formatPrice(order.total_amount) }}</td>
               <td class="py-4">
                 <span :class="getStatusClass(order.status)" class="px-2 py-1 text-caption rounded-sm">
-                  {{ order.status }}
+                  {{ statusLabel(order.status) }}
                 </span>
               </td>
-              <td class="py-4 text-body-sm text-neutral-600">{{ formatDate(order.created_at) }}</td>
+              <td class="py-4 text-body-sm text-neutral-600">{{ formatDate(order.created_at || order.createdAt) }}</td>
             </tr>
           </tbody>
         </table>

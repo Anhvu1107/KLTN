@@ -60,12 +60,7 @@ const addToCart = (item: any) => {
   })
 }
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(price)
-}
+const { formatPrice } = useCurrency()
 
 useSeoMeta({
   title: 'Wishlist | AURA ARCHIVE',
