@@ -1,0 +1,42 @@
+/**
+ * Status Constants
+ * AURA ARCHIVE - Order and variant statuses
+ */
+
+const VARIANT_STATUS = {
+    AVAILABLE: 'AVAILABLE',
+    RESERVED: 'RESERVED',
+    SOLD: 'SOLD',
+};
+
+const ORDER_STATUS = {
+    PENDING: 'PENDING',
+    CONFIRMED: 'CONFIRMED',
+    PROCESSING: 'PROCESSING',
+    SHIPPED: 'SHIPPED',
+    DELIVERED: 'DELIVERED',
+    CANCELLED: 'CANCELLED',
+    REFUNDED: 'REFUNDED',
+};
+
+const PAYMENT_STATUS = {
+    PENDING: 'PENDING',
+    PAID: 'PAID',
+    FAILED: 'FAILED',
+    REFUNDED: 'REFUNDED',
+};
+
+const PAYMENT_METHOD = {
+    COD: 'COD',
+    BANK_TRANSFER: 'BANK_TRANSFER',
+    CREDIT_CARD: 'CREDIT_CARD',
+    MOMO: 'MOMO',
+    VNPAY: 'VNPAY',
+};
+
+module.exports = {
+    VARIANT_STATUS,
+    ORDER_STATUS,
+    PAYMENT_STATUS,
+    PAYMENT_METHOD,
+};

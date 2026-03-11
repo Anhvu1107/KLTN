@@ -1,0 +1,23 @@
+# Development Dockerfile - Express.js Server with Hot Reload
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install nodemon globally for hot reload
+RUN npm install -g nodemon
+
+# Copy package files and install ALL dependencies (including devDependencies)
+COPY package*.json ./
+RUN npm install
+
+# Source code will be mounted as volume
+# No COPY . . here - we use volume mount instead
+
+# Expose port
+EXPOSE 5000
+
+# Set development environment
+ENV NODE_ENV=development
+
+# Start with nodemon for hot reload
+CMD ["nodemon", "--watch", ".", "--ext", "js,json", "server.js"]
