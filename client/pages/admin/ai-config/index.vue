@@ -279,7 +279,7 @@ useSeoMeta({
 
     <!-- ====== TAB 1: PROMPT ====== -->
     <div v-else-if="activeTab === 'prompt'" class="space-y-6">
-      <div class="bg-white rounded-sm border border-neutral-200 p-6">
+      <div class="card p-6">
         <!-- AI Name + Role Description -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
@@ -366,7 +366,7 @@ useSeoMeta({
     <!-- ====== TAB 2: APPEARANCE ====== -->
     <div v-else-if="activeTab === 'appearance'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Settings Panel -->
-      <div class="bg-white rounded-sm border border-neutral-200 p-6 space-y-6">
+      <div class="card p-6 space-y-6">
         <!-- Chatbot Name -->
         <div>
           <label class="block text-body-sm text-neutral-700 font-medium mb-2">{{ t('admin.aiConfig.chatbotName') }}</label>

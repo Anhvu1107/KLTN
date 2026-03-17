@@ -164,7 +164,7 @@ useSeoMeta({
     </div>
 
     <!-- Table -->
-    <div v-else class="bg-white rounded-sm shadow-card overflow-hidden">
+    <div v-else class="card overflow-hidden">
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>

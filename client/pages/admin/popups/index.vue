@@ -102,7 +102,7 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="popup in popups" :key="popup.id" class="bg-white border rounded-sm p-4">
+      <div v-for="popup in popups" :key="popup.id" class="card p-4">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-medium">{{ popup.name }}</h3>
           <span :class="popup.is_active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'" class="px-2 py-1 text-caption rounded">

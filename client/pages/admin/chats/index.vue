@@ -11,6 +11,7 @@ definePageMeta({
 
 import { useSocket } from '~/composables/useSocket'
 
+const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
 const token = computed(() => authStore.token)
@@ -260,10 +261,10 @@ const saveCustomerInfo = async () => {
         body: customerForm.value,
       }
     )
-    saveMessage.value = 'Đã lưu thành công!'
+    saveMessage.value = t('admin.chatManagement.saveSuccess')
     setTimeout(() => { saveMessage.value = '' }, 2000)
   } catch (e: any) {
-    saveMessage.value = 'Lưu thất bại!'
+    saveMessage.value = t('admin.chatManagement.saveFailed')
   } finally {
     isSavingCustomer.value = false
   }
@@ -287,17 +288,17 @@ const formatRelativeTime = (dateStr: string) => {
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
 
-  if (minutes < 1) return 'vừa xong'
-  if (minutes < 60) return `${minutes} phút trước`
-  if (hours < 24) return `${hours} giờ trước`
-  if (days < 7) return `${days} ngày trước`
-  return date.toLocaleDateString('vi-VN')
+  if (minutes < 1) return t('admin.chatManagement.justNow')
+  if (minutes < 60) return t('admin.chatManagement.minutesAgo', { n: minutes })
+  if (hours < 24) return t('admin.chatManagement.hoursAgo', { n: hours })
+  if (days < 7) return t('admin.chatManagement.daysAgo', { n: days })
+  return date.toLocaleDateString(locale.value === 'vi' ? 'vi-VN' : 'en-US')
 }
 
 const formatMessageTime = (dateStr: string) => {
   if (!dateStr) return ''
   const d = new Date(dateStr)
-  return d.toLocaleString('vi-VN', {
+  return d.toLocaleString(locale.value === 'vi' ? 'vi-VN' : 'en-US', {
     hour: '2-digit', minute: '2-digit',
     day: '2-digit', month: '2-digit', year: 'numeric',
   })
@@ -306,7 +307,7 @@ const formatMessageTime = (dateStr: string) => {
 const getDisplayName = (session: any) => {
   if (session.customer_name) return session.customer_name
   if (session.user) return `${session.user.first_name || ''} ${session.user.last_name || ''}`.trim()
-  return 'Guest'
+  return t('common.guest')
 }
 
 const getPreview = (session: any) => {
@@ -361,7 +362,7 @@ onUnmounted(() => {
 })
 
 useSeoMeta({
-  title: 'Quản lý Chat AI | AURA ARCHIVE Admin',
+  title: () => t('admin.chatManagement.seoTitle'),
 })
 </script>
 
@@ -373,8 +374,8 @@ useSeoMeta({
       <!-- Header -->
       <div class="px-4 py-3 border-b border-neutral-200 bg-gradient-to-r from-orange-500 to-orange-600">
         <div class="flex items-center gap-2">
-          <span class="text-white font-bold text-body-sm">TRỢ LÝ ẢO AI</span>
-          <span class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold">LIVE</span>
+          <span class="text-white font-bold text-body-sm">{{ $t('admin.chatManagement.virtualAssistant') }}</span>
+          <span class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold">{{ $t('admin.chatManagement.live') }}</span>
         </div>
       </div>
 
@@ -387,7 +388,7 @@ useSeoMeta({
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Tìm theo tên..."
+            :placeholder="$t('admin.chatManagement.searchByName')"
             class="w-full pl-9 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
           />
         </div>
@@ -396,10 +397,10 @@ useSeoMeta({
       <!-- Session List -->
       <div class="flex-1 overflow-y-auto">
         <div v-if="isLoadingSessions" class="p-4 text-center text-neutral-400 text-body-sm">
-          Đang tải...
+          {{ $t('admin.chatManagement.loading') }}
         </div>
         <div v-else-if="sessions.length === 0" class="p-4 text-center text-neutral-400 text-body-sm">
-          Chưa có cuộc trò chuyện nào
+          {{ $t('admin.chatManagement.noConversations') }}
         </div>
         <div
           v-for="session in sessions"
@@ -457,7 +458,7 @@ useSeoMeta({
       <!-- Active count -->
       <div class="px-4 py-2 border-t border-neutral-200 bg-neutral-50">
         <p class="text-caption text-neutral-500">
-          {{ sessions.filter(s => !s.is_read).length }} chưa đọc · {{ sessions.length }} tổng
+          {{ sessions.filter(s => !s.is_read).length }} {{ $t('admin.chatManagement.unread') }} · {{ sessions.length }} {{ $t('admin.chatManagement.total') }}
         </p>
       </div>
     </div>
@@ -470,7 +471,7 @@ useSeoMeta({
           <svg class="w-16 h-16 mx-auto text-neutral-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
           </svg>
-          <p class="text-neutral-400 text-body">Chọn một cuộc trò chuyện để xem</p>
+          <p class="text-neutral-400 text-body">{{ $t('admin.chatManagement.selectConversation') }}</p>
         </div>
       </div>
 
@@ -487,12 +488,12 @@ useSeoMeta({
             <div>
               <h3 class="font-medium text-body-sm text-neutral-800">
                 {{ getDisplayName(selectedSession) }}
-                <span v-if="!selectedSession.user" class="text-neutral-400">(demo)</span>
+                <span v-if="!selectedSession.user" class="text-neutral-400">{{ $t('admin.chatManagement.demo') }}</span>
               </h3>
               <p class="text-xs text-neutral-400">
-                {{ messages.length }} tin nhắn
-                <span v-if="sessionInfo?.is_ai_paused" class="text-yellow-600"> · AI đang tạm dừng</span>
-                <span v-if="sessionInfo?.admin_joined" class="text-green-600"> · Đã tham gia</span>
+                {{ messages.length }} {{ $t('admin.chatManagement.messages') }}
+                <span v-if="sessionInfo?.is_ai_paused" class="text-yellow-600"> · {{ $t('admin.chatManagement.aiPaused') }}</span>
+                <span v-if="sessionInfo?.admin_joined" class="text-green-600"> · {{ $t('admin.chatManagement.joined') }}</span>
               </p>
             </div>
           </div>
@@ -504,7 +505,7 @@ useSeoMeta({
               @click="showMessageSearch = !showMessageSearch; if(!showMessageSearch) { highlightedMessageIds = []; messageSearchQuery = '' }"
               class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
               :class="showMessageSearch ? 'bg-orange-100 text-orange-600' : 'text-neutral-500'"
-              title="Tìm kiếm tin nhắn"
+              :title="$t('admin.chatManagement.searchMessagesTooltip')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -516,7 +517,7 @@ useSeoMeta({
               @click="toggleAiPause"
               class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
               :class="sessionInfo?.is_ai_paused ? 'bg-red-100 text-red-600' : 'text-neutral-500'"
-              :title="sessionInfo?.is_ai_paused ? 'Bật lại AI' : 'Tạm dừng AI'"
+              :title="sessionInfo?.is_ai_paused ? $t('admin.chatManagement.resumeAi') : $t('admin.chatManagement.pauseAi')"
             >
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M10.5 2C7.46 2 5 4.46 5 7.5S7.46 13 10.5 13H11v7h2v-7h.5c3.04 0 5.5-2.46 5.5-5.5S16.54 2 13.5 2h-3zM11 11H9.5C8.12 11 7 9.88 7 8.5S8.12 6 9.5 6H11v5zm4.5 0H13V6h1.5C15.88 6 17 7.12 17 8.5S15.88 11 15.5 11z"/>
@@ -528,7 +529,7 @@ useSeoMeta({
               @click="toggleJoinRoom"
               class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
               :class="sessionInfo?.admin_joined ? 'bg-green-100 text-green-600' : 'text-neutral-500'"
-              :title="sessionInfo?.admin_joined ? 'Rời khỏi phòng' : 'Tham gia phòng'"
+              :title="sessionInfo?.admin_joined ? $t('admin.chatManagement.leaveRoom') : $t('admin.chatManagement.joinRoom')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path v-if="!sessionInfo?.admin_joined" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
@@ -545,11 +546,11 @@ useSeoMeta({
               v-model="messageSearchQuery"
               @input="searchInMessages"
               type="text"
-              placeholder="Tìm trong cuộc trò chuyện..."
+              :placeholder="$t('admin.chatManagement.searchMessages')"
               class="flex-1 px-3 py-1.5 bg-white border border-orange-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-400"
             />
             <span v-if="messageSearchResults.length > 0" class="text-body-sm text-orange-600 self-center whitespace-nowrap">
-              {{ messageSearchResults.length }} kết quả
+              {{ messageSearchResults.length }} {{ $t('admin.chatManagement.results') }}
             </span>
           </div>
         </div>
@@ -557,7 +558,7 @@ useSeoMeta({
         <!-- Messages Area -->
         <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
           <div v-if="isLoadingMessages" class="text-center py-8 text-neutral-400">
-            Đang tải tin nhắn...
+            {{ $t('admin.chatManagement.loadingMessages') }}
           </div>
           <template v-else>
             <div
@@ -602,13 +603,13 @@ useSeoMeta({
 
         <!-- Admin input (only when joined) -->
         <div v-if="sessionInfo?.admin_joined" class="border-t border-neutral-200 p-3 bg-white shrink-0">
-          <p class="text-xs text-green-600 mb-2">✓ Bạn đã tham gia phòng chat này</p>
+          <p class="text-xs text-green-600 mb-2">{{ $t('admin.chatManagement.joinedRoom') }}</p>
           <div class="flex gap-2">
             <input
               v-model="adminMessage"
               @keydown.enter="sendAdminMsg"
               type="text"
-              placeholder="Nhập nội dung tin nhắn..."
+              :placeholder="$t('admin.chatManagement.enterMessage')"
               class="flex-1 px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
               :disabled="isSendingAdmin"
             />
@@ -617,7 +618,7 @@ useSeoMeta({
               :disabled="!adminMessage.trim() || isSendingAdmin"
               class="px-5 py-2.5 bg-orange-500 text-white rounded-lg text-body-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-50"
             >
-              {{ isSendingAdmin ? '...' : 'Gửi' }}
+              {{ isSendingAdmin ? '...' : $t('admin.chatManagement.send') }}
             </button>
           </div>
         </div>
@@ -629,22 +630,22 @@ useSeoMeta({
       <!-- AI Suggestions -->
       <div class="border-b border-neutral-200">
         <button class="w-full px-4 py-3 flex items-center justify-between text-body-sm font-medium text-neutral-700 hover:bg-neutral-50">
-          <span>▼ AI đề xuất</span>
+          <span>{{ $t('admin.chatManagement.aiSuggestions') }}</span>
         </button>
         <div class="px-4 pb-4">
-          <p class="text-body-sm text-neutral-400 text-center py-3">Không có dữ liệu</p>
+          <p class="text-body-sm text-neutral-400 text-center py-3">{{ $t('admin.chatManagement.noData') }}</p>
         </div>
       </div>
 
       <!-- Customer Info -->
       <div class="flex-1 p-4">
         <h3 class="text-body-sm font-medium text-neutral-700 mb-4 flex items-center gap-2">
-          <span>▼ Thông tin khách hàng</span>
+          <span>{{ $t('admin.chatManagement.customerInfo') }}</span>
         </h3>
 
         <div class="space-y-3">
           <div>
-            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Tên khách hàng</label>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">{{ $t('admin.chatManagement.customerName') }}</label>
             <input
               v-model="customerForm.customer_name"
               type="text"
@@ -652,7 +653,7 @@ useSeoMeta({
             />
           </div>
           <div>
-            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Email</label>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">{{ $t('admin.chatManagement.email') }}</label>
             <input
               v-model="customerForm.customer_email"
               type="email"
@@ -660,7 +661,7 @@ useSeoMeta({
             />
           </div>
           <div>
-            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Số điện thoại</label>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">{{ $t('admin.chatManagement.phone') }}</label>
             <input
               v-model="customerForm.customer_phone"
               type="text"
@@ -668,7 +669,7 @@ useSeoMeta({
             />
           </div>
           <div>
-            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Địa chỉ</label>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">{{ $t('admin.chatManagement.address') }}</label>
             <textarea
               v-model="customerForm.customer_address"
               rows="2"
@@ -676,7 +677,7 @@ useSeoMeta({
             />
           </div>
           <div>
-            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Năm</label>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">{{ $t('admin.chatManagement.year') }}</label>
             <input
               v-model="customerForm.customer_year"
               type="text"
@@ -684,7 +685,7 @@ useSeoMeta({
             />
           </div>
           <div>
-            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">Ghi chú</label>
+            <label class="block text-caption text-neutral-500 mb-1 uppercase tracking-wider">{{ $t('admin.chatManagement.note') }}</label>
             <textarea
               v-model="customerForm.admin_note"
               rows="3"
@@ -701,7 +702,7 @@ useSeoMeta({
             :disabled="isSavingCustomer"
             class="w-full py-2.5 bg-blue-500 text-white rounded-lg text-body-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50"
           >
-            {{ isSavingCustomer ? 'Đang lưu...' : 'LƯU' }}
+            {{ isSavingCustomer ? $t('admin.chatManagement.saving') : $t('admin.chatManagement.save') }}
           </button>
         </div>
       </div>
@@ -709,7 +710,7 @@ useSeoMeta({
 
     <!-- Right panel placeholder when no session -->
     <div v-else class="w-80 border-l border-neutral-200 bg-white flex items-center justify-center shrink-0">
-      <p class="text-neutral-300 text-body-sm">Chọn cuộc trò chuyện</p>
+      <p class="text-neutral-300 text-body-sm">{{ $t('admin.chatManagement.selectConversationShort') }}</p>
     </div>
   </div>
 </template>

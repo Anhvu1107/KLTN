@@ -21,12 +21,18 @@ const isLoading = ref(true)
 const isSaving = ref(false)
 const saveMessage = ref('')
 
+const uploadingStates = ref<Record<string, boolean>>({})
+const fileInputs = ref<Record<string, HTMLInputElement>>({})
+
 const groupLabels = computed((): Record<string, string> => ({
   general: t('admin.settings.general'),
   contact: t('admin.settings.contact'),
   social: t('admin.settings.social'),
   seo: t('admin.settings.seo'),
   scripts: t('admin.settings.scripts'),
+  payment: t('admin.paymentSettings.title'),
+  product_attributes: t('admin.attributes.title'),
+  'Scripts & Analytics': t('admin.settings.scripts')
 }))
 
 // Translate setting labels based on current locale
@@ -35,6 +41,15 @@ const settingLabel = (setting: any) => {
   const translated = t(key)
   // If translation exists (not equal to the key itself), use it; otherwise fallback to DB label
   return translated !== key ? translated : (setting.label || setting.key)
+}
+
+// Translate setting descriptions based on current locale
+const settingDescription = (setting: any) => {
+  if (!setting.description) return ''
+  const key = `admin.settings.descriptions.${setting.key}`
+  const translated = t(key)
+  // If translation exists (not equal to the key itself), use it; otherwise fallback to DB description
+  return translated !== key ? translated : setting.description
 }
 
 // Fetch settings
@@ -49,6 +64,64 @@ const fetchSettings = async () => {
     console.error('Failed to fetch settings:', error)
   } finally {
     isLoading.value = false
+  }
+}
+
+// Handle Image Upload
+const triggerImageUpload = (key: string) => {
+  const input = fileInputs.value[key]
+  if (input) input.click()
+}
+
+const handleImageUpload = async (event: Event, setting: any) => {
+  const target = event.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+
+  const file = target.files[0]
+  
+  // Validate file type
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    saveMessage.value = t('admin.invalidImageType')
+    setTimeout(() => { saveMessage.value = '' }, 3000)
+    target.value = ''
+    return
+  }
+  
+  // Validate file size (2MB max)
+  if (file.size > 2 * 1024 * 1024) {
+    saveMessage.value = t('admin.aiConfig.avatarHint')
+    setTimeout(() => { saveMessage.value = '' }, 3000)
+    target.value = ''
+    return
+  }
+
+  try {
+    uploadingStates.value[setting.key] = true
+    
+    const formData = new FormData()
+    formData.append('images', file)
+
+    const response = await $fetch<{ success: boolean; data: { urls: string[] } }>(`${config.public.apiUrl}/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: formData,
+    })
+
+    if (response.data.urls.length > 0) {
+      setting.value = response.data.urls[0]
+      // Trigger a small save automatically for better UX
+      saveMessage.value = t('admin.uploadSuccess') || 'Uploaded successfully'
+      setTimeout(() => { saveMessage.value = '' }, 3000)
+    }
+  } catch (error) {
+    console.error('Failed to upload image:', error)
+    saveMessage.value = t('admin.uploadError')
+    setTimeout(() => { saveMessage.value = '' }, 3000)
+  } finally {
+    uploadingStates.value[setting.key] = false
+    target.value = ''
   }
 }
 
@@ -119,9 +192,9 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
       <div 
         v-for="(groupSettings, group) in settings" 
         :key="group"
-        class="bg-white rounded-sm border border-neutral-200 p-6"
+        class="card p-8"
       >
-        <h2 class="font-serif text-heading-4 text-aura-black mb-6 pb-4 border-b">
+        <h2 class="text-heading-4 text-aura-black mb-6 pb-4 border-b">
           {{ groupLabels[group] || group }}
         </h2>
 
@@ -129,7 +202,7 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
           <div v-for="setting in groupSettings" :key="setting.key" class="grid grid-cols-3 gap-4 items-start">
             <label class="text-body-sm text-neutral-700 pt-2">
               {{ settingLabel(setting) }}
-              <p v-if="setting.description" class="text-caption text-neutral-500 mt-1">{{ setting.description }}</p>
+              <p v-if="setting.description" class="text-caption text-neutral-500 mt-1">{{ settingDescription(setting) }}</p>
             </label>
             
             <div class="col-span-2">
@@ -149,11 +222,39 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
                 class="input-field"
               ></textarea>
               
-              <!-- Image URL -->
-              <div v-else-if="setting.type === 'image'" class="space-y-2">
-                <input v-model="setting.value" type="url" class="input-field" :placeholder="t('admin.settings.imageUrl')" />
-                <div v-if="setting.value" class="w-20 h-20 bg-neutral-100 rounded overflow-hidden">
-                  <img :src="setting.value" alt="" class="w-full h-full object-contain" />
+              <!-- Image Upload -->
+              <div v-else-if="setting.type === 'image'" class="space-y-4">
+                <!-- Current Image Preview -->
+                <div v-if="setting.value" class="w-24 h-24 bg-neutral-100 rounded border border-neutral-200 overflow-hidden relative group">
+                  <img :src="setting.value" :alt="setting.label" class="w-full h-full object-contain p-2" />
+                  <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button @click="setting.value = ''" class="text-white hover:text-red-400 p-2" :title="t('common.remove')">
+                      <Icon name="ph:trash-fill" class="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Upload Button -->
+                <div class="flex items-center gap-4">
+                  <button 
+                    @click="triggerImageUpload(setting.key)" 
+                    type="button"
+                    class="btn-secondary py-2"
+                    :disabled="uploadingStates[setting.key]"
+                  >
+                    <Icon v-if="uploadingStates[setting.key]" name="ph:spinner-gap-bold" class="w-5 h-5 animate-spin mr-2" />
+                    <Icon v-else name="ph:upload-simple-bold" class="w-5 h-5 mr-2" />
+                    {{ uploadingStates[setting.key] ? t('admin.aiConfig.uploading') : t('admin.aiConfig.uploadAvatar') }}
+                  </button>
+                  <p class="text-caption text-neutral-500">{{ t('admin.aiConfig.avatarHint') }}</p>
+                  
+                  <input
+                    type="file"
+                    :ref="(el) => { if (el) fileInputs[setting.key] = el as HTMLInputElement }"
+                    accept="image/jpeg, image/png, image/webp"
+                    class="hidden"
+                    @change="(e) => handleImageUpload(e, setting)"
+                  />
                 </div>
               </div>
 
