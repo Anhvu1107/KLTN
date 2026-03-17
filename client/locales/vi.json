@@ -896,7 +896,16 @@
             "minutesAgo": "{n} phút trước",
             "hoursAgo": "{n} giờ trước",
             "daysAgo": "{n} ngày trước",
-            "demo": "(demo)"
+            "demo": "(demo)",
+            "tabAll": "Tất cả",
+            "tabJoined": "Đã tham gia",
+            "tabUnread": "Chưa đọc",
+            "tabClosed": "Đã đóng",
+            "closeSession": "Đóng phiên",
+            "reopenSession": "Mở lại phiên",
+            "confirmClose": "Bạn có chắc muốn đóng phiên chat này?",
+            "sessionClosed": "Phiên chat này đã được đóng",
+            "closedBadge": "Đã đóng"
         }
     },
     "ai": {

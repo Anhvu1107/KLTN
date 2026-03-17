@@ -18,6 +18,9 @@ const config = useRuntimeConfig()
 const { locale } = useI18n()
 import { useSocket } from '~/composables/useSocket'
 
+// Constants
+const STORAGE_KEY = 'aura_chat_session_id'
+
 // State
 const isOpen = ref(false)
 const isLoading = ref(false)
@@ -72,14 +75,59 @@ const loadAppearance = async () => {
   } catch {}
 }
 
-// Initialize with greeting
+// Save sessionId to localStorage
+const saveSessionId = (sid: string) => {
+  if (import.meta.client && sid) {
+    localStorage.setItem(STORAGE_KEY, sid)
+  }
+}
+
+// Clear sessionId from localStorage
+const clearSessionId = () => {
+  if (import.meta.client) {
+    localStorage.removeItem(STORAGE_KEY)
+  }
+}
+
+// Get saved sessionId from localStorage
+const getSavedSessionId = (): string | null => {
+  if (import.meta.client) {
+    return localStorage.getItem(STORAGE_KEY)
+  }
+  return null
+}
+
+// Load chat history from server
+const loadChatHistory = async (sid: string): Promise<boolean> => {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await $fetch<{
+      success: boolean
+      data: { messages: { role: string; content: string }[] }
+    }>(`${config.public.apiUrl}/chat/history/${sid}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    const dbMessages = response.data?.messages || []
+    if (dbMessages.length > 0) {
+      sessionId.value = sid
+      messages.value = dbMessages.map((m: any) => ({
+        role: m.role === 'USER' ? 'user' as const : 'assistant' as const,
+        content: m.content,
+      }))
+      setupSocket(sid)
+      startWidgetPolling()
+      scrollToBottom()
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+// Initialize with greeting (new session)
 const initChat = async () => {
-  if (messages.value.length > 0) return
-
   isLoading.value = true
-
-  // Load appearance first
-  await loadAppearance()
   
   try {
     const response = await $fetch<{
@@ -89,6 +137,7 @@ const initChat = async () => {
     }>(`${config.public.apiUrl}/chat/greeting`)
 
     sessionId.value = response.sessionId
+    saveSessionId(response.sessionId)
     messages.value.push({
       role: 'assistant',
       content: response.message,
@@ -105,6 +154,22 @@ const initChat = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+// Start a brand new conversation
+const startNewChat = async () => {
+  // Disconnect from current session
+  disconnect()
+  stopWidgetPolling()
+  
+  // Clear state
+  clearSessionId()
+  sessionId.value = ''
+  messages.value = []
+  isWaitingForAdmin.value = false
+  
+  // Initialize fresh
+  await initChat()
 }
 
 // ====== WebSocket Real-time ======
@@ -136,11 +201,25 @@ const setupSocket = async (sid: string) => {
 }
 
 // Open chat
-const openChat = () => {
+const openChat = async () => {
   isOpen.value = true
+  
   if (messages.value.length === 0) {
-    initChat()
+    await loadAppearance()
+    
+    // Try to resume previous session from localStorage
+    const savedSid = getSavedSessionId()
+    if (savedSid) {
+      isLoading.value = true
+      const restored = await loadChatHistory(savedSid)
+      isLoading.value = false
+      if (restored) return
+    }
+    
+    // No saved session or restore failed — start new
+    await initChat()
   }
+  
   if (sessionId.value) setupSocket(sessionId.value)
 }
 
@@ -228,6 +307,7 @@ const sendMessage = async () => {
     })
 
     sessionId.value = response.sessionId
+    saveSessionId(response.sessionId)
     
     // Connect to WebSocket for real-time updates
     setupSocket(response.sessionId)
@@ -316,15 +396,27 @@ const handleKeydown = (e: KeyboardEvent) => {
             <p class="text-caption" :style="{ color: appearance.headerTextColor, opacity: 0.7 }">{{ appearance.chatDescription }}</p>
           </div>
         </div>
-        <button
-          @click="closeChat"
-          class="p-1 hover:bg-neutral-700 rounded transition-colors"
-          aria-label="Close chat"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            @click="startNewChat"
+            class="p-1 hover:bg-neutral-700 rounded transition-colors"
+            aria-label="New conversation"
+            title="Cuộc trò chuyện mới"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <button
+            @click="closeChat"
+            class="p-1 hover:bg-neutral-700 rounded transition-colors"
+            aria-label="Close chat"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Messages -->

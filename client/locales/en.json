@@ -875,7 +875,16 @@
             "minutesAgo": "{n} minutes ago",
             "hoursAgo": "{n} hours ago",
             "daysAgo": "{n} days ago",
-            "demo": "(demo)"
+            "demo": "(demo)",
+            "tabAll": "All",
+            "tabJoined": "Joined",
+            "tabUnread": "Unread",
+            "tabClosed": "Closed",
+            "closeSession": "Close Session",
+            "reopenSession": "Reopen Session",
+            "confirmClose": "Are you sure you want to close this session?",
+            "sessionClosed": "This session has been closed",
+            "closedBadge": "Closed"
         }
     },
     "ai": {
