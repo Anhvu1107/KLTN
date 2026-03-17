@@ -110,11 +110,13 @@ module.exports = (sequelize, DataTypes) => {
     };
 
     // Generate unique order number
-    Order.beforeCreate(async (order) => {
-        const date = new Date();
-        const prefix = `AA${date.getFullYear().toString().slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}`;
-        const random = Math.floor(1000 + Math.random() * 9000);
-        order.order_number = `${prefix}${random}`;
+    Order.beforeValidate(async (order) => {
+        if (!order.order_number) {
+            const date = new Date();
+            const prefix = `AA${date.getFullYear().toString().slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const random = Math.floor(1000 + Math.random() * 9000);
+            order.order_number = `${prefix}${random}`;
+        }
     });
 
     return Order;

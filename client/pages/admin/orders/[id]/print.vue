@@ -12,6 +12,7 @@ definePageMeta({
 const route = useRoute()
 const config = useRuntimeConfig()
 const { getToken } = useAuthToken()
+const { t } = useI18n()
 const orderId = route.params.id as string
 
 const order = ref<any>(null)
@@ -41,6 +42,40 @@ const formatDate = (dateStr: string) => {
     month: 'long',
     day: 'numeric',
   })
+}
+
+const statusLabel = (s: string) => {
+  const map: Record<string, string> = {
+    PENDING: t('orders.pending'),
+    CONFIRMED: t('orders.confirmed'),
+    PROCESSING: t('orders.processing'),
+    SHIPPED: t('orders.shipped'),
+    DELIVERED: t('orders.delivered'),
+    CANCELLED: t('orders.cancelled'),
+  }
+  return map[s] || s
+}
+
+const paymentStatusLabel = (s: string) => {
+  const map: Record<string, string> = {
+    PENDING: t('orders.paymentPending'),
+    PAID: t('orders.paymentPaid'),
+    FAILED: t('orders.paymentFailed'),
+    REFUNDED: t('orders.paymentRefunded'),
+  }
+  return map[s] || s
+}
+
+const paymentMethodLabel = (s: string) => {
+  const map: Record<string, string> = {
+    COD: t('checkout.cod'),
+    BANK_TRANSFER: t('checkout.bankTransfer'),
+    CREDIT_CARD: t('checkout.creditCard'),
+    MOMO: t('checkout.momo'),
+    VNPAY: t('checkout.vnpay'),
+    PAYPAL: 'PayPal',
+  }
+  return map[s] || s
 }
 
 // Print
@@ -150,15 +185,15 @@ onMounted(fetchOrder)
         <div class="grid grid-cols-3 gap-4 text-sm">
           <div>
             <span class="text-neutral-500">Phương thức:</span>
-            <span class="ml-2 font-medium">{{ order.payment_method }}</span>
+            <span class="ml-2 font-medium">{{ paymentMethodLabel(order.payment_method) }}</span>
           </div>
           <div>
             <span class="text-neutral-500">Trạng thái:</span>
-            <span class="ml-2 font-medium">{{ order.status }}</span>
+            <span class="ml-2 font-medium">{{ statusLabel(order.status) }}</span>
           </div>
           <div>
             <span class="text-neutral-500">Thanh toán:</span>
-            <span class="ml-2 font-medium">{{ order.payment_status }}</span>
+            <span class="ml-2 font-medium">{{ paymentStatusLabel(order.payment_status) }}</span>
           </div>
         </div>
       </div>

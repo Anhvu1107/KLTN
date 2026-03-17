@@ -42,8 +42,11 @@ const form = reactive({
 interface VariantData {
   id: number | null
   size: string
+  customSize?: string
   color: string
+  customColor?: string
   material: string
+  customMaterial?: string
   status: string
   isNew?: boolean
   isDeleted?: boolean
@@ -57,9 +60,12 @@ const productImages = ref<string[]>([])
 // Helper functions for variants
 const createEmptyVariant = (): VariantData => ({
   id: null,
-  size: '',
-  color: '',
-  material: '',
+  size: 'M',
+  customSize: '',
+  color: 'Black',
+  customColor: '',
+  material: 'Cotton',
+  customMaterial: '',
   status: 'AVAILABLE',
   isNew: true,
 })
@@ -110,9 +116,51 @@ const statuses = computed(() => [
   { value: 'SOLD', label: t('shop.sold') },
 ])
 const subcategories = computed(() => [
-  { value: 'Women', label: t('admin.women') },
-  { value: 'Men', label: t('admin.men') },
-  { value: 'Unisex', label: t('admin.unisex') },
+  { value: 'Men', label: t('home.men') },
+  { value: 'Women', label: t('home.women') },
+  { value: 'Unisex', label: t('categories.unisex') },
+  { value: 'Other', label: otherLabel.value },
+])
+
+const sizes = computed(() => [
+  { value: 'XS', label: 'XS' },
+  { value: 'S', label: 'S' },
+  { value: 'M', label: 'M' },
+  { value: 'L', label: 'L' },
+  { value: 'XL', label: 'XL' },
+  { value: 'XXL', label: 'XXL' },
+  { value: 'One Size', label: locale.value === 'vi' ? 'Một cỡ' : 'One Size' },
+  { value: 'Free Size', label: locale.value === 'vi' ? 'Tự do' : 'Free Size' },
+  { value: 'Other', label: otherLabel.value },
+])
+
+const colors = computed(() => [
+  { value: 'Black', label: t('colors.black') },
+  { value: 'White', label: t('colors.white') },
+  { value: 'Grey', label: t('colors.grey') },
+  { value: 'Navy', label: t('colors.navy') },
+  { value: 'Olive', label: t('colors.olive') },
+  { value: 'Burgundy', label: t('colors.burgundy') },
+  { value: 'Cream', label: t('colors.cream') },
+  { value: 'Brown', label: t('colors.brown') },
+  { value: 'Multi', label: t('colors.multi') },
+  { value: 'Gold', label: locale.value === 'vi' ? 'Vàng' : 'Gold' },
+  { value: 'Silver', label: locale.value === 'vi' ? 'Bạc' : 'Silver' },
+  { value: 'Other', label: otherLabel.value },
+])
+
+const materials = computed(() => [
+  { value: 'Leather', label: t('materials.leather') },
+  { value: 'Cotton', label: t('materials.cotton') },
+  { value: 'Wool', label: t('materials.wool') },
+  { value: 'Nylon', label: t('materials.nylon') },
+  { value: 'Silk', label: t('materials.silk') },
+  { value: 'Cashmere', label: t('materials.cashmere') },
+  { value: 'Polyester', label: t('materials.polyester') },
+  { value: 'Linen', label: t('materials.linen') },
+  { value: 'Mixed', label: t('materials.mixed') },
+  { value: 'Canvas', label: locale.value === 'vi' ? 'Vải canvas' : 'Canvas' },
+  { value: 'Metal', label: locale.value === 'vi' ? 'Kim loại' : 'Metal' },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -171,15 +219,24 @@ const fetchProduct = async () => {
 
       // Populate variants (all variants)
       if (product.variants && product.variants.length > 0) {
-        variants.value = product.variants.map((v: any) => ({
-          id: v.id,
-          size: v.size || '',
-          color: v.color || '',
-          material: v.material || '',
-          status: v.status,
-          isNew: false,
-          isDeleted: false,
-        }))
+        variants.value = product.variants.map((v: any) => {
+          const isKnownSize = !v.size || sizes.value.some(s => s.value === v.size)
+          const isKnownColor = !v.color || colors.value.some(c => c.value === v.color)
+          const isKnownMaterial = !v.material || materials.value.some(m => m.value === v.material)
+
+          return {
+            id: v.id,
+            size: isKnownSize ? (v.size || 'M') : 'Other',
+            customSize: !isKnownSize ? v.size : '',
+            color: isKnownColor ? (v.color || 'Black') : 'Other',
+            customColor: !isKnownColor ? v.color : '',
+            material: isKnownMaterial ? (v.material || 'Cotton') : 'Other',
+            customMaterial: !isKnownMaterial ? v.material : '',
+            status: v.status,
+            isNew: false,
+            isDeleted: false,
+          }
+        })
       } else {
         // Add empty variant if none exists
         variants.value = [createEmptyVariant()]
@@ -231,6 +288,10 @@ const saveProduct = async () => {
 
     // Handle variants
     for (const v of variants.value) {
+      const actualSize = v.size === 'Other' ? v.customSize : v.size
+      const actualColor = v.color === 'Other' ? v.customColor : v.color
+      const actualMaterial = v.material === 'Other' ? v.customMaterial : v.material
+
       if (v.isDeleted && v.id) {
         // Delete existing variant
         await $fetch(`${config.public.apiUrl}/admin/variants/${v.id}`, {
@@ -242,14 +303,14 @@ const saveProduct = async () => {
         await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
-          body: { size: v.size, color: v.color, material: v.material, status: v.status },
+          body: { size: actualSize, color: actualColor, material: actualMaterial, status: v.status },
         })
       } else if (v.id && !v.isDeleted) {
         // Update existing variant
         await $fetch(`${config.public.apiUrl}/admin/variants/${v.id}`, {
           method: 'PUT',
           headers: { Authorization: `Bearer ${token}` },
-          body: { size: v.size, color: v.color, material: v.material, status: v.status },
+          body: { size: actualSize, color: actualColor, material: actualMaterial, status: v.status },
         })
       }
     }
@@ -362,7 +423,7 @@ useSeoMeta({
 
           <div>
             <label class="input-label">{{ $t('shop.category') }} *</label>
-            <select v-model="form.category" class="input-field">
+            <select v-model="form.category" class="input-field select-animated">
               <option v-for="cat in categories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
             </select>
             <input 
@@ -376,7 +437,7 @@ useSeoMeta({
 
           <div>
             <label class="input-label">{{ $t('admin.subcategory') }}</label>
-            <select v-model="form.subcategory" class="input-field">
+            <select v-model="form.subcategory" class="input-field select-animated">
               <option v-for="sub in subcategories" :key="sub.value" :value="sub.value">{{ sub.label }}</option>
             </select>
             <input 
@@ -443,7 +504,7 @@ useSeoMeta({
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label class="input-label">{{ $t('admin.productForm.condition') }} *</label>
-            <select v-model="form.condition_text" class="input-field">
+            <select v-model="form.condition_text" class="input-field select-animated">
               <option v-for="cond in conditions" :key="cond.value" :value="cond.value">{{ cond.label }}</option>
             </select>
             <input 
@@ -506,34 +567,49 @@ useSeoMeta({
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label class="input-label text-sm">{{ $t('admin.productForm.size') }}</label>
-                <input
-                  v-model="v.size"
-                  type="text"
-                  class="input-field"
+                <select v-model="v.size" class="input-field select-animated">
+                  <option v-for="s in sizes" :key="s.value" :value="s.value">{{ s.label }}</option>
+                </select>
+                <input 
+                  v-if="v.size === 'Other'" 
+                  v-model="v.customSize" 
+                  type="text" 
+                  class="input-field mt-2" 
+                  :placeholder="locale === 'vi' ? 'Nhập kích cỡ mới...' : 'Enter new size...'"
                 />
               </div>
               
               <div>
                 <label class="input-label text-sm">{{ $t('admin.productForm.color') }}</label>
-                <input
-                  v-model="v.color"
-                  type="text"
-                  class="input-field"
+                <select v-model="v.color" class="input-field select-animated">
+                  <option v-for="c in colors" :key="c.value" :value="c.value">{{ c.label }}</option>
+                </select>
+                <input 
+                  v-if="v.color === 'Other'" 
+                  v-model="v.customColor" 
+                  type="text" 
+                  class="input-field mt-2" 
+                  :placeholder="locale === 'vi' ? 'Nhập màu sắc mới...' : 'Enter new color...'"
                 />
               </div>
 
               <div>
                 <label class="input-label text-sm">{{ $t('admin.productForm.material') }}</label>
-                <input
-                  v-model="v.material"
-                  type="text"
-                  class="input-field"
+                <select v-model="v.material" class="input-field select-animated">
+                  <option v-for="m in materials" :key="m.value" :value="m.value">{{ m.label }}</option>
+                </select>
+                <input 
+                  v-if="v.material === 'Other'" 
+                  v-model="v.customMaterial" 
+                  type="text" 
+                  class="input-field mt-2" 
+                  :placeholder="locale === 'vi' ? 'Nhập chất liệu mới...' : 'Enter new material...'"
                 />
               </div>
 
               <div>
                 <label class="input-label text-sm">{{ $t('common.status') }} *</label>
-                <select v-model="v.status" class="input-field">
+                <select v-model="v.status" class="input-field select-animated">
                   <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
                 </select>
               </div>
@@ -578,3 +654,61 @@ useSeoMeta({
     </form>
   </div>
 </template>
+
+<style scoped>
+/* Enhanced select dropdown animation */
+.select-animated {
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23374151'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.select-animated:hover {
+  border-color: #1a1a1a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.select-animated:focus {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+  outline: none;
+}
+
+/* Smooth input animation for "Other" custom inputs */
+.input-field {
+  transition: all 0.2s ease-in-out;
+}
+
+.input-field:focus {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+}
+
+/* Animation for appearing custom input */
+.mt-2 {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effect on option (works in some browsers) */
+.select-animated option:hover {
+  background-color: #f5f5f5;
+}
+</style>
