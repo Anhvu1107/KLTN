@@ -5,6 +5,7 @@
  */
 
 import { useI18n } from '#imports'
+import { useDialog } from '~/composables/useDialog'
 
 definePageMeta({
   layout: 'admin',
@@ -13,6 +14,7 @@ definePageMeta({
 
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()
+const { confirm: showConfirm } = useDialog()
 
 // Get token
 const getToken = () => {
@@ -55,7 +57,8 @@ const fetchProducts = async () => {
 
 // Delete product
 const deleteProduct = async (id: number) => {
-  if (!confirm(t('admin.deleteConfirm'))) return
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác. Bạn có chắc chắn?'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  if (!ok) return
 
   try {
     const token = getToken()

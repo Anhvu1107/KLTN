@@ -103,6 +103,9 @@ onMounted(async () => {
   
   <!-- Not authorized - show nothing while middleware redirects -->
   <div v-else class="min-h-screen bg-neutral-50" />
+
+  <!-- Global Dialog (replaces native alert/confirm) -->
+  <CommonGlobalDialog />
 </template>
 
 <style scoped>

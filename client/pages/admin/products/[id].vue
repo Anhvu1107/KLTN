@@ -5,6 +5,7 @@
  */
 
 import { useI18n } from '#imports'
+import { useDialog } from '~/composables/useDialog'
 
 definePageMeta({
   layout: 'admin',
@@ -15,6 +16,7 @@ const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const config = useRuntimeConfig()
+const { confirm: showConfirm } = useDialog()
 
 const productId = route.params.id
 const isLoading = ref(true)
@@ -329,7 +331,8 @@ const saveProduct = async () => {
 
 // Delete product
 const deleteProduct = async () => {
-  if (!confirm(t('admin.deleteConfirm'))) return
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác. Bạn có chắc chắn?'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  if (!ok) return
 
   try {
     isDeleting.value = true

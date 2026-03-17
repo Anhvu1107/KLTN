@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Orders list with status management
  */
 
+import { useDialog } from '~/composables/useDialog'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
@@ -12,6 +14,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
+const { alert: showAlert } = useDialog()
 const token = computed(() => authStore.token)
 
 const page = ref(1)
@@ -42,7 +45,7 @@ const updateStatus = async (orderId: string, newStatus: string) => {
     })
     await refresh()
   } catch (error: any) {
-    alert(error?.data?.message || t('notifications.updateError'))
+    showAlert({ title: t('notifications.error', 'Lỗi'), message: error?.data?.message || t('notifications.updateError'), type: 'danger' })
   }
 }
 

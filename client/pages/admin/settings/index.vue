@@ -4,7 +4,7 @@
  * AURA ARCHIVE - System configuration management
  */
 
-import { useI18n } from '#imports'
+import { useAuthToken, useI18n } from '#imports'
 
 definePageMeta({
   layout: 'admin',

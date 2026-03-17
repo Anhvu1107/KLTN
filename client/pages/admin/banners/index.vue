@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Manage homepage banners
  */
 
+import { useDialog } from '~/composables/useDialog'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
@@ -12,6 +14,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
+const { confirm: showConfirm } = useDialog()
 
 // State
 const banners = ref<any[]>([])
@@ -226,7 +229,8 @@ const submitForm = async () => {
 
 // Delete banner
 const deleteBanner = async (id: string) => {
-  if (!confirm(t('admin.deleteConfirm'))) return
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác. Bạn có chắc chắn?'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  if (!ok) return
 
   try {
     const token = getToken()

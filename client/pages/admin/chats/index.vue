@@ -10,10 +10,12 @@ definePageMeta({
 })
 
 import { useSocket } from '~/composables/useSocket'
+import { useDialog } from '~/composables/useDialog'
 
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
+const { confirm: showConfirm, alert: showAlert } = useDialog()
 const token = computed(() => authStore.token)
 
 // ====== STATE ======
@@ -31,6 +33,16 @@ const isSendingAdmin = ref(false)
 // Search
 const searchQuery = ref('')
 const searchDebounce = ref<any>(null)
+
+// Filter tabs
+const activeFilter = ref('')
+
+const tabs = computed(() => [
+  { key: '', label: t('admin.chatManagement.tabAll') },
+  { key: 'joined', label: t('admin.chatManagement.tabJoined') },
+  { key: 'unread', label: t('admin.chatManagement.tabUnread') },
+  { key: 'closed', label: t('admin.chatManagement.tabClosed') },
+])
 
 // Message search (in-chat)
 const showMessageSearch = ref(false)
@@ -88,7 +100,11 @@ const fetchSessions = async (search = '', silent = false) => {
       `${config.public.apiUrl}/admin/chats`,
       {
         headers: { Authorization: `Bearer ${token.value}` },
-        params: { search: search || undefined, limit: 50 },
+        params: {
+          search: search || undefined,
+          limit: 50,
+          filter: activeFilter.value || undefined,
+        },
       }
     )
     sessions.value = response.data?.sessions || []
@@ -157,7 +173,14 @@ const selectSession = async (session: any) => {
   startMessagePolling(session.session_id)
 }
 
-
+// ====== FILTER TAB CHANGE ======
+const setFilter = (filter: string) => {
+  activeFilter.value = filter
+  selectedSession.value = null
+  messages.value = []
+  sessionInfo.value = null
+  fetchSessions(searchQuery.value)
+}
 
 // ====== ACTIONS ======
 const toggleAiPause = async () => {
@@ -194,6 +217,77 @@ const toggleJoinRoom = async () => {
     }
   } catch (e: any) {
     console.error('Failed to toggle room:', e)
+  }
+}
+
+// ====== CLOSE / REOPEN SESSION ======
+const closeSession = async () => {
+  if (!selectedSession.value) return
+  const ok = await showConfirm({ title: t('admin.chatManagement.confirmClose', 'Đóng đoạn chat'), message: t('admin.chatManagement.confirmCloseDesc', 'Phiên chat sẽ bị đóng. Bạn có thể mở lại sau nếu cần.'), type: 'warning', confirmText: t('admin.chatManagement.closeSession', 'Đóng'), icon: 'close' })
+  if (!ok) return
+  try {
+    await $fetch(
+      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}/close`,
+      {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token.value}` },
+      }
+    )
+    if (sessionInfo.value) {
+      sessionInfo.value.status = 'closed'
+      sessionInfo.value.admin_joined = false
+    }
+    fetchSessions(searchQuery.value, true)
+  } catch (e: any) {
+    console.error('Failed to close session:', e)
+  }
+}
+
+const reopenSession = async () => {
+  if (!selectedSession.value) return
+  try {
+    await $fetch(
+      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}/reopen`,
+      {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token.value}` },
+      }
+    )
+    if (sessionInfo.value) {
+      sessionInfo.value.status = 'active'
+    }
+    fetchSessions(searchQuery.value, true)
+  } catch (e: any) {
+    console.error('Failed to reopen session:', e)
+  }
+}
+
+// ====== DELETE SESSION ======
+const isDeletingSession = ref(false)
+
+const deleteSession = async () => {
+  if (!selectedSession.value) return
+  const ok = await showConfirm({ title: t('admin.chatManagement.confirmDeleteTitle', 'Xác nhận xóa đoạn chat'), message: t('admin.chatManagement.confirmDeleteDesc', 'Bạn có chắc chắn muốn xóa vĩnh viễn toàn bộ lịch sử của phiên chat này không? Dữ liệu đã xóa sẽ không thể khôi phục lại được.'), type: 'danger', confirmText: t('admin.chatManagement.delete', 'Xóa vĩnh viễn'), icon: 'trash' })
+  if (!ok) return
+  
+  isDeletingSession.value = true
+  try {
+    await $fetch(
+      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token.value}` },
+      }
+    )
+    selectedSession.value = null
+    messages.value = []
+    sessionInfo.value = null
+    fetchSessions(searchQuery.value)
+  } catch (e: any) {
+    console.error('Failed to delete session:', e)
+    showAlert({ title: t('notifications.error', 'Lỗi'), message: t('admin.chatManagement.deleteFailed', 'Xóa thất bại'), type: 'danger' })
+  } finally {
+    isDeletingSession.value = false
   }
 }
 
@@ -315,6 +409,8 @@ const getPreview = (session: any) => {
   return msg.length > 50 ? msg.substring(0, 50) + '...' : msg
 }
 
+const isSessionClosed = computed(() => sessionInfo.value?.status === 'closed')
+
 // Debounced search
 watch(searchQuery, (val) => {
   clearTimeout(searchDebounce.value)
@@ -326,7 +422,7 @@ let sessionPollTimer: ReturnType<typeof setInterval> | null = null
 let messagePollTimer: ReturnType<typeof setInterval> | null = null
 
 const startPolling = () => {
-  // Session list: refresh every 5s
+  // Session list: refresh every 2s
   sessionPollTimer = setInterval(() => {
     fetchSessions(searchQuery.value, true)
   }, 2000)
@@ -370,13 +466,28 @@ useSeoMeta({
   <div class="flex h-[calc(100vh-64px)] bg-neutral-50 overflow-hidden">
 
     <!-- ===== LEFT: SESSION LIST ===== -->
-    <div class="w-80 border-r border-neutral-200 bg-white flex flex-col shrink-0">
+    <div class="w-[340px] border-r border-neutral-200 bg-white flex flex-col shrink-0">
       <!-- Header -->
       <div class="px-4 py-3 border-b border-neutral-200 bg-gradient-to-r from-orange-500 to-orange-600">
         <div class="flex items-center gap-2">
           <span class="text-white font-bold text-body-sm">{{ $t('admin.chatManagement.virtualAssistant') }}</span>
           <span class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold">{{ $t('admin.chatManagement.live') }}</span>
         </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="flex overflow-x-auto border-b border-neutral-200 bg-neutral-50 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          @click="setFilter(tab.key)"
+          class="flex-1 whitespace-nowrap px-3 py-2.5 text-[13px] font-medium transition-colors text-center"
+          :class="activeFilter === tab.key
+            ? 'text-orange-600 border-b-2 border-orange-500 bg-white'
+            : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100'"
+        >
+          {{ tab.label }}
+        </button>
       </div>
 
       <!-- Search -->
@@ -386,7 +497,8 @@ useSeoMeta({
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
           <input
-            v-model="searchQuery"
+            :value="searchQuery"
+            @input="searchQuery = ($event.target as HTMLInputElement).value"
             type="text"
             :placeholder="$t('admin.chatManagement.searchByName')"
             class="w-full pl-9 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
@@ -411,6 +523,7 @@ useSeoMeta({
             selectedSession?.session_id === session.session_id
               ? 'bg-orange-50 border-l-4 border-l-orange-500'
               : 'hover:bg-neutral-50 border-l-4 border-l-transparent',
+            session.status === 'closed' ? 'opacity-60' : '',
           ]"
         >
           <!-- Avatar with status dot -->
@@ -422,6 +535,7 @@ useSeoMeta({
             </div>
             <!-- Read/Unread dot -->
             <span
+              v-if="session.status !== 'closed'"
               class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white"
               :class="session.is_read ? 'bg-green-500' : 'bg-blue-500'"
             />
@@ -429,14 +543,20 @@ useSeoMeta({
 
           <!-- Info -->
           <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-1">
               <span class="font-medium text-body-sm text-neutral-800 truncate">
                 {{ getDisplayName(session) }}
               </span>
-              <span
-                v-if="session.is_ai_paused"
-                class="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded"
-              >✋</span>
+              <div class="flex items-center gap-1 shrink-0">
+                <span
+                  v-if="session.status === 'closed'"
+                  class="text-xs bg-neutral-200 text-neutral-500 px-1.5 py-0.5 rounded"
+                >{{ $t('admin.chatManagement.closedBadge') }}</span>
+                <span
+                  v-if="session.is_ai_paused && session.status !== 'closed'"
+                  class="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded"
+                >✋</span>
+              </div>
             </div>
             <p class="text-caption text-neutral-500 truncate mt-0.5">
               Bot: {{ getPreview(session) }}
@@ -447,7 +567,7 @@ useSeoMeta({
           </div>
 
           <!-- Join indicator -->
-          <div v-if="session.admin_joined" class="shrink-0">
+          <div v-if="session.admin_joined && session.status !== 'closed'" class="shrink-0">
             <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
@@ -489,11 +609,12 @@ useSeoMeta({
               <h3 class="font-medium text-body-sm text-neutral-800">
                 {{ getDisplayName(selectedSession) }}
                 <span v-if="!selectedSession.user" class="text-neutral-400">{{ $t('admin.chatManagement.demo') }}</span>
+                <span v-if="isSessionClosed" class="ml-1 text-xs bg-neutral-200 text-neutral-500 px-1.5 py-0.5 rounded">{{ $t('admin.chatManagement.closedBadge') }}</span>
               </h3>
               <p class="text-xs text-neutral-400">
                 {{ messages.length }} {{ $t('admin.chatManagement.messages') }}
-                <span v-if="sessionInfo?.is_ai_paused" class="text-yellow-600"> · {{ $t('admin.chatManagement.aiPaused') }}</span>
-                <span v-if="sessionInfo?.admin_joined" class="text-green-600"> · {{ $t('admin.chatManagement.joined') }}</span>
+                <span v-if="sessionInfo?.is_ai_paused && !isSessionClosed" class="text-yellow-600"> · {{ $t('admin.chatManagement.aiPaused') }}</span>
+                <span v-if="sessionInfo?.admin_joined && !isSessionClosed" class="text-green-600"> · {{ $t('admin.chatManagement.joined') }}</span>
               </p>
             </div>
           </div>
@@ -512,31 +633,73 @@ useSeoMeta({
               </svg>
             </button>
 
-            <!-- Pause AI -->
-            <button
-              @click="toggleAiPause"
-              class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-              :class="sessionInfo?.is_ai_paused ? 'bg-red-100 text-red-600' : 'text-neutral-500'"
-              :title="sessionInfo?.is_ai_paused ? $t('admin.chatManagement.resumeAi') : $t('admin.chatManagement.pauseAi')"
-            >
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M10.5 2C7.46 2 5 4.46 5 7.5S7.46 13 10.5 13H11v7h2v-7h.5c3.04 0 5.5-2.46 5.5-5.5S16.54 2 13.5 2h-3zM11 11H9.5C8.12 11 7 9.88 7 8.5S8.12 6 9.5 6H11v5zm4.5 0H13V6h1.5C15.88 6 17 7.12 17 8.5S15.88 11 15.5 11z"/>
-              </svg>
-            </button>
+            <template v-if="!isSessionClosed">
+              <!-- Pause AI -->
+              <button
+                @click="toggleAiPause"
+                class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                :class="sessionInfo?.is_ai_paused ? 'bg-red-100 text-red-600' : 'text-neutral-500'"
+                :title="sessionInfo?.is_ai_paused ? $t('admin.chatManagement.resumeAi') : $t('admin.chatManagement.pauseAi')"
+              >
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M10.5 2C7.46 2 5 4.46 5 7.5S7.46 13 10.5 13H11v7h2v-7h.5c3.04 0 5.5-2.46 5.5-5.5S16.54 2 13.5 2h-3zM11 11H9.5C8.12 11 7 9.88 7 8.5S8.12 6 9.5 6H11v5zm4.5 0H13V6h1.5C15.88 6 17 7.12 17 8.5S15.88 11 15.5 11z"/>
+                </svg>
+              </button>
 
-            <!-- Join/Leave Room -->
+              <!-- Join/Leave Room -->
+              <button
+                @click="toggleJoinRoom"
+                class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                :class="sessionInfo?.admin_joined ? 'bg-green-100 text-green-600' : 'text-neutral-500'"
+                :title="sessionInfo?.admin_joined ? $t('admin.chatManagement.leaveRoom') : $t('admin.chatManagement.joinRoom')"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path v-if="!sessionInfo?.admin_joined" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                  <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+              </button>
+
+              <!-- Close Session -->
+              <button
+                @click="closeSession"
+                class="p-2 hover:bg-red-50 rounded-lg transition-colors text-neutral-400 hover:text-red-500"
+                :title="$t('admin.chatManagement.closeSession')"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </template>
+
+            <!-- Reopen Session (only for closed) -->
             <button
-              @click="toggleJoinRoom"
-              class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-              :class="sessionInfo?.admin_joined ? 'bg-green-100 text-green-600' : 'text-neutral-500'"
-              :title="sessionInfo?.admin_joined ? $t('admin.chatManagement.leaveRoom') : $t('admin.chatManagement.joinRoom')"
+              v-else
+              @click="reopenSession"
+              class="p-2 hover:bg-green-50 rounded-lg transition-colors text-neutral-400 hover:text-green-500"
+              :title="$t('admin.chatManagement.reopenSession', 'Mở lại đoạn chat')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path v-if="!sessionInfo?.admin_joined" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+            <!-- Delete Session (only for closed) -->
+            <button
+              v-if="isSessionClosed"
+              @click="deleteSession"
+              :disabled="isDeletingSession"
+              class="p-2 hover:bg-red-50 rounded-lg transition-colors text-neutral-400 hover:text-red-500 disabled:opacity-50"
+              :title="$t('admin.chatManagement.deleteSession', 'Xóa vĩnh viễn')"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
               </svg>
             </button>
           </div>
+        </div>
+
+        <!-- Closed session banner -->
+        <div v-if="isSessionClosed" class="px-4 py-2 bg-neutral-100 border-b border-neutral-200 shrink-0">
+          <p class="text-body-sm text-neutral-500 text-center">{{ $t('admin.chatManagement.sessionClosed') }}</p>
         </div>
 
         <!-- Message Search Bar -->
@@ -601,8 +764,8 @@ useSeoMeta({
           </template>
         </div>
 
-        <!-- Admin input (only when joined) -->
-        <div v-if="sessionInfo?.admin_joined" class="border-t border-neutral-200 p-3 bg-white shrink-0">
+        <!-- Admin input (only when joined AND session is active) -->
+        <div v-if="sessionInfo?.admin_joined && !isSessionClosed" class="border-t border-neutral-200 p-3 bg-white shrink-0">
           <p class="text-xs text-green-600 mb-2">{{ $t('admin.chatManagement.joinedRoom') }}</p>
           <div class="flex gap-2">
             <input
@@ -650,6 +813,7 @@ useSeoMeta({
               v-model="customerForm.customer_name"
               type="text"
               class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300 bg-orange-50"
+              :disabled="isSessionClosed"
             />
           </div>
           <div>
@@ -658,6 +822,7 @@ useSeoMeta({
               v-model="customerForm.customer_email"
               type="email"
               class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
+              :disabled="isSessionClosed"
             />
           </div>
           <div>
@@ -666,6 +831,7 @@ useSeoMeta({
               v-model="customerForm.customer_phone"
               type="text"
               class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
+              :disabled="isSessionClosed"
             />
           </div>
           <div>
@@ -674,6 +840,7 @@ useSeoMeta({
               v-model="customerForm.customer_address"
               rows="2"
               class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300 resize-none"
+              :disabled="isSessionClosed"
             />
           </div>
           <div>
@@ -682,6 +849,7 @@ useSeoMeta({
               v-model="customerForm.customer_year"
               type="text"
               class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300"
+              :disabled="isSessionClosed"
             />
           </div>
           <div>
@@ -690,12 +858,13 @@ useSeoMeta({
               v-model="customerForm.admin_note"
               rows="3"
               class="w-full px-3 py-2 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-300 resize-none"
+              :disabled="isSessionClosed"
             />
           </div>
         </div>
 
-        <!-- Save button -->
-        <div class="mt-4">
+        <!-- Save button (only for active sessions) -->
+        <div v-if="!isSessionClosed" class="mt-4">
           <p v-if="saveMessage" class="text-body-sm text-green-600 mb-2 text-center">{{ saveMessage }}</p>
           <button
             @click="saveCustomerInfo"

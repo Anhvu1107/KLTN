@@ -130,6 +130,8 @@ const catchAsync = require('../../utils/catchAsync');
 router.get('/chats', catchAsync(async (req, res) => {
     // Auto-sync sessions from logs on first visit
     await chatAdminService.syncSessionsFromLogs();
+    // Auto-archive old sessions (30+ days inactive)
+    await chatAdminService.autoArchiveOldSessions();
 
     const { page, limit, search, filter } = req.query;
     const result = await chatAdminService.getSessions({
@@ -183,6 +185,21 @@ router.post('/chats/:sessionId/message', catchAsync(async (req, res) => {
     }
     const message = await chatAdminService.sendAdminMessage(req.params.sessionId, content.trim());
     res.json({ success: true, data: { message } });
+}));
+
+router.patch('/chats/:sessionId/close', catchAsync(async (req, res) => {
+    const session = await chatAdminService.closeSession(req.params.sessionId);
+    res.json({ success: true, data: { session } });
+}));
+
+router.patch('/chats/:sessionId/reopen', catchAsync(async (req, res) => {
+    const session = await chatAdminService.reopenSession(req.params.sessionId);
+    res.json({ success: true, data: { session } });
+}));
+
+router.delete('/chats/:sessionId', catchAsync(async (req, res) => {
+    await chatAdminService.deleteSession(req.params.sessionId);
+    res.json({ success: true, message: 'Deleted chat session successfully' });
 }));
 
 // Notifications

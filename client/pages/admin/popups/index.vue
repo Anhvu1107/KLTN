@@ -5,6 +5,7 @@
  */
 
 import { useI18n } from '#imports'
+import { useDialog } from '~/composables/useDialog'
 
 definePageMeta({
   layout: 'admin',
@@ -14,6 +15,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
+const { confirm: showConfirm } = useDialog()
 const popups = ref<any[]>([])
 const isLoading = ref(true)
 const showModal = ref(false)
@@ -77,7 +79,8 @@ const savePopup = async () => {
 }
 
 const deletePopup = async (id: string) => {
-  if (!confirm(t('admin.deleteConfirm'))) return
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác. Bạn có chắc chắn?'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  if (!ok) return
   const token = getToken()
   await $fetch(`${config.public.apiUrl}/admin/popups/${id}`, {
     method: 'DELETE',
