@@ -264,7 +264,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
       <div 
         v-for="banner in banners" 
         :key="banner.id"
-        class="bg-white rounded-sm border border-neutral-200 overflow-hidden"
+        class="card overflow-hidden"
       >
         <!-- Preview -->
         <div class="aspect-video bg-neutral-100 relative">

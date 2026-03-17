@@ -168,7 +168,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
     </div>
 
     <!-- Coupons Table -->
-    <div v-else class="bg-white rounded-sm border border-neutral-200 overflow-hidden">
+    <div v-else class="card overflow-hidden">
       <table class="w-full">
         <thead class="bg-neutral-50 border-b border-neutral-200">
           <tr>

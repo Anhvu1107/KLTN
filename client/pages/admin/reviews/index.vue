@@ -166,7 +166,7 @@ useSeoMeta({ title: () => `${t('admin.reviews.title')} | Admin` })
       <div 
         v-for="review in reviews" 
         :key="review.id"
-        class="bg-white rounded-sm border border-neutral-200 p-4"
+        class="card p-4"
       >
         <div class="flex items-start justify-between">
           <div class="flex-1">

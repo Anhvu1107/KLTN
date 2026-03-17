@@ -194,7 +194,7 @@ useSeoMeta({ title: `${t('admin.paymentSettings.title')} | Admin` })
 
     <div v-else class="space-y-8">
       <!-- Payment Methods Toggle -->
-      <div class="bg-white rounded-sm border border-neutral-200 p-6">
+      <div class="card p-6">
         <h2 class="font-serif text-heading-4 text-aura-black mb-6 pb-4 border-b">
           {{ t('admin.paymentSettings.methodsTitle') }}
         </h2>
@@ -223,7 +223,7 @@ useSeoMeta({ title: `${t('admin.paymentSettings.title')} | Admin` })
       </div>
 
       <!-- Bank Accounts for Bank Transfer -->
-      <div class="bg-white rounded-sm border border-neutral-200 p-6">
+      <div class="card p-6">
         <div class="flex items-center justify-between mb-6 pb-4 border-b">
           <h2 class="font-serif text-heading-4 text-aura-black">
             {{ t('admin.paymentSettings.bankAccountsTitle') }}
@@ -271,7 +271,7 @@ useSeoMeta({ title: `${t('admin.paymentSettings.title')} | Admin` })
       </div>
 
       <!-- Gateway Info -->
-      <div class="bg-white rounded-sm border border-neutral-200 p-6">
+      <div class="card p-6">
         <h2 class="font-serif text-heading-4 text-aura-black mb-6 pb-4 border-b">
           {{ t('admin.paymentSettings.gatewayTitle') }}
         </h2>
