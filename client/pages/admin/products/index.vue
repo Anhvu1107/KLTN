@@ -11,7 +11,7 @@ definePageMeta({
   middleware: ['admin'],
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 
 // Get token
@@ -90,6 +90,32 @@ const getVariantStatus = (product: any) => {
   return product.variants[0].status
 }
 
+const statusLabel = (status: string) => {
+  if (!status || status === 'N/A') return 'N/A'
+  const map: Record<string, string> = {
+    AVAILABLE: t('shop.available'),
+    RESERVED: t('shop.reserved'),
+    SOLD: t('shop.sold')
+  }
+  return map[status] || status
+}
+
+const categoryLabel = (category: string) => {
+  if (!category) return ''
+  const map: Record<string, string> = {
+    'Tops': t('categories.tops'),
+    'Pants': t('categories.pants'),
+    'Outerwear': t('categories.outerwear'),
+    'Shoes': t('categories.shoes'),
+    'Bags': t('categories.bags'),
+    'Accessories': t('categories.accessories'),
+    'Dresses': t('categories.dresses'),
+    'Jewelry': locale.value === 'vi' ? 'Trang sức' : 'Jewelry',
+    'Watches': locale.value === 'vi' ? 'Đồng hồ' : 'Watches'
+  }
+  return map[category] || category
+}
+
 // Search with debounce
 let searchTimeout: NodeJS.Timeout
 const onSearch = () => {
@@ -158,7 +184,7 @@ useSeoMeta({
                 <p class="text-body-sm font-medium text-aura-black">{{ product.name }}</p>
               </div>
             </td>
-            <td class="py-4 px-6 text-body-sm text-neutral-600">{{ product.category }}</td>
+            <td class="py-4 px-6 text-body-sm text-neutral-600">{{ categoryLabel(product.category) }}</td>
             <td class="py-4 px-6">
               <div>
                 <span v-if="product.sale_price" class="text-body-sm text-accent-burgundy font-medium">
@@ -175,7 +201,7 @@ useSeoMeta({
                 :class="getStatusClass(getVariantStatus(product))"
                 class="px-2 py-1 text-caption rounded-sm"
               >
-                {{ getVariantStatus(product) }}
+                {{ statusLabel(getVariantStatus(product)) }}
               </span>
             </td>
             <td class="py-4 px-6">

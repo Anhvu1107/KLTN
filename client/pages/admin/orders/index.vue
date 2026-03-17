@@ -75,10 +75,10 @@ const statusLabel = (s: string) => {
 
 const paymentStatusLabel = (s: string) => {
   const map: Record<string, string> = {
-    PENDING: 'Chờ thanh toán',
-    PAID: 'Đã thanh toán',
-    FAILED: 'Thất bại',
-    REFUNDED: 'Đã hoàn tiền',
+    PENDING: t('orders.paymentPending'),
+    PAID: t('orders.paymentPaid'),
+    FAILED: t('orders.paymentFailed'),
+    REFUNDED: t('orders.paymentRefunded'),
   }
   return map[s] || s
 }

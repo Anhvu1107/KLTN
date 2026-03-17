@@ -139,7 +139,7 @@ useSeoMeta({
                 class="px-2 py-1 text-caption rounded-sm"
                 :class="user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'"
               >
-                {{ user.role }}
+                {{ user.role === 'ADMIN' ? t('admin.adminRole') : t('admin.customer') }}
               </span>
             </td>
             <td class="py-4 px-4">

@@ -29,6 +29,14 @@ const groupLabels = computed((): Record<string, string> => ({
   scripts: t('admin.settings.scripts'),
 }))
 
+// Translate setting labels based on current locale
+const settingLabel = (setting: any) => {
+  const key = `admin.settings.labels.${setting.key}`
+  const translated = t(key)
+  // If translation exists (not equal to the key itself), use it; otherwise fallback to DB label
+  return translated !== key ? translated : (setting.label || setting.key)
+}
+
 // Fetch settings
 const fetchSettings = async () => {
   try {
@@ -120,7 +128,7 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
         <div class="space-y-4">
           <div v-for="setting in groupSettings" :key="setting.key" class="grid grid-cols-3 gap-4 items-start">
             <label class="text-body-sm text-neutral-700 pt-2">
-              {{ setting.label || setting.key }}
+              {{ settingLabel(setting) }}
               <p v-if="setting.description" class="text-caption text-neutral-500 mt-1">{{ setting.description }}</p>
             </label>
             

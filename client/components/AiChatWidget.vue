@@ -32,6 +32,8 @@ const appearance = ref({
   chatName: 'AURA Stylist',
   chatDescription: 'Trợ lý thời trang của bạn',
   avatarUrl: '',
+  fontFamily: 'Inter',
+  headerFontFamily: 'Playfair Display',
   headerBgColor: '#1a1a1a',
   headerTextColor: '#ffffff',
   botBgColor: '#f5f5f5',
@@ -39,6 +41,18 @@ const appearance = ref({
   userBgColor: '#1a1a1a',
   userTextColor: '#ffffff',
 })
+
+// Dynamic Google Font loading
+const loadGoogleFont = (font: string) => {
+  if (!font || font === 'system-ui') return
+  const id = `gfont-${font.replace(/ /g, '-')}`
+  if (document.getElementById(id)) return
+  const link = document.createElement('link')
+  link.id = id
+  link.rel = 'stylesheet'
+  link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
+  document.head.appendChild(link)
+}
 
 // Load appearance config
 const loadAppearance = async () => {
@@ -48,6 +62,12 @@ const loadAppearance = async () => {
     )
     if (res.data) {
       appearance.value = { ...appearance.value, ...res.data }
+      if (import.meta.client && appearance.value.fontFamily) {
+        loadGoogleFont(appearance.value.fontFamily)
+      }
+      if (import.meta.client && appearance.value.headerFontFamily) {
+        loadGoogleFont(appearance.value.headerFontFamily)
+      }
     }
   } catch {}
 }
@@ -282,6 +302,7 @@ const handleKeydown = (e: KeyboardEvent) => {
     <div
       v-if="isOpen"
       class="fixed bottom-6 right-6 w-96 h-[500px] max-h-[80vh] bg-aura-white rounded-lg shadow-elevated overflow-hidden z-50 flex flex-col"
+      :style="{ fontFamily: appearance.fontFamily + ', sans-serif' }"
     >
       <!-- Header -->
       <div class="px-4 py-3 flex items-center justify-between" :style="{ backgroundColor: appearance.headerBgColor, color: appearance.headerTextColor }">
@@ -291,8 +312,8 @@ const handleKeydown = (e: KeyboardEvent) => {
             <span v-else class="text-caption font-serif">A</span>
           </div>
           <div>
-            <h3 class="text-body-sm font-medium">{{ appearance.chatName }}</h3>
-            <p class="text-caption" style="opacity: 0.7">{{ appearance.chatDescription }}</p>
+            <h3 class="text-body-sm font-medium" :style="{ color: appearance.headerTextColor, fontFamily: appearance.headerFontFamily + ', serif' }">{{ appearance.chatName }}</h3>
+            <p class="text-caption" :style="{ color: appearance.headerTextColor, opacity: 0.7 }">{{ appearance.chatDescription }}</p>
           </div>
         </div>
         <button
