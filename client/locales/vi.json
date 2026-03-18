@@ -283,7 +283,10 @@
         "unisex": "Unisex",
         "addProductsToCompare": "Thêm sản phẩm từ cửa hàng để so sánh",
         "youMayAlsoLike": "Có thể bạn cũng thích",
-        "viewProductDetail": "Xem chi tiết sản phẩm"
+        "viewProductDetail": "Xem chi tiết sản phẩm",
+        "searchBrand": "Tìm thương hiệu...",
+        "showResults": "Xem kết quả",
+        "showLess": "Thu gọn"
     },
     "cart": {
         "title": "Giỏ hàng",
@@ -958,7 +961,7 @@
         "newsletterText": "Đăng ký để nhận thông tin về sản phẩm mới và ưu đãi độc quyền.",
         "subscribe": "Đăng ký",
         "emailPlaceholder": "Nhập email của bạn",
-        "copyright": "© 2026 AURA ARCHIVE. Tất cả quyền được bảo lưu.",
+        "copyright": "© {year} AURA ARCHIVE. Tất cả quyền được bảo lưu.",
         "company": "Công ty",
         "support": "Hỗ trợ",
         "legal": "Pháp lý"

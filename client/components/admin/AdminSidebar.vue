@@ -29,7 +29,7 @@ const isActive = (path: string) => route.path === path
 </script>
 
 <template>
-  <aside class="w-64 bg-aura-black text-aura-white flex flex-col h-screen fixed top-0 left-0">
+  <aside class="w-64 bg-aura-black text-aura-white flex flex-col h-screen fixed top-0 left-0 z-50">
     <!-- Logo -->
     <div class="p-6 border-b border-neutral-800">
       <NuxtLink to="/admin/dashboard" class="block">
@@ -105,12 +105,12 @@ const isActive = (path: string) => route.path === path
 
     <!-- Footer -->
     <div class="p-4 border-t border-neutral-800">
-      <NuxtLink to="/" class="flex items-center gap-2 text-neutral-400 hover:text-white text-body-sm">
+      <a href="/" class="flex items-center gap-2 text-neutral-400 hover:text-white text-body-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
         {{ t('nav.backToStore') }}
-      </NuxtLink>
+      </a>
     </div>
   </aside>
 </template>

@@ -11,6 +11,7 @@ definePageMeta({
 
 import { useSocket } from '~/composables/useSocket'
 import { useDialog } from '~/composables/useDialog'
+import { useAuthStore, useI18n } from '#imports'
 
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()
@@ -595,8 +596,8 @@ useSeoMeta({
         </div>
       </div>
 
-      <!-- Chat view -->
       <template v-else>
+        <!-- Chat view -->
         <!-- Chat Header -->
         <div class="px-4 py-3 border-b border-neutral-200 bg-white flex items-center justify-between shrink-0">
           <div class="flex items-center gap-3">
@@ -671,9 +672,9 @@ useSeoMeta({
               </button>
             </template>
 
-            <!-- Reopen Session (only for closed) -->
             <button
               v-else
+              <!-- Reopen Session (only for closed) -->
               @click="reopenSession"
               class="p-2 hover:bg-green-50 rounded-lg transition-colors text-neutral-400 hover:text-green-500"
               :title="$t('admin.chatManagement.reopenSession', 'Mở lại đoạn chat')"
@@ -748,8 +749,8 @@ useSeoMeta({
                 </div>
               </div>
 
-              <!-- AI message (right) -->
               <div v-else class="flex items-end gap-2 max-w-[70%]">
+                <!-- AI message (right) -->
                 <div>
                   <div class="bg-gradient-to-br from-orange-400 to-orange-500 px-4 py-2.5 rounded-2xl rounded-br-sm shadow-sm">
                     <p class="text-body-sm text-white whitespace-pre-wrap">{{ msg.content }}</p>

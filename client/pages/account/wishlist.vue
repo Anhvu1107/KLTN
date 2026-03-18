@@ -90,9 +90,9 @@ useSeoMeta({
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </div>
-        <h2 class="font-serif text-heading-4 text-aura-black mb-2">{{ t('account.wishlistEmpty') }}</h2>
-        <p class="text-body text-neutral-600 mb-6">{{ t('account.saveItemsLater') }}</p>
-        <NuxtLink to="/shop" class="btn-primary">{{ t('shop.exploreShop') }}</NuxtLink>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-2">{{ t('wishlist.empty') }}</h2>
+        <p class="text-body text-neutral-600 mb-6">{{ t('wishlist.emptyDesc') }}</p>
+        <NuxtLink to="/shop" class="btn-primary">{{ t('wishlist.explore') }}</NuxtLink>
       </div>
 
       <!-- Wishlist Items -->

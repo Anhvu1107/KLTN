@@ -181,8 +181,8 @@ useSeoMeta({
         <p class="text-neutral-500">{{ $t('common.loading') }}</p>
       </div>
 
-      <!-- Tabs -->
       <div v-else>
+        <!-- Tabs -->
         <div class="flex border-b border-neutral-200 mb-6 overflow-x-auto">
           <button
             v-for="tab in tabs"

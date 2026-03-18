@@ -10,7 +10,7 @@ definePageMeta({
   middleware: ['auth'],
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const config = useRuntimeConfig()
 const { getAuthHeaders } = useAuthToken()
@@ -32,13 +32,45 @@ const pagination = computed(() => data.value?.data?.pagination || {})
 const { formatPrice } = useCurrency()
 
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'long',
+  if (!date) return ''
+  const dateObj = new Date(date)
+  if (isNaN(dateObj.getTime())) return ''
+  
+  return dateObj.toLocaleDateString(locale.value === 'vi' ? 'vi-VN' : 'en-US', {
+    month: locale.value === 'vi' ? 'numeric' : 'short',
     day: 'numeric',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const getOrderStatus = (status: string) => {
+  if (!status) return ''
+  return t(`orders.${status.toLowerCase()}`)
+}
+
+const getPaymentStatus = (status: string) => {
+  if (!status) return ''
+  const keyMap: Record<string, string> = {
+    PENDING: 'paymentPending',
+    PAID: 'paymentPaid',
+    FAILED: 'paymentFailed',
+    REFUNDED: 'paymentRefunded'
+  }
+  return t(`orders.${keyMap[status] || status.toLowerCase()}`)
+}
+
+const getPaymentMethodLabel = (method: string) => {
+  if (!method) return ''
+  const map: Record<string, string> = {
+    BANK_TRANSFER: 'checkout.bankTransfer',
+    COD: 'checkout.cod',
+    CREDIT_CARD: 'checkout.creditCard',
+    VNPAY: 'checkout.vnpay',
+    MOMO: 'checkout.momo'
+  }
+  return map[method] ? t(map[method]) : method
 }
 
 const getStatusClass = (status: string) => {
@@ -81,9 +113,9 @@ useSeoMeta({
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
         </div>
-        <h2 class="font-serif text-heading-4 text-aura-black mb-2">{{ t('account.noOrdersYet') }}</h2>
-        <p class="text-body text-neutral-600 mb-6">{{ t('account.startExploring') }}</p>
-        <NuxtLink to="/shop" class="btn-primary">{{ t('shop.shopNow') }}</NuxtLink>
+        <h2 class="font-serif text-heading-4 text-aura-black mb-2">{{ t('orders.noOrders') }}</h2>
+        <p class="text-body text-neutral-600 mb-6">{{ t('orders.startExploring') }}</p>
+        <NuxtLink to="/shop" class="btn-primary">{{ t('orders.shopNow') }}</NuxtLink>
       </div>
 
       <!-- Orders List -->
@@ -97,9 +129,9 @@ useSeoMeta({
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div class="flex items-center gap-3 mb-2">
-                <p class="text-body font-medium text-aura-black">Order #{{ order.id.slice(0, 8) }}</p>
+                <p class="text-body font-medium text-aura-black">{{ t('account.orders') }} #{{ order.id.slice(0, 8) }}</p>
                 <span :class="getStatusClass(order.status)" class="px-2 py-1 text-caption rounded-sm">
-                  {{ order.status }}
+                  {{ getOrderStatus(order.status) }}
                 </span>
               </div>
               <p class="text-body-sm text-neutral-600">{{ formatDate(order.created_at) }}</p>
@@ -107,7 +139,7 @@ useSeoMeta({
             
             <div class="text-right">
               <p class="text-body font-medium text-aura-black">{{ formatPrice(order.total_amount) }}</p>
-              <p class="text-caption text-neutral-500">{{ order.payment_status }}</p>
+              <p class="text-caption text-neutral-500">{{ getPaymentStatus(order.payment_status) }}</p>
             </div>
           </div>
 
@@ -123,12 +155,12 @@ useSeoMeta({
                 <p class="font-medium">{{ formatPrice(order.shipping_fee || 0) }}</p>
               </div>
               <div>
-                <p class="text-neutral-500">{{ $t('orders.payment') }}</p>
-                <p class="font-medium">{{ order.payment_method }}</p>
+                <p class="text-neutral-500">{{ t('orders.payment') }}</p>
+                <p class="font-medium">{{ getPaymentMethodLabel(order.payment_method) }}</p>
               </div>
               <div v-if="order.shipped_at">
-                <p class="text-neutral-500">{{ $t('orders.shipped') }}</p>
-                <p class="font-medium">{{ formatDate(order.shipped_at).split(',')[0] }}</p>
+                <p class="text-neutral-500">{{ t('orders.shipped') }}</p>
+                <p class="font-medium">{{ formatDate(order.shipped_at).split(',')[0] || t('common.loading') }}</p>
               </div>
             </div>
           </div>

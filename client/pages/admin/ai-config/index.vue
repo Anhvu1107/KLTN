@@ -277,8 +277,8 @@ useSeoMeta({
       <div class="animate-spin w-8 h-8 border-2 border-neutral-300 border-t-aura-black rounded-full mx-auto"></div>
     </div>
 
-    <!-- ====== TAB 1: PROMPT ====== -->
     <div v-else-if="activeTab === 'prompt'" class="space-y-6">
+      <!-- ====== TAB 1: PROMPT ====== -->
       <div class="card p-6">
         <!-- AI Name + Role Description -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -363,8 +363,8 @@ useSeoMeta({
       </div>
     </div>
 
-    <!-- ====== TAB 2: APPEARANCE ====== -->
     <div v-else-if="activeTab === 'appearance'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- ====== TAB 2: APPEARANCE ====== -->
       <!-- Settings Panel -->
       <div class="card p-6 space-y-6">
         <!-- Chatbot Name -->

@@ -153,10 +153,7 @@ const values = computed(() => [
           {{ t('about.teamDesc') }}
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <NuxtLink to="/shop" class="btn-primary">
-            {{ t('home.viewAll') }}
-          </NuxtLink>
-          <NuxtLink to="/contact" class="btn-secondary">
+          <NuxtLink to="/contact" class="btn-primary">
             {{ t('common.contact') }}
           </NuxtLink>
         </div>

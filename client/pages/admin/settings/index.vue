@@ -187,8 +187,8 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
       <div class="animate-spin w-8 h-8 border-2 border-neutral-300 border-t-aura-black rounded-full mx-auto"></div>
     </div>
 
-    <!-- Settings Groups -->
     <div v-else class="space-y-8">
+      <!-- Settings Groups -->
       <div 
         v-for="(groupSettings, group) in settings" 
         :key="group"
@@ -214,16 +214,17 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
                 class="input-field"
               />
               
-              <!-- Textarea -->
-              <textarea
-                v-else-if="setting.type === 'textarea'"
-                v-model="setting.value"
-                rows="3"
-                class="input-field"
-              ></textarea>
-              
-              <!-- Image Upload -->
-              <div v-else-if="setting.type === 'image'" class="space-y-4">
+              <template v-else-if="setting.type === 'textarea'">
+                <!-- Textarea -->
+                <textarea
+                  v-model="setting.value"
+                  rows="3"
+                  class="input-field"
+                ></textarea>
+              </template>
+              <template v-else-if="setting.type === 'image'">
+                <!-- Image Upload -->
+                <div class="space-y-4">
                 <!-- Current Image Preview -->
                 <div v-if="setting.value" class="w-24 h-24 bg-neutral-100 rounded border border-neutral-200 overflow-hidden relative group">
                   <img :src="setting.value" :alt="setting.label" class="w-full h-full object-contain p-2" />
@@ -257,11 +258,14 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
                   />
                 </div>
               </div>
+              </template>
 
-              <!-- Boolean -->
-              <div v-else-if="setting.type === 'boolean'" class="pt-2">
-                <input v-model="setting.value" type="checkbox" class="w-5 h-5" />
-              </div>
+              <template v-else-if="setting.type === 'boolean'">
+                <!-- Boolean -->
+                <div class="pt-2">
+                  <input v-model="setting.value" type="checkbox" class="w-5 h-5" />
+                </div>
+              </template>
             </div>
           </div>
         </div>

@@ -272,7 +272,10 @@
         "unisex": "Unisex",
         "addProductsToCompare": "Add products to compare from the shop",
         "youMayAlsoLike": "You May Also Like",
-        "viewProductDetail": "View Product Details"
+        "viewProductDetail": "View Product Details",
+        "searchBrand": "Search brand...",
+        "showResults": "Show Results",
+        "showLess": "Show less"
     },
     "cart": {
         "title": "Shopping Cart",
@@ -937,7 +940,7 @@
         "newsletterText": "Subscribe to receive updates on new arrivals and exclusive offers.",
         "subscribe": "Subscribe",
         "emailPlaceholder": "Enter your email",
-        "copyright": "© 2024 AURA ARCHIVE. All rights reserved.",
+        "copyright": "© {year} AURA ARCHIVE. All rights reserved.",
         "company": "Company",
         "support": "Support",
         "legal": "Legal"
