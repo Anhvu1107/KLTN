@@ -117,7 +117,18 @@ const submitForm = async () => {
     showModal.value = false
     await fetchCoupons()
   } catch (error: any) {
-    formError.value = error.data?.message || 'Failed to save coupon'
+    const msg = error.data?.message || ''
+    // Map backend error messages to i18n keys
+    const errorMap: Record<string, string> = {
+      'Coupon code already exists': t('admin.coupons.codeExists'),
+      'Invalid coupon code': t('admin.coupons.invalidCode'),
+      'This coupon has expired': t('admin.coupons.couponExpired'),
+      'This coupon is no longer active': t('admin.coupons.couponInactive'),
+      'This coupon has reached its usage limit': t('admin.coupons.usageLimitReached'),
+      'You have already used this coupon': t('admin.coupons.alreadyUsed'),
+      'This coupon is not yet valid': t('admin.coupons.couponNotYetValid'),
+    }
+    formError.value = errorMap[msg] || (msg.includes('Minimum order') ? t('admin.coupons.minOrderRequired') : '') || msg || t('admin.coupons.saveFailed')
   } finally {
     isSubmitting.value = false
   }

@@ -214,6 +214,11 @@ const login = async ({ email, password }) => {
             email: user.email,
             firstName: user.first_name,
             lastName: user.last_name,
+            phone: user.phone,
+            address: user.address,
+            city: user.city,
+            district: user.district,
+            ward: user.ward,
             role: user.role,
             avatarUrl: user.avatar_url,
         },
@@ -314,7 +319,7 @@ const changePassword = async (userId, currentPassword, newPassword) => {
  */
 const getUserById = async (userId) => {
     const user = await User.findByPk(userId, {
-        attributes: ['id', 'email', 'first_name', 'last_name', 'phone', 'avatar_url', 'role', 'created_at'],
+        attributes: ['id', 'email', 'first_name', 'last_name', 'phone', 'avatar_url', 'role', 'created_at', 'address', 'city', 'district', 'ward'],
     });
 
     if (!user) {
@@ -327,6 +332,10 @@ const getUserById = async (userId) => {
         firstName: user.first_name,
         lastName: user.last_name,
         phone: user.phone,
+        address: user.address,
+        city: user.city,
+        district: user.district,
+        ward: user.ward,
         avatarUrl: user.avatar_url,
         role: user.role,
         createdAt: user.created_at,

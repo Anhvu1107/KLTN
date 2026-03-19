@@ -31,6 +31,7 @@ const form = reactive({
   size: 'M',
   color: 'Black',
   material: 'Cotton',
+  quantity: 1,
 })
 
 const isSubmitting = ref(false)
@@ -237,7 +238,7 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    await $fetch(`${config.public.apiUrl}/admin/products`, {
+    const response = await $fetch<{ success: boolean; data: { product: any } }>(`${config.public.apiUrl}/admin/products`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getToken()}` },
       body: {
@@ -261,6 +262,21 @@ const handleSubmit = async () => {
         },
       },
     })
+
+    if (response.success && form.quantity > 1) {
+      const productId = response.data.product.id;
+      for (let i = 1; i < form.quantity; i++) {
+        await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${getToken()}` },
+          body: {
+            size: actualSize,
+            color: actualColor,
+            material: actualMaterial,
+          },
+        });
+      }
+    }
 
     success.value = 'Product created successfully!'
     
@@ -485,6 +501,14 @@ useSeoMeta({
                 class="input-field mt-2" 
                 placeholder="Nhập chất liệu mới..."
               />
+            </div>
+
+            <div class="md:col-span-3 border-t border-neutral-100 pt-4 mt-2">
+              <label class="input-label">{{ t('admin.quantity', 'Số lượng') }}</label>
+              <div class="flex items-center gap-2">
+                <input v-model.number="form.quantity" type="number" min="1" class="input-field max-w-[150px]" />
+                <span class="text-caption text-neutral-500">Sẽ tạo ra bấy nhiêu mã SKU độc lập</span>
+              </div>
             </div>
           </div>
         </div>

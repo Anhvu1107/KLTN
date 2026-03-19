@@ -12,7 +12,7 @@ const catchAsync = require('../utils/catchAsync');
  */
 const createOrder = catchAsync(async (req, res) => {
     const userId = req.user.id;
-    const { items, paymentMethod, shippingAddress, billingAddress, notes, shippingFee } = req.body;
+    const { items, paymentMethod, shippingAddress, billingAddress, notes, shippingFee, couponId } = req.body;
 
     // Validate required fields
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -42,6 +42,7 @@ const createOrder = catchAsync(async (req, res) => {
         billingAddress,
         notes,
         shippingFee: shippingFee || 0,
+        couponId: couponId || null,
     });
 
     // Send notifications (fire-and-forget, don't block response)

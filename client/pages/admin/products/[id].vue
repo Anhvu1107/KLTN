@@ -52,6 +52,7 @@ interface VariantData {
   status: string
   isNew?: boolean
   isDeleted?: boolean
+  quantity?: number // For bulk-adding new variants
 }
 
 const variants = ref<VariantData[]>([])
@@ -70,6 +71,7 @@ const createEmptyVariant = (): VariantData => ({
   customMaterial: '',
   status: 'AVAILABLE',
   isNew: true,
+  quantity: 1,
 })
 
 const addVariant = () => {
@@ -90,6 +92,23 @@ const removeVariant = (index: number) => {
 const activeVariants = computed(() => 
   variants.value.filter(v => !v.isDeleted)
 )
+
+const duplicateVariant = (index: number) => {
+  const source = variants.value[index]
+  if (!source) return
+  
+  variants.value.push({
+    ...createEmptyVariant(),
+    size: source.size,
+    customSize: source.customSize,
+    color: source.color,
+    customColor: source.customColor,
+    material: source.material,
+    customMaterial: source.customMaterial,
+    status: 'AVAILABLE',
+    quantity: 1, // Ready to bulk create if they change this to N
+  })
+}
 
 // "Other" label (translated)
 const otherLabel = computed(() => locale.value === 'vi' ? 'Khác' : 'Other')
@@ -237,6 +256,7 @@ const fetchProduct = async () => {
             status: v.status,
             isNew: false,
             isDeleted: false,
+            quantity: 1,
           }
         })
       } else {
@@ -302,11 +322,14 @@ const saveProduct = async () => {
         })
       } else if (v.isNew && !v.isDeleted) {
         // Create new variant
-        await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: { size: actualSize, color: actualColor, material: actualMaterial, status: v.status },
-        })
+        const qty = v.quantity || 1;
+        for (let i = 0; i < qty; i++) {
+          await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: { size: actualSize, color: actualColor, material: actualMaterial, status: v.status },
+          })
+        }
       } else if (v.id && !v.isDeleted) {
         // Update existing variant
         await $fetch(`${config.public.apiUrl}/admin/variants/${v.id}`, {
@@ -557,17 +580,28 @@ useSeoMeta({
               <span class="text-body-sm font-medium text-neutral-600">
                 {{ v.isNew ? $t('admin.newVariant') || 'New Variant' : `Variant #${v.id}` }}
               </span>
-              <button
-                v-if="activeVariants.length > 1"
-                type="button"
-                @click="removeVariant(variants.indexOf(v))"
-                class="text-red-500 hover:text-red-700 text-sm"
-              >
-                {{ $t('common.remove') || 'Remove' }}
-              </button>
+              <div class="flex items-center gap-3">
+                <button
+                  v-if="!v.isNew"
+                  type="button"
+                  @click="duplicateVariant(variants.indexOf(v))"
+                  class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  title="Make a new restock copy of this item"
+                >
+                  {{ $t('admin.duplicate', 'Nhân bản') }}
+                </button>
+                <button
+                  v-if="activeVariants.length > 1"
+                  type="button"
+                  @click="removeVariant(variants.indexOf(v))"
+                  class="text-red-500 hover:text-red-700 text-sm font-medium"
+                >
+                  {{ $t('common.remove') || 'Remove' }}
+                </button>
+              </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div :class="['grid grid-cols-1 gap-4', v.isNew ? 'md:grid-cols-5' : 'md:grid-cols-4']">
               <div>
                 <label class="input-label text-sm">{{ $t('admin.productForm.size') }}</label>
                 <select v-model="v.size" class="input-field select-animated">
@@ -615,6 +649,17 @@ useSeoMeta({
                 <select v-model="v.status" class="input-field select-animated">
                   <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
                 </select>
+              </div>
+              
+              <div v-if="v.isNew">
+                <label class="input-label text-sm">{{ $t('admin.quantity', 'Số lượng') }}</label>
+                <input
+                  v-model.number="v.quantity"
+                  type="number"
+                  min="1"
+                  class="input-field"
+                  title="Tạo nhiều bản sao cho sản phẩm này"
+                />
               </div>
             </div>
           </div>

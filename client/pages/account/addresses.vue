@@ -10,6 +10,7 @@ definePageMeta({
 
 const config = useRuntimeConfig()
 const { t } = useI18n()
+const { confirm: showConfirm } = useDialog()
 
 // State
 const addresses = ref<any[]>([])
@@ -114,7 +115,8 @@ const submitForm = async () => {
 
 // Delete address
 const deleteAddress = async (id: string) => {
-  if (!confirm(t('common.confirmDelete'))) return
+  const isConfirmed = await showConfirm(t('common.confirmDelete'))
+  if (!isConfirmed) return
 
   try {
     const token = localStorage.getItem('token')

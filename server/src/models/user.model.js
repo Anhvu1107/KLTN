@@ -77,6 +77,22 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DATE,
             allowNull: true,
         },
+        address: {
+            type: DataTypes.STRING(500),
+            allowNull: true,
+        },
+        city: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+        },
+        district: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+        },
+        ward: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+        },
         last_login_at: {
             type: DataTypes.DATE,
             allowNull: true,

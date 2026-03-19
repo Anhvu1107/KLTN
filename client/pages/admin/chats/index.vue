@@ -154,10 +154,10 @@ const selectSession = async (session: any) => {
   // Fill customer form
   if (sessionInfo.value) {
     customerForm.value = {
-      customer_name: sessionInfo.value.customer_name || sessionInfo.value.user?.first_name || '',
+      customer_name: sessionInfo.value.customer_name || `${sessionInfo.value.user?.first_name || ''} ${sessionInfo.value.user?.last_name || ''}`.trim() || '',
       customer_email: sessionInfo.value.customer_email || sessionInfo.value.user?.email || '',
-      customer_phone: sessionInfo.value.customer_phone || '',
-      customer_address: sessionInfo.value.customer_address || '',
+      customer_phone: sessionInfo.value.customer_phone || sessionInfo.value.user?.phone || '',
+      customer_address: sessionInfo.value.customer_address || sessionInfo.value.user?.address || '',
       customer_year: sessionInfo.value.customer_year || '',
       admin_note: sessionInfo.value.admin_note || '',
     }

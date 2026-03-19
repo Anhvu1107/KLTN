@@ -10,6 +10,11 @@ export interface User {
     email: string
     firstName: string
     lastName: string
+    phone?: string
+    address?: string
+    city?: string
+    district?: string
+    ward?: string
     role: 'ADMIN' | 'CUSTOMER'
 }
 

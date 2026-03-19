@@ -150,7 +150,7 @@ useSeoMeta({
         <div v-else class="space-y-4">
           <div v-for="order in recentOrders" :key="order.id" class="flex items-center justify-between p-4 bg-neutral-50 rounded-sm">
             <div>
-              <p class="text-body-sm font-medium text-aura-black">{{ t('orders.orderId') }} #{{ order.id.slice(0, 8) }}</p>
+              <p class="text-body-sm font-medium text-aura-black">{{ t('orders.orderId') }} #{{ order.order_number || order.id.slice(0, 8).toUpperCase() }}</p>
               <p class="text-caption text-neutral-500">{{ formatDate(order.created_at) }}</p>
             </div>
             <div class="text-right">

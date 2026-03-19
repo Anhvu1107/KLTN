@@ -189,6 +189,7 @@ export const useCartStore = defineStore('cart', {
             shippingAddress: Record<string, string>
             shippingFee?: number
             notes?: string
+            couponId?: string
         }): Promise<{ success: boolean; order?: any; error?: string }> {
             if (this.items.length === 0) {
                 return { success: false, error: 'Cart is empty' }

@@ -233,6 +233,11 @@
         "addedToCart": "Added to Cart",
         "alreadyInCart": "Already in Cart",
         "soldOut": "Sold Out",
+        "soldOutMessage": "This product is sold out",
+        "onlyOneLeft": "Only 1 item left!",
+        "onlyFewLeft": "Only a few items left!",
+        "inStock": "In stock",
+        "products": "items",
         "viewCart": "View Cart",
         "condition": "Condition",
         "authenticityVerified": "Authenticity Verified",
@@ -275,7 +280,8 @@
         "viewProductDetail": "View Product Details",
         "searchBrand": "Search brand...",
         "showResults": "Show Results",
-        "showLess": "Show less"
+        "showLess": "Show less",
+        "loginToAddCart": "Please login to add items to cart"
     },
     "cart": {
         "title": "Shopping Cart",
@@ -556,6 +562,8 @@
         "variants": "Variants",
         "addVariant": "Add Variant",
         "newVariant": "New Variant",
+        "duplicate": "Duplicate",
+        "quantity": "Quantity",
         "deleteProduct": "Delete Product",
         "saveChanges": "Save Changes",
         "createProductDesc": "Create a new product listing with variant",
@@ -762,7 +770,16 @@
             "maxUsage": "Usage Limit",
             "minOrder": "Minimum Order",
             "create": "Create Coupon",
-            "edit": "Edit Coupon"
+            "edit": "Edit Coupon",
+            "codeExists": "Coupon code already exists",
+            "saveFailed": "Failed to save coupon",
+            "invalidCode": "Invalid coupon code",
+            "couponExpired": "This coupon has expired",
+            "couponInactive": "This coupon is no longer active",
+            "usageLimitReached": "This coupon has reached its usage limit",
+            "alreadyUsed": "You have already used this coupon",
+            "minOrderRequired": "Order amount does not meet minimum requirement",
+            "couponNotYetValid": "This coupon is not yet valid"
         },
         "banners": {
             "title": "Banner Management",

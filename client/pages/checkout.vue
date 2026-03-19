@@ -31,11 +31,24 @@ const shippingFee = ref(30000)
 const isProcessing = ref(false)
 const error = ref('')
 
+// Coupon state
+const couponCode = ref('')
+const couponError = ref('')
+const couponSuccess = ref('')
+const isApplyingCoupon = ref(false)
+const appliedCoupon = ref<{
+  id: string
+  code: string
+  name: string
+  discountAmount: number
+} | null>(null)
+
 // Enabled payment methods from admin settings
 const enabledMethods = ref<Record<string, { enabled: boolean }>>({})
 
-// Computed
-const total = computed(() => cartStore.subtotal + shippingFee.value)
+// Computed totals
+const discountAmount = computed(() => appliedCoupon.value?.discountAmount || 0)
+const total = computed(() => cartStore.subtotal + shippingFee.value - discountAmount.value)
 
 const cities = VIETNAM_CITIES
 
@@ -79,11 +92,116 @@ const fetchPaymentSettings = async () => {
   }
 }
 
-onMounted(fetchPaymentSettings)
+// Auto-fill shipping form from user profile
+const prefillFromUser = () => {
+  const user = authStore.user
+  if (!user) return
+  if (!shippingForm.fullName && (user.firstName || user.lastName)) {
+    shippingForm.fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
+  }
+  if (!shippingForm.phone && user.phone) {
+    shippingForm.phone = user.phone
+  }
+  if (!shippingForm.address && user.address) {
+    shippingForm.address = user.address
+  }
+  if (user.city) {
+    shippingForm.city = user.city
+  }
+  if (!shippingForm.district && user.district) {
+    shippingForm.district = user.district
+  }
+  if (!shippingForm.ward && user.ward) {
+    shippingForm.ward = user.ward
+  }
+}
+
+onMounted(() => {
+  fetchPaymentSettings()
+  prefillFromUser()
+})
 
 // Format price
 const { formatPrice } = useCurrency()
 
+// Group identical items
+const groupedItems = computed(() => {
+  const groups = new Map()
+  for (const item of cartStore.items) {
+    const key = `${item.productId}-${item.variantSize}-${item.variantColor}`
+    if (!groups.has(key)) {
+      groups.set(key, { ...item, quantity: 1, variantIds: [item.id] })
+    } else {
+      const g = groups.get(key)
+      g.quantity++
+      g.variantIds.push(item.id)
+    }
+  }
+  return Array.from(groups.values())
+})
+
+// Apply coupon
+const applyCoupon = async () => {
+  if (!couponCode.value.trim()) {
+    couponError.value = t('cart.enterCode')
+    return
+  }
+
+  couponError.value = ''
+  couponSuccess.value = ''
+  isApplyingCoupon.value = true
+
+  try {
+    const token = localStorage.getItem('token')
+    const response = await $fetch<{
+      success: boolean
+      data: {
+        coupon: { id: string; code: string; name: string }
+        discountAmount: number
+        newTotal: number
+      }
+    }>(`${config.public.apiUrl}/coupons/validate`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: {
+        code: couponCode.value,
+        cartTotal: cartStore.subtotal,
+      },
+    })
+
+    if (response.success) {
+      appliedCoupon.value = {
+        id: response.data.coupon.id,
+        code: response.data.coupon.code,
+        name: response.data.coupon.name,
+        discountAmount: response.data.discountAmount,
+      }
+      couponSuccess.value = `${t('cart.couponCode')} "${response.data.coupon.code}" - ${t('cart.discount')}: ${formatPrice(response.data.discountAmount)}`
+    }
+  } catch (err: any) {
+    const msg = err.data?.message || ''
+    const errorMap: Record<string, string> = {
+      'Invalid coupon code': t('admin.coupons.invalidCode'),
+      'This coupon has expired': t('admin.coupons.couponExpired'),
+      'This coupon is no longer active': t('admin.coupons.couponInactive'),
+      'This coupon has reached its usage limit': t('admin.coupons.usageLimitReached'),
+      'You have already used this coupon': t('admin.coupons.alreadyUsed'),
+      'This coupon is not yet valid': t('admin.coupons.couponNotYetValid'),
+    }
+    couponError.value = errorMap[msg] || (msg.includes('Minimum order') ? t('admin.coupons.minOrderRequired') : '') || msg || t('admin.coupons.invalidCode')
+    appliedCoupon.value = null
+  } finally {
+    isApplyingCoupon.value = false
+  }
+}
+
+// Remove coupon
+const removeCoupon = () => {
+  appliedCoupon.value = null
+  couponCode.value = ''
+  couponSuccess.value = ''
+  couponError.value = ''
+}
 // Checkout handler
 const handleCheckout = async () => {
   // Validate auth
@@ -118,6 +236,7 @@ const handleCheckout = async () => {
       shippingAddress: { ...shippingForm },
       shippingFee: shippingFee.value,
       notes: shippingForm.notes,
+      couponId: appliedCoupon.value?.id || undefined,
     })
 
     if (!result.success) {
@@ -164,6 +283,32 @@ const handleCheckout = async () => {
           return
         }
       } catch (e: any) { console.error('PayPal error:', e) }
+    }
+
+    // Save shipping info back to user profile (fire-and-forget)
+    if (token) {
+      $fetch(`${config.public.apiUrl}/users/profile`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: {
+          first_name: shippingForm.fullName.split(' ')[0] || '',
+          last_name: shippingForm.fullName.split(' ').slice(1).join(' ') || '',
+          phone: shippingForm.phone,
+          address: shippingForm.address,
+          city: shippingForm.city,
+          district: shippingForm.district,
+          ward: shippingForm.ward,
+        },
+      }).catch(() => {})
+
+      // Update local auth state
+      if (authStore.user) {
+        authStore.user.phone = shippingForm.phone
+        authStore.user.address = shippingForm.address
+        authStore.user.city = shippingForm.city
+        authStore.user.district = shippingForm.district
+        authStore.user.ward = shippingForm.ward
+      }
     }
 
     // COD / Bank Transfer / gateway failed → go to order detail
@@ -271,27 +416,73 @@ useSeoMeta({
             <!-- Cart Items -->
             <div class="space-y-4 mb-6">
               <div
-                v-for="item in cartStore.items"
-                :key="item.id"
+                v-for="item in groupedItems"
+                :key="item.variantIds[0]"
                 class="flex gap-4"
               >
-                <div class="w-16 h-16 bg-neutral-100 rounded-sm flex-shrink-0"></div>
+                <div class="w-16 h-16 bg-neutral-100 rounded-sm flex-shrink-0 overflow-hidden">
+                  <img v-if="item.productImage" :src="item.productImage" :alt="item.productName" class="w-full h-full object-cover" />
+                </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-caption text-neutral-500 uppercase">{{ item.productBrand }}</p>
-                  <p class="text-body-sm font-medium text-aura-black truncate">{{ item.productName }}</p>
+                  <p class="text-body-sm font-medium text-aura-black truncate flex items-center gap-1">
+                    {{ item.productName }}
+                    <span v-if="item.quantity > 1" class="text-neutral-500 text-xs bg-neutral-200 px-1.5 py-0.5 rounded-sm">x{{ item.quantity }}</span>
+                  </p>
                   <p class="text-caption text-neutral-600">{{ item.variantSize }} / {{ item.variantColor }}</p>
                 </div>
-                <p class="text-body-sm font-medium">{{ formatPrice(item.price) }}</p>
+                <p class="text-body-sm font-medium">{{ formatPrice(item.price * item.quantity) }}</p>
               </div>
             </div>
 
             <div class="divider mb-4"></div>
+
+            <!-- Coupon Input -->
+            <div class="mb-6">
+              <label class="input-label">{{ $t('cart.couponCode') }}</label>
+              <div v-if="!appliedCoupon" class="flex gap-2">
+                <input
+                  v-model="couponCode"
+                  type="text"
+                  :placeholder="$t('cart.enterCode')"
+                  class="input-field flex-1 uppercase"
+                  @keyup.enter="applyCoupon"
+                />
+                <button
+                  @click="applyCoupon"
+                  :disabled="isApplyingCoupon"
+                  class="px-4 py-2 bg-neutral-800 text-white text-body-sm hover:bg-neutral-700 transition-colors"
+                  :class="{ 'opacity-50 cursor-not-allowed': isApplyingCoupon }"
+                >
+                  {{ isApplyingCoupon ? '...' : $t('cart.apply') }}
+                </button>
+              </div>
+              <!-- Applied coupon display -->
+              <div v-else class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-sm">
+                <div>
+                  <span class="text-body-sm font-medium text-green-700">{{ appliedCoupon.code }}</span>
+                  <span class="text-caption text-green-600 ml-2">-{{ formatPrice(discountAmount) }}</span>
+                </div>
+                <button @click="removeCoupon" class="text-green-600 hover:text-green-800">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              <!-- Error/Success messages -->
+              <p v-if="couponError" class="text-caption text-red-600 mt-2">{{ couponError }}</p>
+              <p v-if="couponSuccess" class="text-caption text-green-600 mt-2">{{ couponSuccess }}</p>
+            </div>
 
             <!-- Totals -->
             <div class="space-y-2 text-body-sm">
               <div class="flex justify-between">
                 <span class="text-neutral-600">{{ $t('cart.subtotal') }}</span>
                 <span>{{ formatPrice(cartStore.subtotal) }}</span>
+              </div>
+              <div v-if="appliedCoupon" class="flex justify-between text-green-600">
+                <span>{{ $t('cart.discount') }} ({{ appliedCoupon.code }})</span>
+                <span>-{{ formatPrice(discountAmount) }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-neutral-600">{{ $t('cart.shipping') }}</span>

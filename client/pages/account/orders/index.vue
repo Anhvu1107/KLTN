@@ -129,7 +129,7 @@ useSeoMeta({
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div class="flex items-center gap-3 mb-2">
-                <p class="text-body font-medium text-aura-black">{{ t('account.orders') }} #{{ order.id.slice(0, 8) }}</p>
+                <p class="text-body font-medium text-aura-black">{{ t('account.orders') }} #{{ order.order_number || order.id.slice(0, 8).toUpperCase() }}</p>
                 <span :class="getStatusClass(order.status)" class="px-2 py-1 text-caption rounded-sm">
                   {{ getOrderStatus(order.status) }}
                 </span>

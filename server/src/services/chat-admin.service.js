@@ -81,7 +81,7 @@ const getSessions = async (options = {}) => {
         include: [{
             model: User,
             as: 'user',
-            attributes: ['id', 'email', 'first_name', 'last_name', 'avatar_url'],
+            attributes: ['id', 'email', 'first_name', 'last_name', 'avatar_url', 'phone', 'address'],
             required: false,
         }],
         order: [['last_activity', 'DESC']],
@@ -156,10 +156,20 @@ const getSessionMessages = async (sessionId) => {
         { where: { session_id: sessionId } }
     );
 
-    // Get session info
+    // Get session info with user data
     const session = await ensureSession(sessionId);
+    // Re-fetch with user include for customer panel
+    const sessionWithUser = await ChatSession.findOne({
+        where: { session_id: sessionId },
+        include: [{
+            model: User,
+            as: 'user',
+            attributes: ['id', 'email', 'first_name', 'last_name', 'avatar_url', 'phone', 'address'],
+            required: false,
+        }],
+    });
 
-    return { messages, session };
+    return { messages, session: sessionWithUser || session };
 };
 
 /**

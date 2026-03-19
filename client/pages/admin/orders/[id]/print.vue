@@ -148,11 +148,11 @@ onMounted(fetchOrder)
         <tbody>
           <tr v-for="item in order.items" :key="item.id" class="border-b">
             <td class="py-3">
-              <p class="font-medium">{{ item.product?.name }}</p>
+              <p class="font-medium">{{ item.product_name || item.product?.name }}</p>
               <p class="text-xs text-neutral-500">SKU: {{ item.variant?.sku || 'N/A' }}</p>
             </td>
-            <td class="text-center py-3">{{ item.variant?.size }}</td>
-            <td class="text-center py-3">{{ item.variant?.color }}</td>
+            <td class="text-center py-3">{{ item.variant_size || item.variant?.size }}</td>
+            <td class="text-center py-3">{{ item.variant_color || item.variant?.color }}</td>
             <td class="text-right py-3">{{ formatPrice(item.price) }}</td>
           </tr>
         </tbody>

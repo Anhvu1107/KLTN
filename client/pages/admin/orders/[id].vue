@@ -61,7 +61,10 @@ const updateStatus = async (newStatus: string) => {
 const { formatPrice } = useCurrency()
 
 const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -152,7 +155,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
         <div class="bg-white rounded-sm border border-neutral-200 p-6">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <h2 class="font-medium text-lg">Order #{{ order.order_number || order.id.slice(0, 8).toUpperCase() }}</h2>
+              <h2 class="font-medium text-lg">{{ t('orders.order', 'Order') }} #{{ order.order_number || order.id.slice(0, 8).toUpperCase() }}</h2>
               <p class="text-body-sm text-neutral-500">{{ formatDate(order.created_at) }}</p>
             </div>
             <span :class="getStatusClass(order.status)" class="px-3 py-1 rounded text-body-sm">
@@ -180,21 +183,25 @@ useSeoMeta({ title: 'Order Detail | Admin' })
           <div class="space-y-4">
             <div v-for="item in order.items" :key="item.id" class="flex items-center gap-4 p-4 bg-neutral-50 rounded">
               <img 
-                v-if="item.product?.images?.[0]"
-                :src="getImageUrl(item.product.images[0])"
-                :alt="item.product.name"
+                v-if="item.variant?.product?.images?.[0]"
+                :src="getImageUrl(item.variant.product.images[0])"
+                :alt="item.product_name"
                 class="w-16 h-16 object-cover rounded"
               />
-              <div class="w-16 h-16 bg-neutral-200 rounded" v-else />
+              <div class="w-16 h-16 bg-neutral-200 rounded shrink-0 flex items-center justify-center text-neutral-400" v-else>
+                <span class="text-xs">{{ t('common.noImage', 'No image') }}</span>
+              </div>
               <div class="flex-1">
-                <p class="font-medium">{{ item.product?.name }}</p>
+                <p class="text-caption text-neutral-500 uppercase">{{ item.product_brand || '' }}</p>
+                <p class="font-medium">{{ item.product_name }}</p>
                 <p class="text-body-sm text-neutral-500">
-                  Size: {{ item.variant?.size }} | Màu: {{ item.variant?.color }}
+                  Size: {{ item.variant_size || item.variant?.size }} | Màu: {{ item.variant_color || item.variant?.color }}
                 </p>
                 <p class="text-caption text-neutral-400">SKU: {{ item.variant?.sku || 'N/A' }}</p>
               </div>
               <div class="text-right">
                 <p class="font-medium">{{ formatPrice(item.price) }}</p>
+                <p class="text-caption text-neutral-500">x{{ item.quantity }}</p>
               </div>
             </div>
           </div>
@@ -213,7 +220,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
 
         <!-- Shipping -->
         <div class="bg-white rounded-sm border border-neutral-200 p-6">
-          <h3 class="font-medium mb-4">{{ t('checkout.shippingAddress') }}</h3>
+          <h3 class="font-medium mb-4">{{ t('checkout.shippingInfo') }}</h3>
           <p class="font-medium">{{ order.shipping_address?.full_name }}</p>
           <p class="text-body-sm text-neutral-500">{{ order.shipping_address?.phone }}</p>
           <p class="text-body-sm text-neutral-500">{{ order.shipping_address?.address }}</p>

@@ -3,7 +3,7 @@
  * AURA ARCHIVE - Business logic for admin dashboard
  */
 
-const { Order, User, Product, Variant, SystemPrompt, sequelize } = require('../models');
+const { Order, User, Product, Variant, SystemPrompt, sequelize, OrderItem } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op, fn, col, literal } = require('sequelize');
 const notificationService = require('./notification.service');
@@ -187,7 +187,9 @@ const getRecentOrders = async (limit = 10) => {
  * Update order status
  */
 const updateOrderStatus = async (orderId, status) => {
-    const order = await Order.findByPk(orderId);
+    const order = await Order.findByPk(orderId, {
+        include: [{ model: OrderItem, as: 'items' }]
+    });
 
     if (!order) {
         throw new AppError('Order not found', 404);
@@ -208,14 +210,33 @@ const updateOrderStatus = async (orderId, status) => {
 
     const updateData = { status };
 
-    // Set timestamps based on status
     if (status === 'CONFIRMED') updateData.confirmed_at = new Date();
     if (status === 'SHIPPED') updateData.shipped_at = new Date();
     if (status === 'DELIVERED') {
         updateData.delivered_at = new Date();
         updateData.payment_status = 'PAID';
     }
-    if (status === 'CANCELLED') updateData.cancelled_at = new Date();
+    
+    // Manage inventory on cancellation
+    if (status === 'CANCELLED') {
+        updateData.cancelled_at = new Date();
+        if (order.items && order.items.length > 0) {
+            const variantIds = order.items.map(item => item.variant_id);
+            await Variant.update(
+                { status: 'AVAILABLE', sold_at: null },
+                { where: { id: { [Op.in]: variantIds } } }
+            );
+        }
+    } else if (order.status === 'CANCELLED' && status !== 'CANCELLED') {
+        // If un-cancelling, reserve items again
+        if (order.items && order.items.length > 0) {
+            const variantIds = order.items.map(item => item.variant_id);
+            await Variant.update(
+                { status: 'SOLD', sold_at: new Date() },
+                { where: { id: { [Op.in]: variantIds } } }
+            );
+        }
+    }
 
     await order.update(updateData);
 

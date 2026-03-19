@@ -150,14 +150,22 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
         throw new AppError('This coupon is no longer active', 400);
     }
 
-    // Check start date
-    if (coupon.starts_at && new Date(coupon.starts_at) > new Date()) {
-        throw new AppError('This coupon is not yet valid', 400);
+    // Check start date (compare date only, ignore time/timezone)
+    if (coupon.starts_at) {
+        const startDate = new Date(coupon.starts_at).toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
+        if (startDate > today) {
+            throw new AppError('This coupon is not yet valid', 400);
+        }
     }
 
-    // Check expiry
-    if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
-        throw new AppError('This coupon has expired', 400);
+    // Check expiry (compare date only, ignore time/timezone)
+    if (coupon.expires_at) {
+        const expiryDate = new Date(coupon.expires_at).toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
+        if (expiryDate < today) {
+            throw new AppError('This coupon has expired', 400);
+        }
     }
 
     // Check max uses
