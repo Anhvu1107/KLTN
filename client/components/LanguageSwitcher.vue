@@ -3,7 +3,6 @@
  * Language Switcher Component
  * AURA ARCHIVE - Switch between EN/VI
  */
-import { useI18n } from '#imports'
 
 const { locale, locales, setLocale } = useI18n()
 

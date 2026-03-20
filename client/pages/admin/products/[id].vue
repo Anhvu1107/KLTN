@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Edit existing product
  */
 
-import { useI18n } from '#imports'
 import { useDialog } from '~/composables/useDialog'
 
 definePageMeta({

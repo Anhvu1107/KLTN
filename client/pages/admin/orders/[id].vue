@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Full order view with status management
  */
 
-import { useI18n } from '#imports'
 
 definePageMeta({
   layout: 'admin',

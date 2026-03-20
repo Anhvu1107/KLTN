@@ -4,7 +4,6 @@
  * AURA ARCHIVE - User's order list
  */
 
-import { useI18n } from '#imports'
 
 definePageMeta({
   middleware: ['auth'],

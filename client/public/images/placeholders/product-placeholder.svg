@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Product placeholder</title>
+  <desc id="desc">Placeholder image for products without uploaded photos.</desc>
+  <rect width="800" height="1000" fill="#f5f5f5" />
+  <rect x="80" y="80" width="640" height="840" rx="24" fill="#ffffff" stroke="#d4d4d4" stroke-width="8" />
+  <circle cx="400" cy="360" r="110" fill="#e5e5e5" />
+  <path d="M180 820V720L320 580L460 690L590 540L620 580V820Z" fill="#e5e5e5" />
+  <text x="400" y="892" text-anchor="middle" font-family="Georgia, serif" font-size="42" letter-spacing="8" fill="#737373">
+    AURA ARCHIVE
+  </text>
+</svg>

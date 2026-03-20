@@ -6,7 +6,6 @@
 
 import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
-import { useI18n } from '#imports'
 import { VIETNAM_CITIES, DEFAULT_CITY } from '~/utils/constants'
 
 const { t } = useI18n()

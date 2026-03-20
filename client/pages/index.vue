@@ -3,34 +3,65 @@
  * Homepage - AURA ARCHIVE (Bright & Elegant)
  * Luxury fashion homepage with light, airy design
  */
-import { useI18n } from '#imports'
 
 const config = useRuntimeConfig()
 const { t } = useI18n()
 
-// Fetch banners for hero section
-const { data: bannersData } = await useFetch<{
+type BannerResponse = {
   success: boolean
   data: { banners: any[] }
-}>(`${config.public.apiUrl}/banners`)
+}
 
-// Fetch new arrivals
-const { data: featuredProducts } = await useFetch<{
+type ProductListResponse = {
   success: boolean
   data: { products: any[] }
-}>(`${config.public.apiUrl}/products?limit=4&sort=newest`)
+}
 
-// Fetch best sellers
-const { data: bestSellersData } = await useFetch<{
-  success: boolean
-  data: { products: any[] }
-}>(`${config.public.apiUrl}/products/best-sellers?limit=4`)
+const createEmptyBannerResponse = (): BannerResponse => ({
+  success: true,
+  data: { banners: [] },
+})
 
-// Fetch sale products
-const { data: saleProductsData } = await useFetch<{
-  success: boolean
-  data: { products: any[] }
-}>(`${config.public.apiUrl}/products/sale?limit=4`)
+const createEmptyProductResponse = (): ProductListResponse => ({
+  success: true,
+  data: { products: [] },
+})
+
+// Keep the hero banner on SSR, but avoid blocking the whole homepage on product feeds.
+const { data: bannersData } = await useFetch<BannerResponse>(`${config.public.apiUrl}/banners`, {
+  timeout: 5000,
+  default: createEmptyBannerResponse,
+})
+
+const { data: featuredProducts } = useFetch<ProductListResponse>(
+  `${config.public.apiUrl}/products?limit=4&sort=newest`,
+  {
+    server: false,
+    lazy: true,
+    timeout: 5000,
+    default: createEmptyProductResponse,
+  }
+)
+
+const { data: bestSellersData } = useFetch<ProductListResponse>(
+  `${config.public.apiUrl}/products/best-sellers?limit=4`,
+  {
+    server: false,
+    lazy: true,
+    timeout: 5000,
+    default: createEmptyProductResponse,
+  }
+)
+
+const { data: saleProductsData } = useFetch<ProductListResponse>(
+  `${config.public.apiUrl}/products/sale?limit=4`,
+  {
+    server: false,
+    lazy: true,
+    timeout: 5000,
+    default: createEmptyProductResponse,
+  }
+)
 
 // Get hero banner (position = 0)
 const heroBanner = computed(() => {

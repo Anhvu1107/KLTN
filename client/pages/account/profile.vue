@@ -5,7 +5,6 @@
  */
 
 import { useAuthStore } from '~/stores/auth'
-import { useI18n } from '#imports'
 
 definePageMeta({
   middleware: ['auth'],

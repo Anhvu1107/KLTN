@@ -21,14 +21,20 @@ import { useSocket } from '~/composables/useSocket'
 // Constants
 const STORAGE_KEY = 'aura_chat_session_id'
 
+type ChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 // State
 const isOpen = ref(false)
 const isLoading = ref(false)
 const isWaitingForAdmin = ref(false)
 const sessionId = ref('')
 const inputMessage = ref('')
-const messages = ref<{ role: 'user' | 'assistant'; content: string }[]>([])
+const messages = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
+let hasSocketListener = false
 
 // Appearance config (loaded from API)
 const appearance = ref({
@@ -97,6 +103,58 @@ const getSavedSessionId = (): string | null => {
   return null
 }
 
+const normalizeMessage = (message: ChatMessage): ChatMessage => ({
+  role: message.role,
+  content: message.content.trim(),
+})
+
+const isSameMessage = (left?: ChatMessage | null, right?: ChatMessage | null): boolean => {
+  if (!left || !right) return false
+  return left.role === right.role && left.content.trim() === right.content.trim()
+}
+
+const mapDbMessages = (dbMessages: { role: string; content: string }[]): ChatMessage[] =>
+  dbMessages.map((message) =>
+    normalizeMessage({
+      role: message.role === 'USER' ? 'user' : 'assistant',
+      content: message.content,
+    })
+  )
+
+const pushUniqueMessage = (message: ChatMessage): boolean => {
+  const normalized = normalizeMessage(message)
+  const lastMessage = messages.value[messages.value.length - 1]
+
+  if (isSameMessage(lastMessage, normalized)) {
+    return false
+  }
+
+  messages.value.push(normalized)
+  return true
+}
+
+const syncMessagesFromHistory = (dbMessages: { role: string; content: string }[]): boolean => {
+  const serverMessages = mapDbMessages(dbMessages)
+  const currentGreeting = messages.value[0]
+  const shouldKeepGreeting = currentGreeting
+    && currentGreeting.role === 'assistant'
+    && !serverMessages.some((message) => isSameMessage(message, currentGreeting))
+
+  const mergedMessages = [
+    ...(shouldKeepGreeting ? [normalizeMessage(currentGreeting)] : []),
+    ...serverMessages,
+  ].filter((message, index, list) => index === 0 || !isSameMessage(message, list[index - 1]))
+
+  const hasChanged = mergedMessages.length !== messages.value.length
+    || mergedMessages.some((message, index) => !isSameMessage(message, messages.value[index]))
+
+  if (hasChanged) {
+    messages.value = mergedMessages
+  }
+
+  return hasChanged
+}
+
 // Load chat history from server
 const loadChatHistory = async (sid: string): Promise<boolean> => {
   try {
@@ -110,10 +168,8 @@ const loadChatHistory = async (sid: string): Promise<boolean> => {
     const dbMessages = response.data?.messages || []
     if (dbMessages.length > 0) {
       sessionId.value = sid
-      messages.value = dbMessages.map((m: any) => ({
-        role: m.role === 'USER' ? 'user' as const : 'assistant' as const,
-        content: m.content,
-      }))
+      messages.value = mapDbMessages(dbMessages)
+        .filter((message, index, list) => index === 0 || !isSameMessage(message, list[index - 1]))
       setupSocket(sid)
       startWidgetPolling()
       scrollToBottom()
@@ -138,7 +194,7 @@ const initChat = async () => {
 
     sessionId.value = response.sessionId
     saveSessionId(response.sessionId)
-    messages.value.push({
+    pushUniqueMessage({
       role: 'assistant',
       content: response.message,
     })
@@ -147,7 +203,7 @@ const initChat = async () => {
     setupSocket(response.sessionId)
     startWidgetPolling()
   } catch (error) {
-    messages.value.push({
+    pushUniqueMessage({
       role: 'assistant',
       content: 'Chào mừng bạn đến AURA ARCHIVE! Tôi là AURA, stylist riêng của bạn. Tôi có thể giúp gì cho bạn hôm nay?',
     })
@@ -159,7 +215,8 @@ const initChat = async () => {
 // Start a brand new conversation
 const startNewChat = async () => {
   // Disconnect from current session
-  disconnect()
+  hasSocketListener = false
+  disconnectSocket()
   stopWidgetPolling()
   
   // Clear state
@@ -173,31 +230,28 @@ const startNewChat = async () => {
 }
 
 // ====== WebSocket Real-time ======
-const { connect, joinSession, onNewMessage, disconnect } = useSocket()
+const { connect, joinSession, onNewMessage, disconnect: disconnectSocket } = useSocket()
 
 const setupSocket = async (sid: string) => {
   await connect()
   joinSession(sid)
+  if (hasSocketListener) return
   onNewMessage((data: any) => {
     // Only handle messages for our session
     if (data.sessionId !== sessionId.value) return
-    
-    // Don't duplicate messages we already sent locally
+
     const msg = data.message
     const role = msg.role === 'USER' ? 'user' as const : 'assistant' as const
-    
-    // When admin replies, clear the waiting indicator
+
     if (role === 'assistant') {
       isWaitingForAdmin.value = false
     }
-    
-    // Check if this message already exists (avoid duplicates)
-    const lastMsg = messages.value[messages.value.length - 1]
-    if (lastMsg && lastMsg.content === msg.content && lastMsg.role === role) return
-    
-    messages.value.push({ role, content: msg.content })
-    scrollToBottom()
+
+    if (pushUniqueMessage({ role, content: msg.content })) {
+      scrollToBottom()
+    }
   })
+  hasSocketListener = true
 }
 
 // Open chat
@@ -218,9 +272,10 @@ const openChat = async () => {
     
     // No saved session or restore failed — start new
     await initChat()
+    return
   }
   
-  if (sessionId.value) setupSocket(sessionId.value)
+  if (sessionId.value) await setupSocket(sessionId.value)
 }
 
 // Close chat
@@ -244,16 +299,14 @@ const pollForNewMessages = async () => {
     })
     const dbMessages = response.data?.messages || []
     if (dbMessages.length > 0) {
-      const mapped = dbMessages.map((m: any) => ({
-        role: m.role === 'USER' ? 'user' as const : 'assistant' as const,
-        content: m.content,
-      }))
-      const localCount = messages.value.length - 1 // -1 for greeting
-      if (mapped.length > localCount) {
-        const greeting = messages.value[0]
-        messages.value = greeting ? [greeting, ...mapped] : mapped
-        // Clear waiting indicator if admin has replied
-        const hasNewAssistant = mapped.some((m: any, i: number) => i >= localCount && m.role === 'assistant')
+      const previousLength = messages.value.length
+      const didSync = syncMessagesFromHistory(dbMessages)
+
+      if (didSync) {
+        const hasNewAssistant = messages.value
+          .slice(previousLength)
+          .some((message) => message.role === 'assistant')
+
         if (hasNewAssistant) isWaitingForAdmin.value = false
         scrollToBottom()
       }
@@ -270,7 +323,8 @@ const stopWidgetPolling = () => {
 }
 
 onUnmounted(() => {
-  disconnect()
+  hasSocketListener = false
+  disconnectSocket()
   stopWidgetPolling()
 })
 
@@ -280,7 +334,7 @@ const sendMessage = async () => {
   if (!message || isLoading.value) return
 
   // Add user message
-  messages.value.push({
+  pushUniqueMessage({
     role: 'user',
     content: message,
   })
@@ -318,7 +372,7 @@ const sendMessage = async () => {
       isWaitingForAdmin.value = true
     } else if (response.message) {
       // Normal AI response
-      messages.value.push({
+      pushUniqueMessage({
         role: 'assistant',
         content: response.message,
       })
@@ -329,7 +383,7 @@ const sendMessage = async () => {
       setupSocket(sessionId.value)
       startWidgetPolling()
     }
-    messages.value.push({
+    pushUniqueMessage({
       role: 'assistant',
       content: 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.',
     })

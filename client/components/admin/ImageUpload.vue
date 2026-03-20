@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Reusable image upload with preview and drag-drop
  */
 
-import { useI18n } from '#imports'
 
 const props = defineProps<{
   modelValue: string[]

@@ -105,7 +105,7 @@ onMounted(async () => {
   <div v-else class="min-h-screen bg-neutral-50" />
 
   <!-- Global Dialog (replaces native alert/confirm) -->
-  <CommonGlobalDialog />
+  <GlobalDialog />
 </template>
 
 <style scoped>

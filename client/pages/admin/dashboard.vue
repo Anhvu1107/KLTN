@@ -12,7 +12,6 @@ import {
   Filler,
 } from 'chart.js'
 
-import { useI18n } from '#imports'
 
 ChartJS.register(
   CategoryScale,

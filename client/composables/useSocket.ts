@@ -6,6 +6,7 @@
 
 let socket: any = null
 let ioModule: any = null
+let connectPromise: Promise<any> | null = null
 
 export const useSocket = () => {
     const config = useRuntimeConfig()
@@ -14,29 +15,44 @@ export const useSocket = () => {
         // Only run in browser
         if (!import.meta.client) return null
         if (socket?.connected) return socket
-
-        // Dynamic import to avoid SSR issues
-        if (!ioModule) {
-            const mod = await import('socket.io-client')
-            ioModule = mod.io
+        if (socket) {
+            try {
+                socket.connect?.()
+            } catch {}
+            return socket
         }
+        if (connectPromise) return connectPromise
 
-        const serverUrl = config.public.apiUrl.replace('/api/v1', '')
+        connectPromise = (async () => {
+            // Dynamic import to avoid SSR issues
+            if (!ioModule) {
+                const mod = await import('socket.io-client')
+                ioModule = mod.io
+            }
 
-        socket = ioModule(serverUrl, {
-            transports: ['websocket', 'polling'],
-            autoConnect: true,
-        })
+            const serverUrl = config.public.socketUrl || config.public.apiUrl.replace(/\/api\/v1$/, '')
 
-        socket.on('connect', () => {
-            console.log('[Socket] Connected:', socket?.id)
-        })
+            socket = ioModule(serverUrl, {
+                transports: ['websocket', 'polling'],
+                autoConnect: true,
+            })
 
-        socket.on('disconnect', () => {
-            console.log('[Socket] Disconnected')
-        })
+            socket.on('connect', () => {
+                console.log('[Socket] Connected:', socket?.id)
+            })
 
-        return socket
+            socket.on('disconnect', () => {
+                console.log('[Socket] Disconnected')
+            })
+
+            return socket
+        })()
+
+        try {
+            return await connectPromise
+        } finally {
+            connectPromise = null
+        }
     }
 
     const getSocket = () => {
@@ -65,6 +81,7 @@ export const useSocket = () => {
     const disconnect = () => {
         socket?.disconnect()
         socket = null
+        connectPromise = null
     }
 
     return {

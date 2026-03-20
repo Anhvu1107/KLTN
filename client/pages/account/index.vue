@@ -4,7 +4,6 @@
  * AURA ARCHIVE - User account overview
  */
 
-import { useI18n } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 
 const { t } = useI18n()

@@ -5,7 +5,6 @@
  * Elegant product listing with refined accordion filters
  */
 
-import { useI18n } from '#imports'
 
 const { t } = useI18n()
 const config = useRuntimeConfig()

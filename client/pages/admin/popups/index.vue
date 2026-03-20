@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Marketing popup management
  */
 
-import { useI18n } from '#imports'
 import { useDialog } from '~/composables/useDialog'
 
 definePageMeta({

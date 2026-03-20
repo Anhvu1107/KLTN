@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Reusable sidebar for admin pages
  */
 
-import { useI18n } from '#imports'
 const { t } = useI18n()
 const route = useRoute()
 

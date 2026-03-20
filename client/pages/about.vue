@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Company story, mission, and values
  */
 
-import { useI18n } from '#imports'
 
 const { t } = useI18n()
 const config = useRuntimeConfig()

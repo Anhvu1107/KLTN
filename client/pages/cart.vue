@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
-import { useI18n } from '#imports'
 import { useDialog } from '~/composables/useDialog'
 
 const { t } = useI18n()

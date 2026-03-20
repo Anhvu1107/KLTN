@@ -6,7 +6,6 @@
 
 import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
-import { useI18n } from '#imports'
 import { useRecentlyViewed } from '~/composables/useRecentlyViewed'
 import { useCompare } from '~/composables/useCompare'
 

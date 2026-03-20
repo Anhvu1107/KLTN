@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Reset password with token and i18n
  */
 
-import { useI18n } from '#imports'
 
 definePageMeta({
   layout: 'auth',

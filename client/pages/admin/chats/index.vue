@@ -11,7 +11,7 @@ definePageMeta({
 
 import { useSocket } from '~/composables/useSocket'
 import { useDialog } from '~/composables/useDialog'
-import { useAuthStore, useI18n } from '#imports'
+import { useAuthStore } from '#imports'
 
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()

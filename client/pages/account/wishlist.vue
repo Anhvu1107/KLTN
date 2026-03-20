@@ -5,7 +5,6 @@
  */
 
 import { useCartStore } from '~/stores/cart'
-import { useI18n } from '#imports'
 
 definePageMeta({
   middleware: ['auth'],

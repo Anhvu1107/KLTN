@@ -7,7 +7,6 @@
 // Declare google type for Google Identity Services
 declare const google: any
 
-import { useI18n } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({

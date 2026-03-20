@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Privacy policy with i18n
  */
 
-import { useI18n } from '#imports'
 
 const { t } = useI18n()
 

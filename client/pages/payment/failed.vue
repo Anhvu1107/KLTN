@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Failed payment notification
  */
 
-import { useI18n } from '#imports'
 
 const { t } = useI18n()
 const route = useRoute()

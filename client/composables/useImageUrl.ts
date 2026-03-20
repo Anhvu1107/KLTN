@@ -10,12 +10,27 @@
  */
 export const useImageUrl = () => {
     const config = useRuntimeConfig()
+    const placeholderImage = '/images/placeholders/product-placeholder.svg'
 
     // imageBaseUrl: empty by default (uses relative paths proxied by Nitro),
     // or set to an absolute URL for CDN/external server scenarios
     const serverBaseUrl = computed(() => {
         return (config.public.imageBaseUrl as string) || ''
     })
+
+    const resolveImagePath = (path: string): string => {
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+            return path
+        }
+
+        // Seeded demo data references static JPGs that do not exist in this repo.
+        // Map them to a bundled placeholder so Nuxt does not keep routing those 404s.
+        if (path.startsWith('/images/products/')) {
+            return placeholderImage
+        }
+
+        return `${serverBaseUrl.value}${path}`
+    }
 
     /**
      * Get the full URL for a product image.
@@ -30,13 +45,7 @@ export const useImageUrl = () => {
 
         if (!images || images.length === 0) return null
 
-        const imagePath = images[0]
-        // If already a full URL (http/https), return as-is
-        if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-            return imagePath
-        }
-
-        return `${serverBaseUrl.value}${imagePath}`
+        return resolveImagePath(images[0])
     }
 
     /**
@@ -44,8 +53,7 @@ export const useImageUrl = () => {
      */
     const getImageUrl = (path: string | null | undefined): string | null => {
         if (!path) return null
-        if (path.startsWith('http://') || path.startsWith('https://')) return path
-        return `${serverBaseUrl.value}${path}`
+        return resolveImagePath(path)
     }
 
     return {

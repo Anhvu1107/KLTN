@@ -4,7 +4,7 @@
  * AURA ARCHIVE - Configure payment methods, bank accounts, and gateway settings
  */
 
-import { useAuthToken, useI18n } from '#imports'
+import { useAuthToken } from '#imports'
 
 definePageMeta({
   layout: 'admin',
