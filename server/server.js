@@ -40,7 +40,7 @@ app.use(cors({
 // Rate limiting - relaxed in development
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit in dev
+    max: process.env.NODE_ENV === 'development' ? 1000 : 500, // Higher limit in dev
     message: {
         success: false,
         message: 'Too many requests, please try again later.',
@@ -52,7 +52,7 @@ app.use('/api/', limiter);
 // STRICT Rate limiting for auth endpoints - NEVER skipped (prevents brute force)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Only 10 attempts per 15 minutes
+    max: 30, // 30 attempts per 15 minutes
     message: {
         success: false,
         message: 'Too many authentication attempts. Please try again later.',
