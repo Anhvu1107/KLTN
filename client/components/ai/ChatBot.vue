@@ -115,9 +115,9 @@ const removeImage = (index: number) => {
   images.value = newImages
 }
 
-// Get full URL for image
+// Get full URL for image (supports Cloudinary URLs and legacy local paths)
 const getImageUrl = (path: string) => {
-  if (path.startsWith('http')) return path
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
   return `${config.public.apiUrl.replace('/api/v1', '')}${path}`
 }
 </script>

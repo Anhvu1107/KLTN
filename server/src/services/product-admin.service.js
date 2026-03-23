@@ -136,9 +136,13 @@ const deleteProduct = async (productId) => {
         throw new AppError('Product not found', 404);
     }
 
-    await product.update({ is_active: false });
+    // Delete variants first (foreign key)
+    await Variant.destroy({ where: { product_id: productId } });
 
-    return { message: 'Product deleted successfully' };
+    // Hard delete the product
+    await product.destroy();
+
+    return { message: 'Product deleted permanently' };
 };
 
 module.exports = {

@@ -78,7 +78,7 @@ const chat = async (message, sessionId, userId = null, context = null) => {
             context,
             system_prompt: systemPrompt,
         }, {
-            timeout: 30000, // 30 second timeout
+            timeout: 60000, // 60 second timeout (Render free tier cold start ~50s)
             headers: {
                 'Content-Type': 'application/json',
             },

@@ -19,6 +19,7 @@ export const useImageUrl = () => {
     })
 
     const resolveImagePath = (path: string): string => {
+        // Full URLs (Cloudinary, CDN, etc.) — return as-is
         if (path.startsWith('http://') || path.startsWith('https://')) {
             return path
         }
@@ -29,6 +30,7 @@ export const useImageUrl = () => {
             return placeholderImage
         }
 
+        // Legacy local uploads — proxy through Nitro
         return `${serverBaseUrl.value}${path}`
     }
 

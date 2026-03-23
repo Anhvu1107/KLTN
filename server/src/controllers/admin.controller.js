@@ -328,14 +328,21 @@ const uploadProductImages = catchAsync(async (req, res) => {
         });
     }
 
-    const urls = processUploadedFiles(req.files);
+    const urls = await processUploadedFiles(req.files);
+
+    if (urls.length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'All files were rejected (invalid format)',
+        });
+    }
 
     res.status(200).json({
         success: true,
-        message: `${req.files.length} file(s) uploaded successfully`,
+        message: `${urls.length} file(s) uploaded successfully`,
         data: {
             urls,
-            count: req.files.length,
+            count: urls.length,
         },
     });
 });
