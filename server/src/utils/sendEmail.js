@@ -19,13 +19,47 @@ const createTransporter = () => {
 };
 
 /**
- * Send an email via Brevo API (production) or SMTP (local dev)
+ * Send email via SendGrid / Brevo API (production) or SMTP (local dev)
  */
 const sendEmail = async ({ to, subject, text, html }) => {
     const senderEmail = process.env.SMTP_USER || 'noreply@auraarchive.com';
     const senderName = 'AURA ARCHIVE';
 
-    // Use Brevo API if key is available (Render deployment)
+    // Priority 1: SendGrid API
+    if (process.env.SENDGRID_API_KEY) {
+        try {
+            const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    personalizations: [{ to: [{ email: to }] }],
+                    from: { email: senderEmail, name: senderName },
+                    subject,
+                    content: [
+                        { type: 'text/plain', value: text || subject },
+                        { type: 'text/html', value: html },
+                    ],
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                console.error(`✗ SendGrid error for ${to}:`, response.status, errData);
+                throw new Error(errData?.errors?.[0]?.message || `SendGrid ${response.status}`);
+            }
+
+            console.log(`✓ Email sent via SendGrid to ${to}`);
+            return { success: true, messageId: response.headers.get('x-message-id') };
+        } catch (error) {
+            console.error(`✗ SendGrid failed for ${to}:`, error.message);
+            throw error;
+        }
+    }
+
+    // Priority 2: Brevo API
     if (process.env.BREVO_API_KEY) {
         try {
             const response = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -54,7 +88,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
             console.log(`✓ Email sent via Brevo to ${to}: ${data.messageId}`);
             return { success: true, messageId: data.messageId };
         } catch (error) {
-            console.error(`✗ Failed to send email via Brevo to ${to}:`, error.message);
+            console.error(`✗ Brevo failed for ${to}:`, error.message);
             throw error;
         }
     }

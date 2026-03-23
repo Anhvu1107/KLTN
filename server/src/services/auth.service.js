@@ -79,16 +79,21 @@ const register = async ({ email, password, firstName, lastName }) => {
             otpCode,
             firstName || 'Quý khách'
         );
+        return {
+            message: 'Đăng ký thành công. Vui lòng kiểm tra email để nhận mã xác thực.',
+            email: user.email,
+        };
     } catch (error) {
         console.error('Failed to send OTP email:', error.message);
-        await user.destroy();
-        throw new AppError('Không thể gửi email xác thực. Vui lòng thử lại.', 500);
+        // Auto-verify when email service unavailable
+        await user.update({ is_verified: true, otp_code: null, otp_expires: null });
+        console.log(`⚠ Auto-verified user ${user.email} (email unavailable)`);
+        return {
+            message: 'Đăng ký thành công! Tài khoản đã được kích hoạt.',
+            email: user.email,
+            autoVerified: true,
+        };
     }
-
-    return {
-        message: 'Đăng ký thành công. Vui lòng kiểm tra email để nhận mã xác thực.',
-        email: user.email,
-    };
 };
 
 /**

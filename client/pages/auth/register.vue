@@ -72,7 +72,7 @@ const handleSubmit = async () => {
   isLoading.value = true
 
   try {
-    const response = await $fetch<{ success: boolean; data: { email: string }; message: string }>(
+    const response = await $fetch<{ success: boolean; data: { email: string; autoVerified?: boolean }; message: string }>(
       `${config.public.apiUrl}/auth/register`,
       {
         method: 'POST',
@@ -86,7 +86,11 @@ const handleSubmit = async () => {
     )
 
     if (response.success) {
-      navigateTo(`/auth/verify-otp?email=${encodeURIComponent(response.data.email)}`)
+      if (response.data.autoVerified) {
+        navigateTo('/auth/login?registered=true')
+      } else {
+        navigateTo(`/auth/verify-otp?email=${encodeURIComponent(response.data.email)}`)
+      }
     }
   } catch (err: any) {
     error.value = err.data?.message || t('errors.somethingWrong')
