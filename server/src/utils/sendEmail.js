@@ -4,13 +4,14 @@
  */
 
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Create reusable transporter
+// Create SMTP transporter (fallback for local dev)
 const createTransporter = () => {
     return nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT, 10) || 587,
-        secure: false, // true for 465, false for other ports
+        secure: false,
         auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASSWORD,
@@ -19,36 +20,44 @@ const createTransporter = () => {
 };
 
 /**
- * Send an email
- * @param {Object} options - Email options
- * @param {string} options.to - Recipient email
- * @param {string} options.subject - Email subject
- * @param {string} options.text - Plain text content
- * @param {string} options.html - HTML content
- * @returns {Promise<Object>} - Nodemailer response
+ * Send an email via Resend API (production) or SMTP (local dev)
  */
 const sendEmail = async ({ to, subject, text, html }) => {
+    const from = process.env.EMAIL_FROM || 'AURA ARCHIVE <noreply@auraarchive.com>';
+
+    // Use Resend API if key is available (Render deployment)
+    if (process.env.RESEND_API_KEY) {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        try {
+            const { data, error } = await resend.emails.send({
+                from: process.env.RESEND_FROM || 'AURA ARCHIVE <onboarding@resend.dev>',
+                to: [to],
+                subject,
+                html,
+                text,
+            });
+            if (error) {
+                console.error(`✗ Resend error for ${to}:`, error);
+                throw new Error(error.message);
+            }
+            console.log(`✓ Email sent via Resend to ${to}: ${data.id}`);
+            return { success: true, messageId: data.id };
+        } catch (error) {
+            console.error(`✗ Failed to send email via Resend to ${to}:`, error.message);
+            throw error;
+        }
+    }
+
+    // Fallback: SMTP (local development)
     const transporter = createTransporter();
-
-    // Log SMTP config (without password) for debugging
-    console.log(`📧 Sending email to ${to} | SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} | User: ${process.env.SMTP_USER ? '✓' : '✗'} | Pass: ${process.env.SMTP_PASSWORD ? '✓' : '✗'}`);
-
-    const mailOptions = {
-        from: process.env.EMAIL_FROM || 'AURA ARCHIVE <noreply@auraarchive.com>',
-        to,
-        subject,
-        text,
-        html,
-    };
+    console.log(`📧 Sending email via SMTP to ${to} | ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
 
     try {
-        await transporter.verify();
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✓ Email sent to ${to}: ${info.messageId}`);
+        const info = await transporter.sendMail({ from, to, subject, text, html });
+        console.log(`✓ Email sent via SMTP to ${to}: ${info.messageId}`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error(`✗ Failed to send email to ${to}:`, error.message);
-        console.error('SMTP Error details:', error.code, error.response);
+        console.error(`✗ SMTP failed for ${to}:`, error.message, error.code);
         throw error;
     }
 };
