@@ -14,7 +14,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
-const { alert: showAlert } = useDialog()
+const { alert: showAlert, confirm: showConfirm } = useDialog()
 const token = computed(() => authStore.token)
 
 const page = ref(1)
@@ -56,6 +56,25 @@ const toggleStatus = async (userId: string, currentStatus: boolean) => {
     await refresh()
   } catch (error: any) {
     showAlert({ title: t('notifications.error', 'Lỗi'), message: error?.data?.message || t('notifications.updateError'), type: 'danger' })
+  }
+}
+
+// Delete user
+const deleteUser = async (userId: string, userName: string) => {
+  const confirmed = await showConfirm({
+    title: t('admin.deleteUser', 'Xóa người dùng'),
+    message: t('admin.confirmDeleteUser', `Bạn có chắc muốn xóa "${userName}"? Hành động này không thể hoàn tác.`),
+    type: 'danger',
+  })
+  if (!confirmed) return
+  try {
+    await $fetch(`${config.public.apiUrl}/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token.value}` },
+    })
+    await refresh()
+  } catch (error: any) {
+    showAlert({ title: t('notifications.error', 'Lỗi'), message: error?.data?.message || 'Không thể xóa người dùng', type: 'danger' })
   }
 }
 
@@ -171,6 +190,13 @@ useSeoMeta({
                   :class="user.is_active ? 'bg-red-100 hover:bg-red-200 text-red-800' : 'bg-green-100 hover:bg-green-200 text-green-800'"
                 >
                   {{ user.is_active ? t('admin.deactivate') : t('admin.activate') }}
+                </button>
+                <button
+                  v-if="user.role !== 'ADMIN'"
+                  @click="deleteUser(user.id, `${user.first_name || ''} ${user.last_name || ''}`)"
+                  class="text-caption px-2 py-1 rounded-sm bg-red-50 hover:bg-red-200 text-red-600"
+                >
+                  {{ t('common.delete') }}
                 </button>
               </div>
             </td>
