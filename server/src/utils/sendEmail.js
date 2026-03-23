@@ -4,7 +4,6 @@
  */
 
 const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
 
 // Create SMTP transporter (fallback for local dev)
 const createTransporter = () => {
@@ -20,37 +19,49 @@ const createTransporter = () => {
 };
 
 /**
- * Send an email via Resend API (production) or SMTP (local dev)
+ * Send an email via Brevo API (production) or SMTP (local dev)
  */
 const sendEmail = async ({ to, subject, text, html }) => {
-    const from = process.env.EMAIL_FROM || 'AURA ARCHIVE <noreply@auraarchive.com>';
+    const senderEmail = process.env.SMTP_USER || 'noreply@auraarchive.com';
+    const senderName = 'AURA ARCHIVE';
 
-    // Use Resend API if key is available (Render deployment)
-    if (process.env.RESEND_API_KEY) {
-        const resend = new Resend(process.env.RESEND_API_KEY);
+    // Use Brevo API if key is available (Render deployment)
+    if (process.env.BREVO_API_KEY) {
         try {
-            const { data, error } = await resend.emails.send({
-                from: process.env.RESEND_FROM || 'AURA ARCHIVE <onboarding@resend.dev>',
-                to: [to],
-                subject,
-                html,
-                text,
+            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': process.env.BREVO_API_KEY,
+                    'content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sender: { name: senderName, email: senderEmail },
+                    to: [{ email: to }],
+                    subject,
+                    htmlContent: html,
+                    textContent: text,
+                }),
             });
-            if (error) {
-                console.error(`✗ Resend error for ${to}:`, error);
-                throw new Error(error.message);
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error(`✗ Brevo error for ${to}:`, data);
+                throw new Error(data.message || 'Brevo API error');
             }
-            console.log(`✓ Email sent via Resend to ${to}: ${data.id}`);
-            return { success: true, messageId: data.id };
+
+            console.log(`✓ Email sent via Brevo to ${to}: ${data.messageId}`);
+            return { success: true, messageId: data.messageId };
         } catch (error) {
-            console.error(`✗ Failed to send email via Resend to ${to}:`, error.message);
+            console.error(`✗ Failed to send email via Brevo to ${to}:`, error.message);
             throw error;
         }
     }
 
     // Fallback: SMTP (local development)
     const transporter = createTransporter();
-    console.log(`📧 Sending email via SMTP to ${to} | ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+    const from = process.env.EMAIL_FROM || `${senderName} <${senderEmail}>`;
 
     try {
         const info = await transporter.sendMail({ from, to, subject, text, html });

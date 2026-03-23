@@ -86,7 +86,6 @@ const handleSubmit = async () => {
     )
 
     if (response.success) {
-      // Redirect to OTP verification page
       navigateTo(`/auth/verify-otp?email=${encodeURIComponent(response.data.email)}`)
     }
   } catch (err: any) {
