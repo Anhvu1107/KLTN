@@ -546,12 +546,14 @@ const handleKeydown = (e: KeyboardEvent) => {
 <style scoped>
 .chat-markdown :deep(p) {
   margin: 0 0 0.25rem 0;
+  color: inherit !important;
 }
 .chat-markdown :deep(p:last-child) {
   margin-bottom: 0;
 }
 .chat-markdown :deep(strong) {
   font-weight: 700;
+  color: inherit !important;
 }
 .chat-markdown :deep(em) {
   font-style: italic;
@@ -563,6 +565,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 .chat-markdown :deep(li) {
   margin-bottom: 0.125rem;
+  color: inherit !important;
 }
 .chat-markdown :deep(a) {
   color: inherit;
