@@ -78,7 +78,7 @@ watch(isLoading, (loading) => {
 provide('isPageLoading', isPageLoading)
 
 const activeLayout = computed(() => {
-  const layoutName = typeof route.meta.layout === 'string' ? route.meta.layout : 'default'
+  const layoutName = typeof route?.meta?.layout === 'string' ? route.meta.layout : 'default'
   return layoutMap[layoutName as keyof typeof layoutMap] || layoutMap.default
 })
 </script>
@@ -87,7 +87,7 @@ const activeLayout = computed(() => {
   <component :is="activeLayout">
     <NuxtPage />
   </component>
-  <!-- Global Live Chat Widget (client-only to avoid hydration mismatch) -->
+  <!-- Zalo/Messenger Widget (bottom-left) -->
   <ClientOnly>
     <LiveChatWidget />
   </ClientOnly>

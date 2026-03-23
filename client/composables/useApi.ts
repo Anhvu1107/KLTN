@@ -25,16 +25,30 @@ export const useApi = () => {
      * GET request
      */
     const get = async <T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> => {
-        const url = new URL(`${config.public.apiUrl}${endpoint}`)
+        let urlStr = `${config.public.apiUrl}${endpoint}`
         if (params) {
-            Object.entries(params).forEach(([key, value]) => {
-                if (value !== undefined && value !== null && value !== '') {
-                    url.searchParams.set(key, String(value))
-                }
-            })
+            try {
+                const url = new URL(urlStr)
+                Object.entries(params).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null && value !== '') {
+                        url.searchParams.set(key, String(value))
+                    }
+                })
+                urlStr = url.toString()
+            } catch {
+                // Fallback for relative URLs (new URL() requires absolute URL)
+                const searchParams = new URLSearchParams()
+                Object.entries(params).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null && value !== '') {
+                        searchParams.set(key, String(value))
+                    }
+                })
+                const qs = searchParams.toString()
+                if (qs) urlStr += `?${qs}`
+            }
         }
 
-        return await $fetch<ApiResponse<T>>(url.toString(), {
+        return await $fetch<ApiResponse<T>>(urlStr, {
             method: 'GET',
             headers: getHeaders(),
         })

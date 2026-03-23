@@ -10,12 +10,15 @@ marked.setOptions({
   breaks: true,
 })
 
+const { sanitize } = useSanitizeHtml()
+
 const renderMarkdown = (text: string): string => {
-  return marked.parse(text, { async: false }) as string
+  const raw = marked.parse(text, { async: false }) as string
+  return sanitize(raw)
 }
 
 const config = useRuntimeConfig()
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 import { useSocket } from '~/composables/useSocket'
 
 // Constants
@@ -34,7 +37,9 @@ const sessionId = ref('')
 const inputMessage = ref('')
 const messages = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
 let hasSocketListener = false
+let isMounted = true
 
 // Appearance config (loaded from API)
 const appearance = ref({
@@ -78,7 +83,9 @@ const loadAppearance = async () => {
         loadGoogleFont(appearance.value.headerFontFamily)
       }
     }
-  } catch {}
+  } catch (e) {
+    console.warn('[AiChat] Failed to load appearance config, using defaults:', e)
+  }
 }
 
 // Save sessionId to localStorage
@@ -205,7 +212,7 @@ const initChat = async () => {
   } catch (error) {
     pushUniqueMessage({
       role: 'assistant',
-      content: 'Chào mừng bạn đến AURA ARCHIVE! Tôi là AURA, stylist riêng của bạn. Tôi có thể giúp gì cho bạn hôm nay?',
+      content: t('chat.welcomeFallback', 'Chào mừng bạn đến AURA ARCHIVE! Tôi là AURA, stylist riêng của bạn. Tôi có thể giúp gì cho bạn hôm nay?'),
     })
   } finally {
     isLoading.value = false
@@ -288,7 +295,7 @@ const closeChat = () => {
 let widgetPollTimer: ReturnType<typeof setInterval> | null = null
 
 const pollForNewMessages = async () => {
-  if (!sessionId.value || isLoading.value) return
+  if (!sessionId.value || isLoading.value || !isOpen.value) return
   try {
     const token = localStorage.getItem('token')
     const response = await $fetch<{
@@ -315,14 +322,16 @@ const pollForNewMessages = async () => {
 }
 
 const startWidgetPolling = () => {
+  if (!isMounted) return
   stopWidgetPolling()
-  widgetPollTimer = setInterval(pollForNewMessages, 1000)
+  widgetPollTimer = setInterval(pollForNewMessages, 5000)
 }
 const stopWidgetPolling = () => {
   if (widgetPollTimer) { clearInterval(widgetPollTimer); widgetPollTimer = null }
 }
 
 onUnmounted(() => {
+  isMounted = false
   hasSocketListener = false
   disconnectSocket()
   stopWidgetPolling()
@@ -385,11 +394,12 @@ const sendMessage = async () => {
     }
     pushUniqueMessage({
       role: 'assistant',
-      content: 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.',
+      content: t('chat.connectionError', 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.'),
     })
   } finally {
     isLoading.value = false
     scrollToBottom()
+    nextTick(() => inputRef.value?.focus())
   }
 }
 
@@ -455,7 +465,7 @@ const handleKeydown = (e: KeyboardEvent) => {
             @click="startNewChat"
             class="p-1 hover:bg-neutral-700 rounded transition-colors"
             aria-label="New conversation"
-            title="Cuộc trò chuyện mới"
+            :title="t('chat.newConversation', 'Cuộc trò chuyện mới')"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -510,10 +520,11 @@ const handleKeydown = (e: KeyboardEvent) => {
       <div class="border-t border-neutral-200 p-3">
         <div class="flex gap-2">
           <input
+            ref="inputRef"
             v-model="inputMessage"
             @keydown="handleKeydown"
             type="text"
-            placeholder="Hỏi về thời trang, phong cách..."
+            :placeholder="t('chat.inputPlaceholder', 'Hỏi về thời trang, phong cách...')"
             class="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-neutral-300"
             :disabled="isLoading"
           />
@@ -524,7 +535,7 @@ const handleKeydown = (e: KeyboardEvent) => {
             :style="{ backgroundColor: appearance.headerBgColor, color: appearance.headerTextColor }"
             :class="(!inputMessage.trim() || isLoading) ? 'cursor-not-allowed' : 'cursor-pointer'"
           >
-            Gửi
+            {{ t('chat.send', 'Gửi') }}
           </button>
         </div>
       </div>

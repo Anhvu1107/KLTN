@@ -1108,5 +1108,12 @@
         "refundText": "Refunds are processed within 5-7 business days after we receive and inspect the returned item. The refund will be issued to your original payment method.",
         "needHelp": "Need Help with a Return?",
         "needHelpText": "Our customer service team is ready to assist you."
+        },
+    "chat": {
+        "newConversation": "New Conversation",
+        "inputPlaceholder": "Ask about fashion, style...",
+        "send": "Send",
+        "connectionError": "Connection error. Please try again.",
+        "welcomeFallback": "Welcome to AURA ARCHIVE! How can I help you today?"
     }
 }

@@ -54,10 +54,8 @@ export const useCartStore = defineStore('cart', {
          * Get formatted subtotal
          */
         formattedSubtotal(): string {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-            }).format(this.subtotal)
+            const { formatPrice } = useCurrency()
+            return formatPrice(this.subtotal)
         },
 
         /**
@@ -199,7 +197,7 @@ export const useCartStore = defineStore('cart', {
 
             try {
                 const config = useRuntimeConfig()
-                const token = localStorage.getItem('token')
+                const token = process.client ? localStorage.getItem('token') : null
 
                 if (!token) {
                     return { success: false, error: 'Please login to checkout' }

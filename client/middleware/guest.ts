@@ -1,6 +1,6 @@
 /**
- * Auth Middleware (Frontend)
- * AURA ARCHIVE - Protect user account routes
+ * Guest Middleware (Frontend)
+ * AURA ARCHIVE - Redirect authenticated users away from auth pages (login/register)
  */
 
 export default defineNuxtRouteMiddleware((to, from) => {
@@ -23,8 +23,8 @@ export default defineNuxtRouteMiddleware((to, from) => {
         }
     }
 
-    // Use external: true to force full page reload and prevent layout glitches
-    if (!token && !hasPersistedToken) {
-        return navigateTo('/auth/login?redirect=' + encodeURIComponent(to.fullPath), { external: true })
+    // If user is already authenticated, redirect away from auth pages
+    if (token || hasPersistedToken) {
+        return navigateTo('/', { external: true })
     }
 })

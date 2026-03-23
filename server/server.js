@@ -153,7 +153,11 @@ const startServer = async () => {
 
         // Create HTTP server and attach Socket.io
         const httpServer = http.createServer(app);
-        initSocket(httpServer);
+        const io = initSocket(httpServer);
+
+        // Store references for graceful shutdown
+        app.set('server', httpServer);
+        app.set('io', io);
 
         // Start server
         httpServer.listen(PORT, () => {
@@ -191,5 +195,47 @@ process.on('uncaughtException', (err) => {
         process.exit(1);
     }, 1000);
 });
+
+// Graceful shutdown — close Socket.io, HTTP server, and DB pool
+const gracefulShutdown = (signal) => {
+    logger.info(`${signal} received. Starting graceful shutdown...`);
+
+    // Stop accepting new connections
+    const server = app.get('server');
+    const io = app.get('io');
+
+    // Close Socket.io connections first
+    if (io) {
+        io.close(() => {
+            logger.info('[Socket] All connections closed');
+        });
+    }
+
+    // Close HTTP server
+    if (server) {
+        server.close(async () => {
+            logger.info('[Server] HTTP server closed');
+            // Close database pool
+            try {
+                await db.sequelize.close();
+                logger.info('[DB] Connection pool closed');
+            } catch (err) {
+                logger.error('[DB] Error closing pool:', err.message);
+            }
+            process.exit(0);
+        });
+    } else {
+        process.exit(0);
+    }
+
+    // Force exit after 10s if graceful shutdown hangs
+    setTimeout(() => {
+        logger.error('Graceful shutdown timed out. Forcing exit.');
+        process.exit(1);
+    }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = app;

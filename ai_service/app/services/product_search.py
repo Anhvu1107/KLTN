@@ -10,11 +10,58 @@ from app.core.config import settings
 
 BACKEND_API = f"{settings.BACKEND_URL}/api/v1"
 
+# Bilingual color mapping: English → Vietnamese equivalents
+# Product DB may store colors in either language
+COLOR_TRANSLATIONS = {
+    "black": ["đen", "den"],
+    "white": ["trắng", "trang"],
+    "grey": ["xám", "xam"],
+    "blue": ["xanh dương", "xanh biển", "xanh duong"],
+    "navy": ["xanh navy", "xanh đậm", "xanh dam"],
+    "green": ["xanh lá", "xanh la"],
+    "olive": ["xanh rêu", "xanh reu"],
+    "red": ["đỏ", "do"],
+    "burgundy": ["đỏ đô", "đỏ rượu", "do do"],
+    "cream": ["kem", "be"],
+    "brown": ["nâu", "nau"],
+    "pink": ["hồng", "hong"],
+    "yellow": ["vàng", "vang"],
+    "purple": ["tím", "tim"],
+    "orange": ["cam"],
+}
+
+
+def _color_matches(variant_color: str, search_color: str) -> bool:
+    """Check if a variant's color matches the searched color (bilingual)."""
+    if not variant_color or not search_color:
+        return False
+    variant_lower = variant_color.lower().strip()
+    search_lower = search_color.lower().strip()
+    
+    # Direct match
+    if search_lower in variant_lower or variant_lower in search_lower:
+        return True
+    
+    # Check Vietnamese translations
+    vi_names = COLOR_TRANSLATIONS.get(search_lower, [])
+    for vi in vi_names:
+        if vi in variant_lower or variant_lower in vi:
+            return True
+    
+    # Reverse: check if search_color is Vietnamese and variant is English
+    for en, vi_list in COLOR_TRANSLATIONS.items():
+        if search_lower in vi_list or any(search_lower in v for v in vi_list):
+            if en in variant_lower or variant_lower in en:
+                return True
+    
+    return False
+
 
 async def search_products(
     search: str = None,
     category: str = None,
     brand: str = None,
+    color: str = None,
     min_price: int = None,
     max_price: int = None,
     limit: int = 5,
@@ -24,9 +71,19 @@ async def search_products(
     Search products via Express API.
     Returns list of product dicts with variants.
     """
-    params = {"limit": limit, "sort": sort, "status": "AVAILABLE"}
+    params = {"limit": limit, "sort": sort}
     
-    if search:
+    # When category is set, don't send search with the same value
+    # because Express API ANDs both filters (search matches product name,
+    # category matches category field). "Balenciaga Wide-Leg Trousers" 
+    # has category=Pants but "Pants" is not in the product name.
+    if search and category and search.lower() == category.lower():
+        # Category alone is sufficient, skip redundant search
+        pass
+    elif search and category and brand:
+        # Search by brand name instead for more precision
+        params["search"] = brand
+    elif search:
         params["search"] = search
     if category:
         params["category"] = category
@@ -44,6 +101,21 @@ async def search_products(
             if response.status_code == 200:
                 data = response.json()
                 products = data.get("data", {}).get("products", [])
+                
+                # Post-filter by color if specified (bilingual matching)
+                if color and products:
+                    filtered = [
+                        p for p in products
+                        if any(
+                            _color_matches(v.get("color", ""), color)
+                            for v in (p.get("variants", []) if isinstance(p.get("variants"), list) else [])
+                        )
+                    ]
+                    # Return filtered if we found matches, otherwise return all
+                    # so AI can explain no exact match but suggest alternatives
+                    if filtered:
+                        return filtered
+                    
                 return products
             else:
                 print(f"[ProductSearch] API returned {response.status_code}")

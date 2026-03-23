@@ -187,95 +187,110 @@ const getRecentOrders = async (limit = 10) => {
  * Update order status
  */
 const updateOrderStatus = async (orderId, status) => {
-    const order = await Order.findByPk(orderId, {
-        include: [{ model: OrderItem, as: 'items' }]
-    });
+    const transaction = await sequelize.transaction();
 
-    if (!order) {
-        throw new AppError('Order not found', 404);
-    }
-
-    const validTransitions = {
-        PENDING: ['CONFIRMED', 'CANCELLED'],
-        CONFIRMED: ['PENDING', 'PROCESSING', 'CANCELLED'],
-        PROCESSING: ['CONFIRMED', 'SHIPPED', 'CANCELLED'],
-        SHIPPED: ['PROCESSING', 'DELIVERED'],
-        DELIVERED: ['SHIPPED'],
-        CANCELLED: ['PENDING'],
-    };
-
-    if (!validTransitions[order.status]?.includes(status)) {
-        throw new AppError(`Cannot transition from ${order.status} to ${status}`, 400);
-    }
-
-    const updateData = { status };
-
-    if (status === 'CONFIRMED') updateData.confirmed_at = new Date();
-    if (status === 'SHIPPED') updateData.shipped_at = new Date();
-    if (status === 'DELIVERED') {
-        updateData.delivered_at = new Date();
-        updateData.payment_status = 'PAID';
-    }
-    
-    // Manage inventory on cancellation
-    if (status === 'CANCELLED') {
-        updateData.cancelled_at = new Date();
-        if (order.items && order.items.length > 0) {
-            const variantIds = order.items.map(item => item.variant_id);
-            await Variant.update(
-                { status: 'AVAILABLE', sold_at: null },
-                { where: { id: { [Op.in]: variantIds } } }
-            );
-        }
-    } else if (order.status === 'CANCELLED' && status !== 'CANCELLED') {
-        // If un-cancelling, reserve items again
-        if (order.items && order.items.length > 0) {
-            const variantIds = order.items.map(item => item.variant_id);
-            await Variant.update(
-                { status: 'SOLD', sold_at: new Date() },
-                { where: { id: { [Op.in]: variantIds } } }
-            );
-        }
-    }
-
-    await order.update(updateData);
-
-    // Send notifications and emails (fire-and-forget)
     try {
-        const user = await User.findByPk(order.user_id);
-        if (user) {
-            // In-app notification
-            await notificationService.notifyOrderStatusChange(order, user, status);
+        const order = await Order.findByPk(orderId, {
+            include: [{ model: OrderItem, as: 'items' }],
+            lock: transaction.LOCK.UPDATE,
+            transaction,
+        });
 
-            // Send appropriate email based on status
-            switch (status) {
-                case 'CONFIRMED':
-                    sendOrderConfirmedEmail(order, user).catch(err =>
-                        console.error('Failed to send confirmed email:', err.message)
-                    );
-                    break;
-                case 'SHIPPED':
-                    sendShippingUpdate(order, user).catch(err =>
-                        console.error('Failed to send shipping email:', err.message)
-                    );
-                    break;
-                case 'DELIVERED':
-                    sendOrderDeliveredEmail(order, user).catch(err =>
-                        console.error('Failed to send delivered email:', err.message)
-                    );
-                    break;
-                case 'CANCELLED':
-                    sendOrderCancelledEmail(order, user).catch(err =>
-                        console.error('Failed to send cancelled email:', err.message)
-                    );
-                    break;
+        if (!order) {
+            await transaction.rollback();
+            throw new AppError('Order not found', 404);
+        }
+
+        const validTransitions = {
+            PENDING: ['CONFIRMED', 'CANCELLED'],
+            CONFIRMED: ['PENDING', 'PROCESSING', 'CANCELLED'],
+            PROCESSING: ['CONFIRMED', 'SHIPPED', 'CANCELLED'],
+            SHIPPED: ['PROCESSING', 'DELIVERED'],
+            DELIVERED: ['SHIPPED'],
+            CANCELLED: ['PENDING'],
+        };
+
+        if (!validTransitions[order.status]?.includes(status)) {
+            await transaction.rollback();
+            throw new AppError(`Cannot transition from ${order.status} to ${status}`, 400);
+        }
+
+        const updateData = { status };
+
+        if (status === 'CONFIRMED') updateData.confirmed_at = new Date();
+        if (status === 'SHIPPED') updateData.shipped_at = new Date();
+        if (status === 'DELIVERED') {
+            updateData.delivered_at = new Date();
+            updateData.payment_status = 'PAID';
+        }
+
+        // Manage inventory on cancellation (inside transaction for atomicity)
+        if (status === 'CANCELLED') {
+            updateData.cancelled_at = new Date();
+            if (order.items && order.items.length > 0) {
+                const variantIds = order.items.map(item => item.variant_id);
+                await Variant.update(
+                    { status: 'AVAILABLE', sold_at: null },
+                    { where: { id: { [Op.in]: variantIds } }, transaction }
+                );
+            }
+        } else if (order.status === 'CANCELLED' && status !== 'CANCELLED') {
+            // If un-cancelling, reserve items again
+            if (order.items && order.items.length > 0) {
+                const variantIds = order.items.map(item => item.variant_id);
+                await Variant.update(
+                    { status: 'SOLD', sold_at: new Date() },
+                    { where: { id: { [Op.in]: variantIds } }, transaction }
+                );
             }
         }
-    } catch (notifError) {
-        console.error('Failed to send status change notifications:', notifError.message);
-    }
 
-    return order;
+        await order.update(updateData, { transaction });
+        await transaction.commit();
+
+        // Send notifications and emails (fire-and-forget, outside transaction)
+        try {
+            const user = await User.findByPk(order.user_id);
+            if (user) {
+                // In-app notification
+                await notificationService.notifyOrderStatusChange(order, user, status);
+
+                // Send appropriate email based on status
+                switch (status) {
+                    case 'CONFIRMED':
+                        sendOrderConfirmedEmail(order, user).catch(err =>
+                            console.error('Failed to send confirmed email:', err.message)
+                        );
+                        break;
+                    case 'SHIPPED':
+                        sendShippingUpdate(order, user).catch(err =>
+                            console.error('Failed to send shipping email:', err.message)
+                        );
+                        break;
+                    case 'DELIVERED':
+                        sendOrderDeliveredEmail(order, user).catch(err =>
+                            console.error('Failed to send delivered email:', err.message)
+                        );
+                        break;
+                    case 'CANCELLED':
+                        sendOrderCancelledEmail(order, user).catch(err =>
+                            console.error('Failed to send cancelled email:', err.message)
+                        );
+                        break;
+                }
+            }
+        } catch (notifError) {
+            console.error('Failed to send status change notifications:', notifError.message);
+        }
+
+        return order;
+    } catch (error) {
+        // Only rollback if transaction hasn't been committed
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+        throw error;
+    }
 };
 
 /**

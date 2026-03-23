@@ -196,6 +196,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
                 search=search_query,
                 category=entities.get("category"),
                 brand=entities.get("brand"),
+                color=entities.get("color"),
                 min_price=int(entities["price_hint"] * 0.7) if "price_hint" in entities else None,
                 max_price=int(entities["price_hint"] * 1.3) if "price_hint" in entities else None,
                 limit=5,

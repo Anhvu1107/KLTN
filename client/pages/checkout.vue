@@ -12,7 +12,6 @@ const { t } = useI18n()
 const config = useRuntimeConfig()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
-const router = useRouter()
 
 // Form state
 const shippingForm = reactive({
@@ -215,6 +214,13 @@ const handleCheckout = async () => {
     return
   }
 
+  // Validate phone format (Vietnamese: 10 digits, starts with 0)
+  const phoneDigits = shippingForm.phone.replace(/[\s-]/g, '')
+  if (!/^0\d{9}$/.test(phoneDigits)) {
+    error.value = t('checkout.invalidPhone', 'Số điện thoại không hợp lệ (10 chữ số, bắt đầu bằng 0)')
+    return
+  }
+
   isProcessing.value = true
   error.value = ''
 
@@ -290,8 +296,8 @@ const handleCheckout = async () => {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: {
-          first_name: shippingForm.fullName.split(' ')[0] || '',
-          last_name: shippingForm.fullName.split(' ').slice(1).join(' ') || '',
+          first_name: shippingForm.fullName.split(' ').slice(-1)[0] || '',
+          last_name: shippingForm.fullName.split(' ').slice(0, -1).join(' ') || '',
           phone: shippingForm.phone,
           address: shippingForm.address,
           city: shippingForm.city,

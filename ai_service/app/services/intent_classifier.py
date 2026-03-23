@@ -357,6 +357,10 @@ def extract_search_query(message: str, entities: Dict[str, Any]) -> Optional[str
         parts.append(entities["brand"])
     if "category" in entities:
         parts.append(entities["category"])
+    # NOTE: color is NOT added to search query text because
+    # the product DB stores colors in Vietnamese ("Đen", "Trắng")
+    # while entities are in English ("Black", "White").
+    # Color filtering is handled by post-filter in product_search.py.
     
     # If we have explicit search parts, use them
     if parts:

@@ -7,6 +7,7 @@
 let socket: any = null
 let ioModule: any = null
 let connectPromise: Promise<any> | null = null
+let activeUsers = 0
 
 export const useSocket = () => {
     const config = useRuntimeConfig()
@@ -14,6 +15,7 @@ export const useSocket = () => {
     const connect = async () => {
         // Only run in browser
         if (!import.meta.client) return null
+        activeUsers++
         if (socket?.connected) return socket
         if (socket) {
             try {
@@ -64,6 +66,10 @@ export const useSocket = () => {
         socket?.emit('join-session', sessionId)
     }
 
+    const leaveSession = (sessionId: string) => {
+        socket?.emit('leave-session', sessionId)
+    }
+
     const joinAdmin = () => {
         socket?.emit('join-admin')
     }
@@ -79,15 +85,19 @@ export const useSocket = () => {
     }
 
     const disconnect = () => {
-        socket?.disconnect()
-        socket = null
-        connectPromise = null
+        activeUsers = Math.max(0, activeUsers - 1)
+        if (activeUsers === 0 && socket) {
+            socket.disconnect()
+            socket = null
+            connectPromise = null
+        }
     }
 
     return {
         connect,
         getSocket,
         joinSession,
+        leaveSession,
         joinAdmin,
         onNewMessage,
         onSessionUpdated,

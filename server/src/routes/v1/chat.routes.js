@@ -8,12 +8,23 @@ const router = express.Router();
 
 const chatController = require('../../controllers/chat.controller');
 const { optionalAuth } = require('../../middlewares/auth.middleware');
+const rateLimit = require('express-rate-limit');
+
+// Stricter rate limit for AI chat — prevent API credit abuse
+const chatLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20, // 20 messages per minute per IP
+    message: {
+        success: false,
+        message: 'Too many messages. Please wait a moment before sending again.',
+    },
+});
 
 // All routes use optional auth (works with or without login)
 router.use(optionalAuth);
 
 // Chat endpoints
-router.post('/', chatController.sendMessage);
+router.post('/', chatLimiter, chatController.sendMessage);
 router.get('/greeting', chatController.getGreeting);
 router.get('/health', chatController.checkHealth);
 router.get('/history/:sessionId', chatController.getChatHistory);

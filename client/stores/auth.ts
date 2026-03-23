@@ -100,15 +100,16 @@ export const useAuthStore = defineStore('auth', {
             password: string
             firstName?: string
             lastName?: string
-        }): Promise<{ success: boolean; error?: string }> {
+        }): Promise<{ success: boolean; email?: string; error?: string }> {
             this.isLoading = true
 
             try {
                 const config = useRuntimeConfig()
 
+                // Register returns {message, email} — OTP verification is required before login
                 const response = await $fetch<{
                     success: boolean
-                    data: { user: User; token: string }
+                    data: { email: string }
                     message?: string
                 }>(`${config.public.apiUrl}/auth/register`, {
                     method: 'POST',
@@ -116,16 +117,8 @@ export const useAuthStore = defineStore('auth', {
                 })
 
                 if (response.success) {
-                    this.user = response.data.user
-                    this.token = response.data.token
-                    if (process.client) {
-                        localStorage.setItem('token', response.data.token)
-                        localStorage.setItem('auth', JSON.stringify({
-                            token: response.data.token,
-                            user: response.data.user
-                        }))
-                    }
-                    return { success: true }
+                    // Don't set user/token here — user must verify OTP first
+                    return { success: true, email: response.data.email }
                 }
 
                 return { success: false, error: response.message || 'Registration failed' }
