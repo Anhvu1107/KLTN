@@ -21,12 +21,12 @@ const isDragging = ref(false)
 const error = ref('')
 
 const images = computed({
-  get: () => props.modelValue,
+  get: () => props.modelValue || [],
   set: (value) => emit('update:modelValue', value),
 })
 
 const maxAllowed = computed(() => props.maxFiles || 5)
-const remainingSlots = computed(() => maxAllowed.value - images.value.length)
+const remainingSlots = computed(() => maxAllowed.value - (images.value?.length || 0))
 
 // Get token
 const getToken = () => {
