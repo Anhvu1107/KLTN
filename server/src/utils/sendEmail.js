@@ -30,6 +30,9 @@ const createTransporter = () => {
 const sendEmail = async ({ to, subject, text, html }) => {
     const transporter = createTransporter();
 
+    // Log SMTP config (without password) for debugging
+    console.log(`📧 Sending email to ${to} | SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} | User: ${process.env.SMTP_USER ? '✓' : '✗'} | Pass: ${process.env.SMTP_PASSWORD ? '✓' : '✗'}`);
+
     const mailOptions = {
         from: process.env.EMAIL_FROM || 'AURA ARCHIVE <noreply@auraarchive.com>',
         to,
@@ -39,11 +42,13 @@ const sendEmail = async ({ to, subject, text, html }) => {
     };
 
     try {
+        await transporter.verify();
         const info = await transporter.sendMail(mailOptions);
         console.log(`✓ Email sent to ${to}: ${info.messageId}`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
         console.error(`✗ Failed to send email to ${to}:`, error.message);
+        console.error('SMTP Error details:', error.code, error.response);
         throw error;
     }
 };
