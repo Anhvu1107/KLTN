@@ -272,7 +272,7 @@ def build_product_context_for_ai(products: List[Dict[str, Any]]) -> str:
             f"   Tinh trang: {availability}\n"
             f"   Price: {price_str}\n"
             f"   Variant: {variant_str}\n"
-            f"   Link: /shop/{slug}\n"
+            f"   Link: [Xem chi tiết](/shop/{slug})\n"
             f"   Description: {description}...\n"
         )
     

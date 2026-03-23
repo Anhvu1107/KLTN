@@ -12,8 +12,13 @@ marked.setOptions({
 
 const { sanitize } = useSanitizeHtml()
 
+const autoLinkPaths = (text: string): string => {
+  return text.replace(/(?<!\]\()(?<!\()(\/shop\/[\w-]+)/g, '[Xem sản phẩm]($1)')
+}
+
 const renderMarkdown = (text: string): string => {
-  const raw = marked.parse(text, { async: false }) as string
+  const linked = autoLinkPaths(text)
+  const raw = marked.parse(linked, { async: false }) as string
   return sanitize(raw)
 }
 
@@ -419,6 +424,20 @@ const handleKeydown = (e: KeyboardEvent) => {
     sendMessage()
   }
 }
+
+// Handle clicks on internal links in chat messages
+const router = useRouter()
+const handleChatClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (target.tagName === 'A') {
+    const href = target.getAttribute('href')
+    if (href && href.startsWith('/')) {
+      e.preventDefault()
+      closeChat()
+      router.push(href)
+    }
+  }
+}
 </script>
 
 <template>
@@ -487,6 +506,7 @@ const handleKeydown = (e: KeyboardEvent) => {
       <div
         ref="chatContainer"
         class="flex-1 overflow-y-auto p-4 space-y-4"
+        @click="handleChatClick"
       >
         <div
           v-for="(msg, index) in messages"
