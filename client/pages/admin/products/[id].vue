@@ -58,6 +58,67 @@ const variants = ref<VariantData[]>([])
 
 // Images
 const productImages = ref<string[]>([])
+const imageFileInput = ref<HTMLInputElement | null>(null)
+const isImageDragging = ref(false)
+const isImageUploading = ref(false)
+const imageError = ref('')
+
+const getToken = () => {
+  if (import.meta.client) {
+    return localStorage.getItem('token') || ''
+  }
+  return ''
+}
+
+const uploadImages = async (files: FileList) => {
+  if (!files || files.length === 0) return
+  if ((productImages.value?.length || 0) + files.length > 5) {
+    imageError.value = 'Tối đa 5 ảnh'
+    return
+  }
+
+  isImageUploading.value = true
+  imageError.value = ''
+
+  try {
+    const formData = new FormData()
+    for (let i = 0; i < files.length; i++) {
+      formData.append('images', files[i])
+    }
+
+    const response = await $fetch<{
+      success: boolean
+      data: { urls: string[] }
+    }>(`${config.public.apiUrl}/admin/upload/product-images`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: formData,
+    })
+
+    if (response.success) {
+      productImages.value.push(...response.data.urls)
+    }
+  } catch (err: any) {
+    imageError.value = err?.data?.message || 'Upload thất bại'
+  } finally {
+    isImageUploading.value = false
+    if (imageFileInput.value) imageFileInput.value.value = ''
+  }
+}
+
+const handleImageFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files) uploadImages(target.files)
+}
+
+const handleImageDrop = (event: DragEvent) => {
+  isImageDragging.value = false
+  if (event.dataTransfer?.files) uploadImages(event.dataTransfer.files)
+}
+
+const removeProductImage = (index: number) => {
+  productImages.value.splice(index, 1)
+}
 
 // Helper functions for variants
 const createEmptyVariant = (): VariantData => ({
@@ -200,13 +261,7 @@ watch(() => form.condition_text, (newVal) => {
   if (newVal !== 'Other') customCondition.value = ''
 })
 
-// Get token
-const getToken = () => {
-  if (process.client) {
-    return localStorage.getItem('token')
-  }
-  return null
-}
+
 
 // Fetch product data
 const fetchProduct = async () => {
@@ -489,7 +544,73 @@ useSeoMeta({
       <!-- Product Images -->
       <div class="bg-white p-6 rounded-sm shadow-card">
         <h2 class="font-serif text-heading-4 text-aura-black mb-6">{{ $t('admin.productImages') }}</h2>
-        <AdminImageUpload v-model="productImages" :max-files="5" />
+        
+        <!-- Upload Area -->
+        <div
+          @drop.prevent="handleImageDrop"
+          @dragover.prevent="isImageDragging = true"
+          @dragleave="isImageDragging = false"
+          class="border-2 border-dashed rounded-sm p-6 text-center transition-colors cursor-pointer mb-4"
+          :class="{
+            'border-aura-black bg-neutral-50': isImageDragging,
+            'border-neutral-300 hover:border-neutral-400': !isImageDragging,
+            'opacity-50 pointer-events-none': (productImages?.length || 0) >= 5 || isImageUploading,
+          }"
+          @click="imageFileInput?.click()"
+        >
+          <svg v-if="!isImageUploading" class="w-10 h-10 mx-auto text-neutral-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <svg v-else class="w-10 h-10 mx-auto text-neutral-400 mb-3 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <p class="text-body-sm text-neutral-600">
+            {{ isImageUploading ? $t('common.uploading') : $t('admin.dragDropImages', 'Kéo thả hoặc nhấn để tải ảnh') }}
+          </p>
+          <p class="text-caption text-neutral-400 mt-1">
+            {{ $t('admin.imageLimits', { remaining: 5 - (productImages?.length || 0), max: 5 }, `Còn ${5 - (productImages?.length || 0)}/5 ảnh`) }}
+          </p>
+        </div>
+
+        <input
+          ref="imageFileInput"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          class="hidden"
+          @change="handleImageFileSelect"
+        />
+
+        <!-- Image Error -->
+        <div v-if="imageError" class="text-body-sm text-red-600 mb-4">{{ imageError }}</div>
+
+        <!-- Image Previews -->
+        <div v-if="productImages && productImages.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div
+            v-for="(img, index) in productImages"
+            :key="index"
+            class="relative aspect-square bg-neutral-100 rounded-sm overflow-hidden group"
+          >
+            <img
+              :src="img.startsWith('http') ? img : `${config.public.apiUrl.replace('/api/v1', '')}${img}`"
+              :alt="`Product image ${index + 1}`"
+              class="w-full h-full object-cover"
+            />
+            <button
+              type="button"
+              @click="removeProductImage(index)"
+              class="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-caption py-1 px-2">
+              {{ index === 0 ? $t('admin.mainImage', 'Ảnh chính') : `#${index + 1}` }}
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Pricing -->
