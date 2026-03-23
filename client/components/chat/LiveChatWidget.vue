@@ -5,6 +5,8 @@
  */
 
 const showOptions = ref(false)
+const route = useRoute()
+const isAdminPage = computed(() => route.path.startsWith('/admin'))
 
 // Contact links — loaded from site settings, with safe defaults
 const config = useRuntimeConfig()
@@ -43,7 +45,7 @@ const openMessenger = () => {
 </script>
 
 <template>
-  <div class="fixed bottom-6 left-6 z-50">
+  <div v-if="!isAdminPage" class="fixed bottom-6 left-6 z-50">
     <!-- Chat Options -->
     <Transition name="slide-up">
       <div v-if="showOptions" class="absolute bottom-16 left-0 flex flex-col gap-3 mb-2">
