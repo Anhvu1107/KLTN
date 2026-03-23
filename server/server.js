@@ -142,6 +142,84 @@ const startServer = async () => {
             await db.syncDatabase({ alter: true });
         }
 
+        // Production: sync tables (create if not exist)
+        if (process.env.NODE_ENV === 'production') {
+            await db.syncDatabase({ alter: true });
+            logger.info('Database synced for production');
+
+            // Auto-seed if database is empty (no users found)
+            try {
+                const userCount = await db.User.count();
+                if (userCount === 0) {
+                    logger.info('Empty database detected — auto-seeding admin user...');
+                    const bcrypt = require('bcryptjs');
+                    const salt = await bcrypt.genSalt(12);
+
+                    // Create admin
+                    await db.User.create({
+                        email: 'admin@aura.com',
+                        password_hash: await bcrypt.hash('admin123', salt),
+                        first_name: 'Admin',
+                        last_name: 'User',
+                        role: 'ADMIN',
+                        is_active: true,
+                    });
+
+                    // Create demo customer
+                    await db.User.create({
+                        email: 'customer@aura.com',
+                        password_hash: await bcrypt.hash('123456', salt),
+                        first_name: 'Demo',
+                        last_name: 'Customer',
+                        role: 'CUSTOMER',
+                        is_active: true,
+                    });
+
+                    // Create system prompts
+                    await db.SystemPrompt.bulkCreate([
+                        {
+                            key: 'STYLIST_PERSONA',
+                            name: 'AI Stylist Persona',
+                            content: 'You are AURA, a sophisticated fashion stylist for AURA ARCHIVE, a luxury consignment platform.',
+                            description: 'Main persona for the AI Stylist chatbot.',
+                            is_active: true,
+                            version: 1,
+                        },
+                        {
+                            key: 'GREETING_MESSAGE',
+                            name: 'Greeting Message',
+                            content: 'Chào mừng bạn đến AURA ARCHIVE! Mình là AURA, stylist thời trang AI. Mình có thể giúp gì cho bạn?',
+                            description: 'Initial greeting message.',
+                            is_active: true,
+                            version: 1,
+                        },
+                        {
+                            key: 'CHAT_APPEARANCE',
+                            name: 'Chat Appearance',
+                            content: JSON.stringify({
+                                chatName: 'AURA Stylist',
+                                chatDescription: 'Trợ lý thời trang của bạn',
+                                avatarUrl: '',
+                                headerBgColor: '#1a1a1a',
+                                headerTextColor: '#ffffff',
+                                botBgColor: '#f5f5f5',
+                                botTextColor: '#262626',
+                                userBgColor: '#1a1a1a',
+                                userTextColor: '#ffffff',
+                            }),
+                            description: 'Chat widget appearance.',
+                            is_active: true,
+                            version: 1,
+                        },
+                    ]);
+
+                    logger.info('✅ Auto-seed complete: admin@aura.com / admin123');
+                }
+            } catch (seedErr) {
+                logger.warn('Auto-seed failed (non-fatal):', seedErr.message);
+            }
+        }
+
         // Auto-seed default settings (creates missing settings, won't overwrite existing)
         try {
             const siteSettingsService = require('./src/services/site-settings.service');
