@@ -53,6 +53,7 @@ router.patch('/variants/:id/status', variantController.updateStatus);
 router.get('/users', adminController.getUsers);
 router.get('/users/:id', adminController.getUserDetail);
 router.patch('/users/:id/status', adminController.updateUserStatus);
+router.delete('/users/:id', adminController.deleteUser);
 
 // Reviews management
 router.get('/reviews', reviewController.getAllReviews);

@@ -81,7 +81,8 @@ const register = async ({ email, password, firstName, lastName }) => {
         );
     } catch (error) {
         console.error('Failed to send OTP email:', error.message);
-        throw new AppError('Tạo tài khoản thành công nhưng không gửi được email xác thực. Vui lòng dùng "Gửi lại mã".', 500);
+        await user.destroy();
+        throw new AppError('Không thể gửi email xác thực. Vui lòng thử lại.', 500);
     }
 
     return {

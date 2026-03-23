@@ -300,6 +300,23 @@ const updateUserStatus = catchAsync(async (req, res) => {
 });
 
 /**
+ * DELETE /api/v1/admin/users/:id
+ * Delete user (cannot delete admins)
+ */
+const deleteUser = catchAsync(async (req, res) => {
+    const { User } = require('../models');
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (user.role === 'ADMIN') {
+        return res.status(403).json({ success: false, message: 'Cannot delete admin user' });
+    }
+    await user.destroy();
+    res.status(200).json({ success: true, message: 'User deleted successfully' });
+});
+
+/**
  * POST /api/v1/admin/upload/product-images
  * Upload product images (max 5)
  */
@@ -342,5 +359,6 @@ module.exports = {
     getUsers,
     getUserDetail,
     updateUserStatus,
+    deleteUser,
     uploadProductImages,
 };
