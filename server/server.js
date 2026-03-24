@@ -102,6 +102,18 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ===========================================
+// HEALTH CHECK (for cron-job.org ping)
+// ===========================================
+
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'AURA ARCHIVE Server is running',
+        timestamp: new Date().toISOString(),
+    });
+});
+
+// ===========================================
 // API ROUTES
 // ===========================================
 
