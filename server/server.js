@@ -12,6 +12,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const http = require('http');
+const axios = require('axios');
 
 const routes = require('./src/routes');
 const db = require('./src/models');
@@ -111,9 +112,9 @@ app.get('/health', async (req, res) => {
     // Also ping AI service to keep it awake
     try {
         const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-        await fetch(`${aiUrl}/health`, { signal: AbortSignal.timeout(10000) });
+        await axios.get(`${aiUrl}/health`, { timeout: 10000 });
         status.ai = true;
-    } catch {
+    } catch (e) {
         // AI might be waking up, that's OK
     }
 
