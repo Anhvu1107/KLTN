@@ -36,13 +36,16 @@ const allowedOrigins = [
     ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : []),
 ].filter(Boolean);
 
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    if (allowedOrigins.some(allowed => origin === allowed || origin === allowed.replace(/\/$/, ''))) return true;
+    if (/\.vercel\.app$/.test(origin)) return true;
+    return false;
+};
+
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, etc.)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.some(allowed => origin === allowed || origin === allowed.replace(/\/$/, ''))) {
-            return callback(null, true);
-        }
+        if (isAllowedOrigin(origin)) return callback(null, true);
         callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
