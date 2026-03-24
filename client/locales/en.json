@@ -172,6 +172,7 @@
         "checkBackFeatured": "Check back soon for our curated picks"
     },
     "categories": {
+        "clothing": "Clothing",
         "tops": "Tops",
         "pants": "Pants",
         "outerwear": "Outerwear",
