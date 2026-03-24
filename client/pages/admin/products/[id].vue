@@ -173,21 +173,24 @@ const duplicateVariant = (index: number) => {
 // "Other" label (translated)
 const otherLabel = computed(() => locale.value === 'vi' ? 'Khác' : 'Other')
 
-// Categories (translated)
+// Categories (translated) — same as new.vue
 const categories = computed(() => [
-  { value: 'Bags', label: t('categories.bags') },
-  { value: 'Clothing', label: t('categories.clothing') },
+  { value: 'Tops', label: t('categories.tops') },
+  { value: 'Pants', label: t('categories.pants') },
+  { value: 'Outerwear', label: t('categories.outerwear') },
   { value: 'Shoes', label: t('categories.shoes') },
+  { value: 'Bags', label: t('categories.bags') },
   { value: 'Accessories', label: t('categories.accessories') },
+  { value: 'Dresses', label: t('categories.dresses') },
   { value: 'Jewelry', label: locale.value === 'vi' ? 'Trang sức' : 'Jewelry' },
   { value: 'Watches', label: locale.value === 'vi' ? 'Đồng hồ' : 'Watches' },
   { value: 'Other', label: otherLabel.value },
 ])
 const conditions = computed(() => [
-  { value: 'New with Tags', label: t('conditions.newWithTags') },
-  { value: 'Excellent', label: t('conditions.excellent') },
-  { value: 'Very Good', label: t('conditions.likeNew') },
-  { value: 'Good', label: t('conditions.good') },
+  { value: '10/10 - New with tags', label: t('conditions.newWithTags') },
+  { value: '9/10 - Like New', label: t('conditions.likeNew') },
+  { value: '8/10 - Excellent', label: t('conditions.excellent') },
+  { value: '7/10 - Good', label: t('conditions.good') },
   { value: 'Vintage', label: t('conditions.vintage') },
   { value: 'Other', label: otherLabel.value },
 ])
