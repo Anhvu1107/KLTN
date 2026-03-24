@@ -1,15 +1,14 @@
 /**
  * AI Service
- * AURA ARCHIVE - Communication with Python AI service
+ * AURA ARCHIVE - Integrated AI Stylist (formerly separate Python service)
+ * Now runs locally within Node.js server — no external HTTP calls needed.
  */
 
-const axios = require('axios');
-const { SystemPrompt, ChatLog, ChatSession } = require('../models');
+const { SystemPrompt, ChatLog } = require('../models');
 const logger = require('../utils/logger');
 const chatAdminService = require('./chat-admin.service');
 const { emitNewMessage } = require('../socket');
-
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+const { getEngine } = require('./ai/stylist-engine');
 
 /**
  * Get the current AI persona from database
@@ -41,22 +40,15 @@ const getGreeting = async () => {
 };
 
 /**
- * Send message to AI service
- * @param {string} message - User message
- * @param {string} sessionId - Session ID for conversation continuity
- * @param {string} userId - Optional user ID
- * @param {object} context - Optional context (current product, etc.)
+ * Send message to AI stylist (now runs locally)
  */
 const chat = async (message, sessionId, userId = null, context = null) => {
     try {
         // Check if AI is paused for this session
         const isPaused = await chatAdminService.isAiPaused(sessionId);
         if (isPaused) {
-            // Log user message even when paused (admin will reply manually)
             await logMessage(userId, sessionId, 'USER', message);
             await chatAdminService.updateSessionStats(sessionId, message, userId);
-
-            // Emit real-time event so admin sees the message immediately
             emitNewMessage(sessionId, { role: 'USER', content: message });
 
             return {
@@ -70,23 +62,17 @@ const chat = async (message, sessionId, userId = null, context = null) => {
         // Get current persona from database
         const systemPrompt = await getPersona();
 
-        // Call Python AI service
-        const response = await axios.post(`${AI_SERVICE_URL}/api/v1/chat`, {
+        // Process message locally via StylistEngine (no HTTP call needed)
+        const engine = getEngine();
+        const aiResponse = await engine.processMessage(
             message,
-            session_id: sessionId,
-            user_id: userId,
+            sessionId,
+            userId,
             context,
-            system_prompt: systemPrompt,
-        }, {
-            timeout: 60000, // 60 second timeout (Render free tier cold start ~50s)
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+            systemPrompt,
+        );
 
-        const aiResponse = response.data;
-
-        // Log the conversation (always, including guests)
+        // Log the conversation
         await logMessage(userId, sessionId, 'USER', message);
         await logMessage(userId, sessionId, 'ASSISTANT', aiResponse.message);
 
@@ -100,15 +86,14 @@ const chat = async (message, sessionId, userId = null, context = null) => {
         return {
             success: true,
             message: aiResponse.message,
-            sessionId: aiResponse.session_id,
+            sessionId,
             metadata: aiResponse.metadata,
         };
 
     } catch (error) {
         logger.error('AI Service Error:', error.message);
 
-        // Still log the user message and update session even on error
-        const fallbackMessage = "Xin lỗi, mình đang gặp sự cố kết nối. Bạn vui lòng thử lại sau một chút nhé!";
+        const fallbackMessage = 'Xin lỗi, mình đang gặp sự cố. Bạn vui lòng thử lại sau một chút nhé!';
         try {
             await logMessage(userId, sessionId, 'USER', message);
             await logMessage(userId, sessionId, 'ASSISTANT', fallbackMessage);
@@ -117,7 +102,6 @@ const chat = async (message, sessionId, userId = null, context = null) => {
             logger.error('Failed to log error chat:', logError.message);
         }
 
-        // Return fallback message
         return {
             success: false,
             message: fallbackMessage,
@@ -148,8 +132,6 @@ const logMessage = async (userId, sessionId, role, content) => {
  */
 const getChatHistory = async (sessionId, userId = null) => {
     const where = { session_id: sessionId };
-    // Don't filter by user_id — admin messages have user_id: null
-    // and should still appear in the chat history for all participants
 
     const messages = await ChatLog.findAll({
         where,
@@ -161,17 +143,16 @@ const getChatHistory = async (sessionId, userId = null) => {
 };
 
 /**
- * Check AI service health
+ * Check AI service health (now always healthy since it's local)
  */
 const checkHealth = async () => {
-    try {
-        const response = await axios.get(`${AI_SERVICE_URL}/health`, {
-            timeout: 5000,
-        });
-        return response.data;
-    } catch (error) {
-        return { healthy: false, error: error.message };
-    }
+    const engine = getEngine();
+    return {
+        healthy: true,
+        service: 'integrated',
+        mode: engine.mode,
+        has_api: engine.hasApi,
+    };
 };
 
 module.exports = {

@@ -101,7 +101,6 @@ export default defineNuxtConfig({
       apiUrl: process.env.NUXT_PUBLIC_API_URL || '/api/v1',
       socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:5000',
       imageBaseUrl: process.env.NUXT_PUBLIC_IMAGE_BASE_URL || '',
-      aiServiceUrl: process.env.NUXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8001',
     },
   },
 

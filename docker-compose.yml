@@ -40,28 +40,14 @@ services:
       DB_USER: postgres
       DB_PASSWORD: ${DB_PASSWORD:-aura_secret_2024}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-2024}
-      AI_SERVICE_URL: http://ai-service:8001
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  # AI Service (Production)
-  ai-service:
-    build:
-      context: ./ai_service
-      dockerfile: Dockerfile
-    container_name: aura-ai
-    restart: always
-    expose:
-      - "8001"
-    environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       CHATBOT_MODE: ${CHATBOT_MODE:-auto}
-      BACKEND_URL: http://server:5000
     depends_on:
-      - server
+      postgres:
+        condition: service_healthy
+
 
   # Nuxt.js Client (Production)
   client:
@@ -91,7 +77,6 @@ services:
     depends_on:
       - client
       - server
-      - ai-service
 
   # ============================================
   # DEVELOPMENT SERVICES (Hot Reload)
@@ -118,30 +103,14 @@ services:
       DB_USER: postgres
       DB_PASSWORD: ${DB_PASSWORD:-aura_secret_2024}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-2024}
-      AI_SERVICE_URL: http://ai-service-dev:8001
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  # AI Service (Development)
-  ai-service-dev:
-    build:
-      context: ./ai_service
-      dockerfile: Dockerfile.dev
-    container_name: aura-ai-dev
-    restart: unless-stopped
-    ports:
-      - "8001:8001"
-    volumes:
-      - ./ai_service:/app
-    environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       CHATBOT_MODE: ${CHATBOT_MODE:-auto}
-      BACKEND_URL: http://server-dev:5000
     depends_on:
-      - server-dev
+      postgres:
+        condition: service_healthy
+
 
   # Nuxt.js Client (Development)
   client-dev:
