@@ -105,10 +105,22 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // HEALTH CHECK (for cron-job.org ping)
 // ===========================================
 
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+    const status = { server: true, ai: false };
+
+    // Also ping AI service to keep it awake
+    try {
+        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+        await fetch(`${aiUrl}/health`, { signal: AbortSignal.timeout(10000) });
+        status.ai = true;
+    } catch {
+        // AI might be waking up, that's OK
+    }
+
     res.status(200).json({
         success: true,
         message: 'AURA ARCHIVE Server is running',
+        ai_status: status.ai ? 'online' : 'waking_up',
         timestamp: new Date().toISOString(),
     });
 });
