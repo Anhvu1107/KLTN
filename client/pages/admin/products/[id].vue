@@ -176,7 +176,7 @@ const otherLabel = computed(() => locale.value === 'vi' ? 'Khác' : 'Other')
 // Categories (translated)
 const categories = computed(() => [
   { value: 'Bags', label: t('categories.bags') },
-  { value: 'Clothing', label: t('categories.tops') },
+  { value: 'Clothing', label: t('categories.clothing') },
   { value: 'Shoes', label: t('categories.shoes') },
   { value: 'Accessories', label: t('categories.accessories') },
   { value: 'Jewelry', label: locale.value === 'vi' ? 'Trang sức' : 'Jewelry' },
@@ -283,11 +283,39 @@ const fetchProduct = async () => {
       form.name = product.name
       form.brand = product.brand
       form.description = product.description || ''
-      form.category = product.category
-      form.subcategory = product.subcategory || 'Unisex'
+      
+      // Handle category: check if DB value matches dropdown options
+      const catMatch = categories.value.some(c => c.value === product.category)
+      if (catMatch) {
+        form.category = product.category
+      } else if (product.category) {
+        form.category = 'Other'
+        customCategory.value = product.category
+      }
+      
+      // Handle subcategory
+      const subMatch = subcategories.value.some(s => s.value === product.subcategory)
+      if (subMatch) {
+        form.subcategory = product.subcategory
+      } else if (product.subcategory) {
+        form.subcategory = 'Other'
+        customSubcategory.value = product.subcategory
+      } else {
+        form.subcategory = 'Unisex'
+      }
+      
       form.base_price = product.base_price
       form.sale_price = product.sale_price
-      form.condition_text = product.condition_text
+      
+      // Handle condition: check if DB value matches dropdown options  
+      const condMatch = conditions.value.some(c => c.value === product.condition_text)
+      if (condMatch) {
+        form.condition_text = product.condition_text
+      } else if (product.condition_text) {
+        form.condition_text = 'Other'
+        customCondition.value = product.condition_text
+      }
+      
       form.condition_description = product.condition_description || ''
       form.is_active = product.is_active
       form.is_new_arrival = product.is_new_arrival || false
