@@ -30,8 +30,20 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
+const allowedOrigins = [
+    (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, ''),
+    ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : []),
+].filter(Boolean);
+
 app.use(cors({
-    origin: (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, ''),
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.some(allowed => origin === allowed || origin === allowed.replace(/\/$/, ''))) {
+            return callback(null, true);
+        }
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
