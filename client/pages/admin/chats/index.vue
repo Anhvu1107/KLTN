@@ -319,14 +319,18 @@ const sendAdminMsg = async () => {
   }
 }
 
-// ====== SEARCH MESSAGES (client-side, per-occurrence) ======
+// ====== SEARCH MESSAGES (client-side, per-occurrence, diacritics-insensitive) ======
+const removeDiacritics = (str: string) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
+}
+
 const allOccurrences = computed(() => {
-  const q = messageSearchQuery.value.trim().toLowerCase()
+  const q = removeDiacritics(messageSearchQuery.value.trim().toLowerCase())
   if (!q) return [] as { msgIndex: number; occIndex: number }[]
   const results: { msgIndex: number; occIndex: number }[] = []
   messages.value.forEach((msg, mi) => {
     if (!msg.content) return
-    const text = msg.content.toLowerCase()
+    const text = removeDiacritics(msg.content.toLowerCase())
     let pos = 0
     let occIdx = 0
     while ((pos = text.indexOf(q, pos)) !== -1) {
@@ -347,22 +351,46 @@ const matchingMessageIndices = computed(() => {
 })
 
 const highlightText = (text: string, msgIndex: number) => {
-  const q = messageSearchQuery.value.trim()
+  const q = removeDiacritics(messageSearchQuery.value.trim().toLowerCase())
   if (!q || !text) return text
-  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(`(${escaped})`, 'gi')
-  // Find which occIndex in this message is active
+  const normalizedText = removeDiacritics(text.toLowerCase())
   const cur = currentOccurrence.value
   const activeOccInThisMsg = (cur && cur.msgIndex === msgIndex) ? cur.occIndex : -1
-  let occCounter = 0
-  return text.replace(regex, (match) => {
-    const isActive = occCounter === activeOccInThisMsg
-    occCounter++
-    if (isActive) {
-      return `<mark class="bg-red-400 text-white rounded px-0.5 font-bold ring-2 ring-red-500">${match}</mark>`
+
+  // Find all match positions in normalized text, then map back to original
+  const matches: { start: number; end: number }[] = []
+  let pos = 0
+  while ((pos = normalizedText.indexOf(q, pos)) !== -1) {
+    // Map normalized position back to original string position
+    // Since NFD can expand characters, we need to map carefully
+    let origStart = 0, origEnd = 0, normCount = 0
+    for (let i = 0; i <= text.length && normCount <= pos + q.length; i++) {
+      const normLen = removeDiacritics(text.substring(0, i).toLowerCase()).length
+      if (normLen === pos) origStart = i
+      if (normLen === pos + q.length) { origEnd = i; break }
     }
-    return `<mark class="bg-orange-300 text-neutral-900 rounded px-0.5 font-semibold">${match}</mark>`
+    matches.push({ start: origStart, end: origEnd })
+    pos += q.length
+  }
+
+  if (matches.length === 0) return text
+
+  // Build result string with highlights
+  let result = ''
+  let lastEnd = 0
+  matches.forEach((m, idx) => {
+    result += text.substring(lastEnd, m.start)
+    const matchedText = text.substring(m.start, m.end)
+    const isActive = idx === activeOccInThisMsg
+    if (isActive) {
+      result += `<mark class="bg-red-400 text-white rounded px-0.5 font-bold ring-2 ring-red-500">${matchedText}</mark>`
+    } else {
+      result += `<mark class="bg-orange-300 text-neutral-900 rounded px-0.5 font-semibold">${matchedText}</mark>`
+    }
+    lastEnd = m.end
   })
+  result += text.substring(lastEnd)
+  return result
 }
 
 const scrollToMatch = (index: number) => {
