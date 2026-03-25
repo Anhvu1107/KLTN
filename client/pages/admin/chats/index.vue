@@ -45,11 +45,10 @@ const tabs = computed(() => [
   { key: 'closed', label: t('admin.chatManagement.tabClosed') },
 ])
 
-// Message search (in-chat)
+// Message search (in-chat) - client-side Ctrl+F style
 const showMessageSearch = ref(false)
 const messageSearchQuery = ref('')
-const messageSearchResults = ref<any[]>([])
-const highlightedMessageIds = ref<string[]>([])
+const currentMatchIndex = ref(0)
 
 // Chat container ref
 const chatContainer = ref<HTMLElement | null>(null)
@@ -146,7 +145,7 @@ const selectSession = async (session: any) => {
   selectedSession.value = session
   showMessageSearch.value = false
   messageSearchQuery.value = ''
-  highlightedMessageIds.value = []
+  currentMatchIndex.value = 0
 
   // Fetch messages (with loading)
   await fetchMessages(session.session_id, false)
@@ -320,25 +319,79 @@ const sendAdminMsg = async () => {
   }
 }
 
-// ====== SEARCH MESSAGES ======
-const searchInMessages = async () => {
-  if (!selectedSession.value || !messageSearchQuery.value.trim()) {
-    highlightedMessageIds.value = []
-    messageSearchResults.value = []
-    return
-  }
-  try {
-    const response = await $fetch<{ success: boolean; data: any }>(
-      `${config.public.apiUrl}/admin/chats/${selectedSession.value.session_id}/search`,
-      {
-        headers: { Authorization: `Bearer ${token.value}` },
-        params: { q: messageSearchQuery.value },
-      }
-    )
-    messageSearchResults.value = response.data?.messages || []
-    highlightedMessageIds.value = messageSearchResults.value.map((m: any) => m.id)
-  } catch (e: any) {
-    console.error('Search failed:', e)
+// ====== SEARCH MESSAGES (client-side, per-occurrence) ======
+const allOccurrences = computed(() => {
+  const q = messageSearchQuery.value.trim().toLowerCase()
+  if (!q) return [] as { msgIndex: number; occIndex: number }[]
+  const results: { msgIndex: number; occIndex: number }[] = []
+  messages.value.forEach((msg, mi) => {
+    if (!msg.content) return
+    const text = msg.content.toLowerCase()
+    let pos = 0
+    let occIdx = 0
+    while ((pos = text.indexOf(q, pos)) !== -1) {
+      results.push({ msgIndex: mi, occIndex: occIdx })
+      pos += q.length
+      occIdx++
+    }
+  })
+  return results
+})
+
+const totalMatches = computed(() => allOccurrences.value.length)
+
+const currentOccurrence = computed(() => allOccurrences.value[currentMatchIndex.value] ?? null)
+
+const matchingMessageIndices = computed(() => {
+  return [...new Set(allOccurrences.value.map(o => o.msgIndex))]
+})
+
+const highlightText = (text: string, msgIndex: number) => {
+  const q = messageSearchQuery.value.trim()
+  if (!q || !text) return text
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
+  // Find which occIndex in this message is active
+  const cur = currentOccurrence.value
+  const activeOccInThisMsg = (cur && cur.msgIndex === msgIndex) ? cur.occIndex : -1
+  let occCounter = 0
+  return text.replace(regex, (match) => {
+    const isActive = occCounter === activeOccInThisMsg
+    occCounter++
+    if (isActive) {
+      return `<mark class="bg-red-400 text-white rounded px-0.5 font-bold ring-2 ring-red-500">${match}</mark>`
+    }
+    return `<mark class="bg-orange-300 text-neutral-900 rounded px-0.5 font-semibold">${match}</mark>`
+  })
+}
+
+const scrollToMatch = (index: number) => {
+  nextTick(() => {
+    const occ = allOccurrences.value[index]
+    if (!occ) return
+    const el = document.getElementById(`chat-msg-${occ.msgIndex}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
+}
+
+const goToNextMatch = () => {
+  if (totalMatches.value === 0) return
+  currentMatchIndex.value = (currentMatchIndex.value + 1) % totalMatches.value
+  scrollToMatch(currentMatchIndex.value)
+}
+
+const goToPrevMatch = () => {
+  if (totalMatches.value === 0) return
+  currentMatchIndex.value = (currentMatchIndex.value - 1 + totalMatches.value) % totalMatches.value
+  scrollToMatch(currentMatchIndex.value)
+}
+
+const onSearchInput = () => {
+  currentMatchIndex.value = 0
+  if (totalMatches.value > 0) {
+    scrollToMatch(0)
   }
 }
 
@@ -624,7 +677,7 @@ useSeoMeta({
           <div class="flex items-center gap-1">
             <!-- Search in messages -->
             <button
-              @click="showMessageSearch = !showMessageSearch; if(!showMessageSearch) { highlightedMessageIds = []; messageSearchQuery = '' }"
+              @click="showMessageSearch = !showMessageSearch; if(!showMessageSearch) { messageSearchQuery = ''; currentMatchIndex = 0 }"
               class="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
               :class="showMessageSearch ? 'bg-orange-100 text-orange-600' : 'text-neutral-500'"
               :title="$t('admin.chatManagement.searchMessagesTooltip')"
@@ -705,17 +758,35 @@ useSeoMeta({
 
         <!-- Message Search Bar -->
         <div v-if="showMessageSearch" class="px-4 py-2 bg-orange-50 border-b border-orange-200 shrink-0">
-          <div class="flex gap-2">
+          <div class="flex items-center gap-2">
             <input
               v-model="messageSearchQuery"
-              @input="searchInMessages"
+              @input="onSearchInput"
+              @keydown.enter.exact="goToNextMatch"
+              @keydown.shift.enter="goToPrevMatch"
               type="text"
               :placeholder="$t('admin.chatManagement.searchMessages')"
               class="flex-1 px-3 py-1.5 bg-white border border-orange-200 rounded-lg text-body-sm focus:outline-none focus:border-orange-400"
             />
-            <span v-if="messageSearchResults.length > 0" class="text-body-sm text-orange-600 self-center whitespace-nowrap">
-              {{ messageSearchResults.length }} {{ $t('admin.chatManagement.results') }}
+            <span class="text-body-sm text-orange-600 whitespace-nowrap font-medium min-w-[3rem] text-center">
+              {{ totalMatches > 0 ? `${currentMatchIndex + 1}/${totalMatches}` : '0/0' }}
             </span>
+            <button
+              @click="goToPrevMatch"
+              :disabled="totalMatches === 0"
+              class="p-1.5 hover:bg-orange-100 rounded-lg transition-colors text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Previous (Shift+Enter)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+            </button>
+            <button
+              @click="goToNextMatch"
+              :disabled="totalMatches === 0"
+              class="p-1.5 hover:bg-orange-100 rounded-lg transition-colors text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Next (Enter)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
           </div>
         </div>
 
@@ -726,12 +797,14 @@ useSeoMeta({
           </div>
           <template v-else>
             <div
-              v-for="msg in messages"
+              v-for="(msg, msgIndex) in messages"
               :key="msg.id"
-              class="flex"
+              :id="`chat-msg-${msgIndex}`"
+              class="flex transition-all duration-300"
               :class="[
                 msg.role === 'USER' || msg.role === 'user' ? 'justify-start' : 'justify-end',
-                highlightedMessageIds.includes(msg.id) ? 'ring-2 ring-orange-400 rounded-lg' : ''
+                matchingMessageIndices.includes(msgIndex) ? 'ring-2 ring-orange-300 rounded-lg p-1' : '',
+                currentOccurrence?.msgIndex === msgIndex ? 'ring-2 ring-orange-500 bg-orange-50/50 rounded-lg p-1' : ''
               ]"
             >
               <!-- User message (left) -->
@@ -743,7 +816,8 @@ useSeoMeta({
                 </div>
                 <div>
                   <div class="bg-white px-4 py-2.5 rounded-2xl rounded-bl-sm shadow-sm border border-neutral-100">
-                    <p class="text-body-sm text-neutral-800 whitespace-pre-wrap">{{ msg.content }}</p>
+                    <p v-if="messageSearchQuery.trim()" class="text-body-sm text-neutral-800 whitespace-pre-wrap" v-html="highlightText(msg.content, msgIndex)"></p>
+                    <p v-else class="text-body-sm text-neutral-800 whitespace-pre-wrap">{{ msg.content }}</p>
                   </div>
                   <p class="text-xs text-neutral-400 mt-1 ml-1">{{ formatMessageTime(msg.created_at || msg.createdAt) }}</p>
                 </div>
@@ -753,7 +827,8 @@ useSeoMeta({
                 <!-- AI message (right) -->
                 <div>
                   <div class="bg-gradient-to-br from-orange-400 to-orange-500 px-4 py-2.5 rounded-2xl rounded-br-sm shadow-sm">
-                    <p class="text-body-sm text-white whitespace-pre-wrap">{{ msg.content }}</p>
+                    <p v-if="messageSearchQuery.trim()" class="text-body-sm text-white whitespace-pre-wrap" v-html="highlightText(msg.content, msgIndex)"></p>
+                    <p v-else class="text-body-sm text-white whitespace-pre-wrap">{{ msg.content }}</p>
                   </div>
                   <p class="text-xs text-neutral-400 mt-1 text-right mr-1">{{ formatMessageTime(msg.created_at || msg.createdAt) }}</p>
                 </div>
