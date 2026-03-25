@@ -21,6 +21,10 @@ const showModal = ref(false)
 const editingPopup = ref<any>(null)
 const formError = ref('')
 const isSubmitting = ref(false)
+const isUploading = ref(false)
+const imagePreview = ref('')
+const popupFileInput = ref<HTMLInputElement | null>(null)
+const isDragging = ref(false)
 
 const formData = ref({
   name: '',
@@ -55,6 +59,7 @@ const fetchPopups = async () => {
 const openCreate = () => {
   editingPopup.value = null
   formError.value = ''
+  imagePreview.value = ''
   formData.value = { name: '', title: '', content: '', image_url: '', button_text: 'Xem ngay', button_link: '', position: 'center', trigger_type: 'delay', trigger_value: 3, is_active: true, starts_at: '', ends_at: '' }
   showModal.value = true
 }
@@ -63,6 +68,11 @@ const openEdit = (popup: any) => {
   editingPopup.value = popup
   formError.value = ''
   formData.value = { ...popup, starts_at: popup.starts_at?.split('T')[0] || '', ends_at: popup.ends_at?.split('T')[0] || '' }
+  if (popup.image_url) {
+    imagePreview.value = popup.image_url.startsWith('http') ? popup.image_url : `${config.public.apiUrl}${popup.image_url}`
+  } else {
+    imagePreview.value = ''
+  }
   showModal.value = true
 }
 
@@ -112,6 +122,49 @@ const toggleActive = async (popup: any) => {
   } catch (error) {
     console.error('Failed to toggle popup:', error)
   }
+}
+
+// Image upload handlers
+const handlePopupImageUpload = async (file: File) => {
+  if (!file) return
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) { formError.value = 'Chỉ chấp nhận JPEG, PNG hoặc WebP'; return }
+  if (file.size > 10 * 1024 * 1024) { formError.value = 'Kích thước tối đa 10MB'; return }
+  const reader = new FileReader()
+  reader.onload = (e) => { imagePreview.value = e.target?.result as string }
+  reader.readAsDataURL(file)
+  isUploading.value = true
+  formError.value = ''
+  try {
+    const token = getToken()
+    const uploadData = new FormData()
+    uploadData.append('banner', file)
+    const response = await $fetch<{ success: boolean; data: { url: string } }>(
+      `${config.public.apiUrl}/admin/upload/banner`,
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: uploadData }
+    )
+    formData.value.image_url = response.data.url
+  } catch (error: any) {
+    formError.value = error.data?.message || 'Upload ảnh thất bại'
+    imagePreview.value = ''
+  } finally {
+    isUploading.value = false
+  }
+}
+const onPopupFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) handlePopupImageUpload(input.files[0])
+}
+const onPopupDragOver = (e: DragEvent) => { e.preventDefault(); isDragging.value = true }
+const onPopupDragLeave = () => { isDragging.value = false }
+const onPopupDrop = (e: DragEvent) => {
+  e.preventDefault(); isDragging.value = false
+  if (e.dataTransfer?.files && e.dataTransfer.files[0]) handlePopupImageUpload(e.dataTransfer.files[0])
+}
+const removePopupImage = () => {
+  imagePreview.value = ''
+  formData.value.image_url = ''
+  if (popupFileInput.value) popupFileInput.value.value = ''
 }
 
 // Helpers
@@ -285,8 +338,30 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
                 <textarea v-model="formData.content" rows="3" class="input-field" placeholder="Mô tả chi tiết popup..."></textarea>
               </div>
               <div>
-                <label class="input-label">Link ảnh <span class="font-normal text-neutral-400">(tùy chọn)</span></label>
-                <input v-model="formData.image_url" type="text" class="input-field" placeholder="https://example.com/image.jpg" />
+                <label class="input-label">Ảnh popup <span class="font-normal text-neutral-400">(tùy chọn)</span></label>
+                <input ref="popupFileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onPopupFileChange" />
+                <div
+                  v-if="!imagePreview && !formData.image_url"
+                  class="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors"
+                  :class="isDragging ? 'border-aura-black bg-neutral-50' : 'border-neutral-300 hover:border-neutral-400'"
+                  @click="popupFileInput?.click()"
+                  @dragover="onPopupDragOver"
+                  @dragleave="onPopupDragLeave"
+                  @drop="onPopupDrop"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 mx-auto text-neutral-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p class="text-body-sm text-neutral-600">Kéo thả hoặc <span class="text-aura-black font-medium underline">chọn ảnh</span></p>
+                  <p class="text-caption text-neutral-400 mt-1">JPEG, PNG, WebP — Tối đa 10MB</p>
+                </div>
+                <div v-else class="relative rounded-lg overflow-hidden border border-neutral-200">
+                  <img :src="imagePreview || `${config.public.apiUrl}${formData.image_url}`" alt="Popup preview" class="w-full h-40 object-cover" />
+                  <div v-if="isUploading" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <div class="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
+                  </div>
+                  <button v-else type="button" @click="removePopupImage" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" title="Xóa ảnh">✕</button>
+                </div>
               </div>
             </div>
 
