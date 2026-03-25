@@ -25,6 +25,40 @@ const sendEmail = async ({ to, subject, text, html }) => {
     const senderEmail = process.env.SMTP_USER || 'noreply@auraarchive.com';
     const senderName = 'AURA ARCHIVE';
 
+    // Priority 0: Resend API (best for cloud/production)
+    if (process.env.RESEND_API_KEY) {
+        try {
+            const resendFrom = process.env.RESEND_FROM || 'AURA ARCHIVE <onboarding@resend.dev>';
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from: resendFrom,
+                    to: [to],
+                    subject,
+                    html,
+                    text,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error(`✗ Resend error for ${to}:`, data);
+                console.warn('⚠ Resend failed, trying other providers...');
+            } else {
+                console.log(`✓ Email sent via Resend to ${to}: ${data.id}`);
+                return { success: true, messageId: data.id };
+            }
+        } catch (error) {
+            console.error(`✗ Resend failed for ${to}:`, error.message);
+            console.warn('⚠ Falling back to other providers...');
+        }
+    }
+
     // Priority 1: SendGrid API
     if (process.env.SENDGRID_API_KEY) {
         try {
