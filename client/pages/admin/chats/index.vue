@@ -350,9 +350,13 @@ const matchingMessageIndices = computed(() => {
   return [...new Set(allOccurrences.value.map(o => o.msgIndex))]
 })
 
+const escapeHtml = (str: string) => {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 const highlightText = (text: string, msgIndex: number) => {
   const q = removeDiacritics(messageSearchQuery.value.trim().toLowerCase())
-  if (!q || !text) return text
+  if (!q || !text) return escapeHtml(text || '')
   const normalizedText = removeDiacritics(text.toLowerCase())
   const cur = currentOccurrence.value
   const activeOccInThisMsg = (cur && cur.msgIndex === msgIndex) ? cur.occIndex : -1
@@ -361,10 +365,8 @@ const highlightText = (text: string, msgIndex: number) => {
   const matches: { start: number; end: number }[] = []
   let pos = 0
   while ((pos = normalizedText.indexOf(q, pos)) !== -1) {
-    // Map normalized position back to original string position
-    // Since NFD can expand characters, we need to map carefully
-    let origStart = 0, origEnd = 0, normCount = 0
-    for (let i = 0; i <= text.length && normCount <= pos + q.length; i++) {
+    let origStart = 0, origEnd = 0
+    for (let i = 0; i <= text.length; i++) {
       const normLen = removeDiacritics(text.substring(0, i).toLowerCase()).length
       if (normLen === pos) origStart = i
       if (normLen === pos + q.length) { origEnd = i; break }
@@ -373,14 +375,14 @@ const highlightText = (text: string, msgIndex: number) => {
     pos += q.length
   }
 
-  if (matches.length === 0) return text
+  if (matches.length === 0) return escapeHtml(text)
 
-  // Build result string with highlights
+  // Build result string with highlights (escape all text segments)
   let result = ''
   let lastEnd = 0
   matches.forEach((m, idx) => {
-    result += text.substring(lastEnd, m.start)
-    const matchedText = text.substring(m.start, m.end)
+    result += escapeHtml(text.substring(lastEnd, m.start))
+    const matchedText = escapeHtml(text.substring(m.start, m.end))
     const isActive = idx === activeOccInThisMsg
     if (isActive) {
       result += `<mark class="bg-red-400 text-white rounded px-0.5 font-bold ring-2 ring-red-500">${matchedText}</mark>`
@@ -389,7 +391,7 @@ const highlightText = (text: string, msgIndex: number) => {
     }
     lastEnd = m.end
   })
-  result += text.substring(lastEnd)
+  result += escapeHtml(text.substring(lastEnd))
   return result
 }
 

@@ -102,12 +102,12 @@ const openEditModal = (blog: any) => {
     tags: blog.tags || [],
     status: blog.status,
   }
-  showModal.value = true
   if (blog.featured_image) {
     imagePreview.value = blog.featured_image.startsWith('http') ? blog.featured_image : `${config.public.apiUrl}${blog.featured_image}`
   } else {
     imagePreview.value = ''
   }
+  showModal.value = true
 }
 
 // Submit form
