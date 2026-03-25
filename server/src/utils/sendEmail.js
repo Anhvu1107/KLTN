@@ -82,14 +82,15 @@ const sendEmail = async ({ to, subject, text, html }) => {
 
             if (!response.ok) {
                 console.error(`✗ Brevo error for ${to}:`, data);
-                throw new Error(data.message || 'Brevo API error');
+                // Fall through to SMTP instead of throwing
+                console.warn('⚠ Brevo failed, falling back to SMTP...');
+            } else {
+                console.log(`✓ Email sent via Brevo to ${to}: ${data.messageId}`);
+                return { success: true, messageId: data.messageId };
             }
-
-            console.log(`✓ Email sent via Brevo to ${to}: ${data.messageId}`);
-            return { success: true, messageId: data.messageId };
         } catch (error) {
             console.error(`✗ Brevo failed for ${to}:`, error.message);
-            throw error;
+            console.warn('⚠ Falling back to SMTP...');
         }
     }
 
