@@ -672,9 +672,9 @@ useSeoMeta({
               </button>
             </template>
 
+            <!-- Reopen Session (only for closed) -->
             <button
               v-else
-              <!-- Reopen Session (only for closed) -->
               @click="reopenSession"
               class="p-2 hover:bg-green-50 rounded-lg transition-colors text-neutral-400 hover:text-green-500"
               :title="$t('admin.chatManagement.reopenSession', 'Mở lại đoạn chat')"
