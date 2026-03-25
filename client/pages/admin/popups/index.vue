@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Admin Popups Page
- * AURA ARCHIVE - Marketing popup management
+ * AURA ARCHIVE - Marketing popup management with intuitive UX
  */
 
 import { useDialog } from '~/composables/useDialog'
@@ -19,6 +19,8 @@ const popups = ref<any[]>([])
 const isLoading = ref(true)
 const showModal = ref(false)
 const editingPopup = ref<any>(null)
+const formError = ref('')
+const isSubmitting = ref(false)
 
 const formData = ref({
   name: '',
@@ -42,7 +44,7 @@ const fetchPopups = async () => {
       `${config.public.apiUrl}/admin/popups`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
-    popups.value = response.data.popups
+    popups.value = response.data.popups || []
   } catch (error) {
     console.error('Failed to fetch popups:', error)
   } finally {
@@ -52,40 +54,106 @@ const fetchPopups = async () => {
 
 const openCreate = () => {
   editingPopup.value = null
+  formError.value = ''
   formData.value = { name: '', title: '', content: '', image_url: '', button_text: 'Xem ngay', button_link: '', position: 'center', trigger_type: 'delay', trigger_value: 3, is_active: true, starts_at: '', ends_at: '' }
   showModal.value = true
 }
 
 const openEdit = (popup: any) => {
   editingPopup.value = popup
+  formError.value = ''
   formData.value = { ...popup, starts_at: popup.starts_at?.split('T')[0] || '', ends_at: popup.ends_at?.split('T')[0] || '' }
   showModal.value = true
 }
 
 const savePopup = async () => {
-  const token = getToken()
-  const url = editingPopup.value
-    ? `${config.public.apiUrl}/admin/popups/${editingPopup.value.id}`
-    : `${config.public.apiUrl}/admin/popups`
-  
-  await $fetch(url, {
-    method: editingPopup.value ? 'PUT' : 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData.value,
-  })
-  showModal.value = false
-  await fetchPopups()
+  formError.value = ''
+  if (!formData.value.name.trim()) { formError.value = 'Vui lòng nhập tên popup'; return }
+  isSubmitting.value = true
+  try {
+    const token = getToken()
+    const url = editingPopup.value
+      ? `${config.public.apiUrl}/admin/popups/${editingPopup.value.id}`
+      : `${config.public.apiUrl}/admin/popups`
+    await $fetch(url, {
+      method: editingPopup.value ? 'PUT' : 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: { ...formData.value, starts_at: formData.value.starts_at || null, ends_at: formData.value.ends_at || null },
+    })
+    showModal.value = false
+    await fetchPopups()
+  } catch (error: any) {
+    formError.value = error.data?.message || 'Lưu thất bại'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const deletePopup = async (id: string) => {
-  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác. Bạn có chắc chắn?'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác.'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
   if (!ok) return
-  const token = getToken()
-  await $fetch(`${config.public.apiUrl}/admin/popups/${id}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  await fetchPopups()
+  try {
+    const token = getToken()
+    await $fetch(`${config.public.apiUrl}/admin/popups/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+    await fetchPopups()
+  } catch (error) {
+    console.error('Failed to delete popup:', error)
+  }
+}
+
+const toggleActive = async (popup: any) => {
+  try {
+    const token = getToken()
+    await $fetch(`${config.public.apiUrl}/admin/popups/${popup.id}`, {
+      method: 'PUT', headers: { Authorization: `Bearer ${token}` },
+      body: { ...popup, is_active: !popup.is_active },
+    })
+    popup.is_active = !popup.is_active
+  } catch (error) {
+    console.error('Failed to toggle popup:', error)
+  }
+}
+
+// Helpers
+const getTriggerLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    immediate: '⚡ Hiện ngay lập tức',
+    delay: '⏱️ Sau một khoảng thời gian',
+    scroll: '📜 Khi cuộn trang',
+    exit: '🚪 Khi rời trang (exit intent)',
+  }
+  return labels[type] || type
+}
+
+const getTriggerDetail = (popup: any) => {
+  if (popup.trigger_type === 'delay') return `Hiện sau ${popup.trigger_value} giây`
+  if (popup.trigger_type === 'scroll') return `Hiện khi cuộn ${popup.trigger_value}% trang`
+  if (popup.trigger_type === 'exit') return 'Hiện khi chuột rời khỏi trang'
+  return 'Hiện ngay khi vào trang'
+}
+
+const getPositionLabel = (pos: string) => {
+  const labels: Record<string, string> = {
+    center: '📍 Giữa màn hình',
+    'bottom-left': '↙️ Góc dưới trái',
+    'bottom-right': '↘️ Góc dưới phải',
+    top: '⬆️ Trên cùng',
+  }
+  return labels[pos] || pos
+}
+
+const getStatusText = (popup: any) => {
+  if (!popup.is_active) return 'Tắt'
+  if (popup.ends_at && new Date(popup.ends_at) < new Date()) return 'Hết hạn'
+  if (popup.starts_at && new Date(popup.starts_at) > new Date()) return 'Chờ hiển thị'
+  return 'Đang hoạt động'
+}
+
+const getStatusClass = (popup: any) => {
+  if (!popup.is_active) return 'bg-neutral-100 text-neutral-500'
+  if (popup.ends_at && new Date(popup.ends_at) < new Date()) return 'bg-red-50 text-red-600'
+  if (popup.starts_at && new Date(popup.starts_at) > new Date()) return 'bg-yellow-50 text-yellow-700'
+  return 'bg-green-50 text-green-700'
 }
 
 onMounted(fetchPopups)
@@ -93,72 +161,243 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
 </script>
 
 <template>
-  <div class="p-6">
+  <div class="p-6 max-w-5xl mx-auto">
+    <!-- Header -->
     <div class="flex items-center justify-between mb-6">
-      <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.popups.title') }}</h1>
-      <button @click="openCreate" class="btn-primary">+ {{ t('admin.popups.addPopup') }}</button>
+      <div>
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.popups.title') }}</h1>
+        <p class="text-body-sm text-neutral-500 mt-1">Tạo popup quảng cáo, thông báo hoặc thu thập email từ khách truy cập.</p>
+      </div>
+      <button @click="openCreate" class="btn-primary flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        {{ t('admin.popups.addPopup') }}
+      </button>
     </div>
 
-    <div v-if="isLoading" class="text-center py-12">
+    <!-- Loading -->
+    <div v-if="isLoading" class="text-center py-16">
       <div class="animate-spin w-8 h-8 border-2 border-neutral-300 border-t-aura-black rounded-full mx-auto"></div>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="popup in popups" :key="popup.id" class="card p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-medium">{{ popup.name }}</h3>
-          <span :class="popup.is_active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'" class="px-2 py-1 text-caption rounded">
-            {{ popup.is_active ? t('common.active') : t('common.inactive') }}
-          </span>
+    <!-- Popup Cards -->
+    <div v-else class="space-y-4">
+      <div
+        v-for="popup in popups"
+        :key="popup.id"
+        class="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+      >
+        <div class="flex">
+          <!-- Visual indicator -->
+          <div class="w-2 shrink-0" :class="popup.is_active ? 'bg-green-500' : 'bg-neutral-300'"></div>
+
+          <!-- Content -->
+          <div class="flex-1 px-5 py-4">
+            <!-- Top row: name + status -->
+            <div class="flex items-center gap-3 mb-2">
+              <h3 class="font-medium text-aura-black text-body">{{ popup.name }}</h3>
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="getStatusClass(popup)">
+                {{ getStatusText(popup) }}
+              </span>
+            </div>
+
+            <!-- Title & Content preview -->
+            <p v-if="popup.title" class="text-body-sm text-neutral-600 mb-1">📝 {{ popup.title }}</p>
+            <p v-if="popup.content" class="text-xs text-neutral-400 mb-3 line-clamp-1">{{ popup.content }}</p>
+
+            <!-- Info chips -->
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full">
+                {{ getTriggerDetail(popup) }}
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-50 text-neutral-600 rounded-full">
+                {{ getPositionLabel(popup.position) }}
+              </span>
+              <span v-if="popup.button_text" class="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-50 text-neutral-600 rounded-full">
+                🔘 Nút: "{{ popup.button_text }}"
+              </span>
+              <span v-if="popup.button_link" class="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-50 text-neutral-600 rounded-full">
+                🔗 {{ popup.button_link }}
+              </span>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3 mt-4 pt-3 border-t border-neutral-100">
+              <!-- Active Toggle -->
+              <button
+                @click="toggleActive(popup)"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
+                :class="popup.is_active ? 'bg-green-500' : 'bg-neutral-300'"
+                :title="popup.is_active ? 'Đang bật - Click để tắt' : 'Đang tắt - Click để bật'"
+              >
+                <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform" :class="popup.is_active ? 'translate-x-6' : 'translate-x-1'" />
+              </button>
+              <span class="text-xs text-neutral-500">{{ popup.is_active ? 'Bật' : 'Tắt' }}</span>
+
+              <div class="flex-1"></div>
+
+              <button @click="openEdit(popup)" class="px-3 py-1.5 text-body-sm text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 hover:border-neutral-400 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                {{ t('common.edit') }}
+              </button>
+              <button @click="deletePopup(popup.id)" class="px-3 py-1.5 text-body-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                {{ t('common.delete') }}
+              </button>
+            </div>
+          </div>
         </div>
-        <p class="text-body-sm text-neutral-600 mb-2">{{ popup.title }}</p>
-        <p class="text-caption text-neutral-500 mb-4">{{ t('admin.popups.trigger') }}: {{ popup.trigger_type }} ({{ popup.trigger_value }}s)</p>
-        <div class="flex gap-2">
-          <button @click="openEdit(popup)" class="flex-1 py-2 border text-body-sm hover:border-aura-black">{{ t('common.edit') }}</button>
-          <button @click="deletePopup(popup.id)" class="px-4 py-2 border text-red-600 text-body-sm hover:border-red-500">{{ t('common.delete') }}</button>
-        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div v-if="popups.length === 0" class="text-center py-16 bg-white rounded-xl border-2 border-dashed border-neutral-200">
+        <svg class="w-16 h-16 mx-auto text-neutral-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+        <p class="text-neutral-500 text-body mb-4">Chưa có popup nào</p>
+        <button @click="openCreate" class="btn-primary">+ {{ t('admin.popups.addPopup') }}</button>
       </div>
     </div>
 
     <!-- Modal -->
     <Teleport to="body">
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div class="bg-white rounded-sm w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto p-6">
-          <h2 class="font-serif text-heading-4 mb-6">{{ editingPopup ? t('admin.popups.editPopup') : t('admin.popups.createPopup') }}</h2>
-          <form @submit.prevent="savePopup" class="space-y-4">
-            <div><label class="input-label">Name *</label><input v-model="formData.name" class="input-field" required /></div>
-            <div><label class="input-label">Title</label><input v-model="formData.title" class="input-field" /></div>
-            <div><label class="input-label">Content</label><textarea v-model="formData.content" rows="3" class="input-field"></textarea></div>
-            <div><label class="input-label">Image URL</label><input v-model="formData.image_url" class="input-field" /></div>
-            <div class="grid grid-cols-2 gap-4">
-              <div><label class="input-label">Button Text</label><input v-model="formData.button_text" class="input-field" /></div>
-              <div><label class="input-label">Button Link</label><input v-model="formData.button_link" class="input-field" /></div>
-            </div>
-            <div class="grid grid-cols-3 gap-4">
+      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showModal = false">
+        <div class="bg-white rounded-xl w-full max-w-xl mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+          <!-- Header -->
+          <div class="p-6 border-b border-neutral-200 flex items-center justify-between">
+            <h2 class="font-serif text-heading-4">{{ editingPopup ? t('admin.popups.editPopup') : t('admin.popups.createPopup') }}</h2>
+            <button @click="showModal = false" class="p-1 hover:bg-neutral-100 rounded-lg transition-colors">
+              <svg class="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <form @submit.prevent="savePopup" class="p-6 space-y-5">
+            <!-- Section: Basic info -->
+            <div class="space-y-4">
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Thông tin cơ bản</p>
               <div>
-                <label class="input-label">Trigger</label>
-                <select v-model="formData.trigger_type" class="input-field">
-                  <option value="delay">Delay</option>
-                  <option value="scroll">Scroll</option>
-                  <option value="exit">Exit Intent</option>
-                </select>
+                <label class="input-label">Tên popup * <span class="font-normal text-neutral-400">(chỉ admin thấy)</span></label>
+                <input v-model="formData.name" type="text" class="input-field" required placeholder="Ví dụ: Khuyến mãi Black Friday" />
               </div>
-              <div><label class="input-label">Value (s/%)</label><input v-model.number="formData.trigger_value" type="number" class="input-field" /></div>
               <div>
-                <label class="input-label">Position</label>
-                <select v-model="formData.position" class="input-field">
-                  <option value="center">Center</option>
-                  <option value="bottom-right">Bottom Right</option>
-                </select>
+                <label class="input-label">Tiêu đề <span class="font-normal text-neutral-400">(hiện cho khách)</span></label>
+                <input v-model="formData.title" type="text" class="input-field" placeholder="Ví dụ: 🔥 Giảm giá 50% hôm nay!" />
+              </div>
+              <div>
+                <label class="input-label">Nội dung</label>
+                <textarea v-model="formData.content" rows="3" class="input-field" placeholder="Mô tả chi tiết popup..."></textarea>
+              </div>
+              <div>
+                <label class="input-label">Link ảnh <span class="font-normal text-neutral-400">(tùy chọn)</span></label>
+                <input v-model="formData.image_url" type="text" class="input-field" placeholder="https://example.com/image.jpg" />
               </div>
             </div>
-            <div class="flex items-center gap-2">
-              <input v-model="formData.is_active" type="checkbox" id="active" class="w-4 h-4" />
-              <label for="active">Active</label>
+
+            <!-- Section: Button -->
+            <div class="space-y-4 pt-2">
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Nút bấm (CTA)</p>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="input-label">Văn bản nút</label>
+                  <input v-model="formData.button_text" type="text" class="input-field" placeholder="Xem ngay" />
+                </div>
+                <div>
+                  <label class="input-label">Link khi bấm nút</label>
+                  <input v-model="formData.button_link" type="text" class="input-field" placeholder="/shop hoặc /sale" />
+                </div>
+              </div>
             </div>
-            <div class="flex justify-end gap-3 pt-4">
-              <button type="button" @click="showModal = false" class="px-4 py-2 text-neutral-600">{{ t('common.cancel') }}</button>
-              <button type="submit" class="btn-primary">{{ t('common.save') }}</button>
+
+            <!-- Section: Trigger -->
+            <div class="space-y-4 pt-2">
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Khi nào hiện popup?</p>
+              <div class="grid grid-cols-1 gap-2">
+                <label
+                  v-for="opt in [
+                    { value: 'delay', icon: '⏱️', label: 'Sau một khoảng thời gian', desc: 'Popup hiện sau X giây khi khách vào trang' },
+                    { value: 'scroll', icon: '📜', label: 'Khi cuộn trang', desc: 'Popup hiện khi khách cuộn xuống X% trang' },
+                    { value: 'exit', icon: '🚪', label: 'Khi rời trang (exit intent)', desc: 'Popup hiện khi chuột di chuyển ra ngoài trang' },
+                    { value: 'immediate', icon: '⚡', label: 'Hiện ngay lập tức', desc: 'Popup hiện ngay khi khách vào trang' },
+                  ]"
+                  :key="opt.value"
+                  class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors"
+                  :class="formData.trigger_type === opt.value ? 'border-aura-black bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300'"
+                >
+                  <input type="radio" v-model="formData.trigger_type" :value="opt.value" class="mt-0.5" />
+                  <div>
+                    <span class="text-body-sm font-medium">{{ opt.icon }} {{ opt.label }}</span>
+                    <p class="text-xs text-neutral-400 mt-0.5">{{ opt.desc }}</p>
+                  </div>
+                </label>
+              </div>
+              <!-- Conditional value input -->
+              <div v-if="formData.trigger_type === 'delay'" class="flex items-center gap-2 pl-1">
+                <label class="text-body-sm text-neutral-600">Hiện sau</label>
+                <input v-model.number="formData.trigger_value" type="number" min="1" max="60" class="input-field w-20 text-center" />
+                <span class="text-body-sm text-neutral-600">giây</span>
+              </div>
+              <div v-if="formData.trigger_type === 'scroll'" class="flex items-center gap-2 pl-1">
+                <label class="text-body-sm text-neutral-600">Hiện khi cuộn đến</label>
+                <input v-model.number="formData.trigger_value" type="number" min="1" max="100" class="input-field w-20 text-center" />
+                <span class="text-body-sm text-neutral-600">% trang</span>
+              </div>
+            </div>
+
+            <!-- Section: Position -->
+            <div class="space-y-4 pt-2">
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Vị trí hiển thị</p>
+              <div class="grid grid-cols-2 gap-2">
+                <label
+                  v-for="pos in [
+                    { value: 'center', icon: '📍', label: 'Giữa màn hình' },
+                    { value: 'bottom-right', icon: '↘️', label: 'Góc dưới phải' },
+                    { value: 'bottom-left', icon: '↙️', label: 'Góc dưới trái' },
+                    { value: 'top', icon: '⬆️', label: 'Trên cùng' },
+                  ]"
+                  :key="pos.value"
+                  class="flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors"
+                  :class="formData.position === pos.value ? 'border-aura-black bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300'"
+                >
+                  <input type="radio" v-model="formData.position" :value="pos.value" />
+                  <span class="text-body-sm">{{ pos.icon }} {{ pos.label }}</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Section: Schedule -->
+            <div class="space-y-4 pt-2">
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Lịch hiển thị <span class="font-normal">(tùy chọn)</span></p>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="input-label">Ngày bắt đầu</label>
+                  <input v-model="formData.starts_at" type="date" class="input-field" />
+                </div>
+                <div>
+                  <label class="input-label">Ngày kết thúc</label>
+                  <input v-model="formData.ends_at" type="date" class="input-field" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Active toggle -->
+            <div class="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                @click="formData.is_active = !formData.is_active"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
+                :class="formData.is_active ? 'bg-green-500' : 'bg-neutral-300'"
+              >
+                <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform" :class="formData.is_active ? 'translate-x-6' : 'translate-x-1'" />
+              </button>
+              <span class="text-body-sm">{{ formData.is_active ? 'Bật - Popup sẽ hiện cho khách hàng' : 'Tắt - Popup sẽ không hiện' }}</span>
+            </div>
+
+            <p v-if="formError" class="text-red-600 text-body-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ formError }}</p>
+
+            <div class="flex justify-end gap-3 pt-2">
+              <button type="button" @click="showModal = false" class="px-5 py-2.5 text-body-sm text-neutral-600 hover:text-aura-black rounded-lg hover:bg-neutral-100 transition-colors">
+                {{ t('common.cancel') }}
+              </button>
+              <button type="submit" :disabled="isSubmitting" class="btn-primary">
+                {{ isSubmitting ? t('common.saving') : t('common.save') }}
+              </button>
             </div>
           </form>
         </div>
