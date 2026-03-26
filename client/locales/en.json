@@ -795,7 +795,26 @@
             "create": "Create Banner",
             "edit": "Edit Banner",
             "desktop": "Desktop",
-            "mobile": "Mobile"
+            "mobile": "Mobile",
+            "groups": {
+                "home": "Home",
+                "sale": "Sale Page",
+                "new_arrivals": "New Arrivals",
+                "featured": "Featured",
+                "about": "About",
+                "general": "General"
+            },
+            "sections": {
+                "hero": "Hero Section",
+                "collection_women": "Women Collection",
+                "collection_men": "Men Collection",
+                "homepage_categories": "Categories",
+                "about": "Illustration Image",
+                "page_sale": "Sale Header",
+                "page_new_arrivals": "New Arrivals Header",
+                "page_featured": "Featured Header",
+                "general": "Fallback Banner"
+            }
         },
         "blogs": {
             "title": "Blogs",

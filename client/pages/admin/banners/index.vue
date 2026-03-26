@@ -18,30 +18,30 @@ const getToken = () => process.client ? localStorage.getItem('token') : null
 const { confirm: showConfirm } = useDialog()
 
 // Section definitions
-const SECTIONS = [
-  { key: 'hero', label: 'Hero Section', desc: 'Ảnh lớn bên phải hero section trang chủ' },
-  { key: 'collection_women', label: 'BST Nữ', desc: 'Ảnh nền block "Bộ sưu tập Nữ" trên trang chủ' },
-  { key: 'collection_men', label: 'BST Nam', desc: 'Ảnh nền block "Bộ sưu tập Nam" trên trang chủ' },
-  { key: 'homepage_categories', label: 'Danh mục', desc: 'Mỗi banner = 1 card danh mục. Tiêu đề = tên danh mục, Đường dẫn = link đến danh mục' },
-  { key: 'about', label: 'Ảnh minh họa', desc: 'Ảnh minh họa câu chuyện trên trang Giới thiệu' },
-  { key: 'page_sale', label: 'Header Sale', desc: 'Ảnh nền header trang Sale' },
-  { key: 'page_new_arrivals', label: 'Header Hàng mới', desc: 'Ảnh nền header trang New Arrivals' },
-  { key: 'page_featured', label: 'Header Nổi bật', desc: 'Ảnh nền header trang Featured' },
-  { key: 'general', label: 'Banner dự phòng', desc: 'Banner chung / dự phòng' },
-]
+const SECTIONS = computed(() => [
+  { key: 'hero', label: t('admin.banners.sections.hero'), desc: 'Ảnh lớn bên phải hero section trang chủ' },
+  { key: 'collection_women', label: t('admin.banners.sections.collection_women'), desc: 'Ảnh nền block "Bộ sưu tập Nữ" trên trang chủ' },
+  { key: 'collection_men', label: t('admin.banners.sections.collection_men'), desc: 'Ảnh nền block "Bộ sưu tập Nam" trên trang chủ' },
+  { key: 'homepage_categories', label: t('admin.banners.sections.homepage_categories'), desc: 'Mỗi banner = 1 card danh mục. Tiêu đề = tên danh mục, Đường dẫn = link đến danh mục' },
+  { key: 'about', label: t('admin.banners.sections.about'), desc: 'Ảnh minh họa câu chuyện trên trang Giới thiệu' },
+  { key: 'page_sale', label: t('admin.banners.sections.page_sale'), desc: 'Ảnh nền header trang Sale' },
+  { key: 'page_new_arrivals', label: t('admin.banners.sections.page_new_arrivals'), desc: 'Ảnh nền header trang New Arrivals' },
+  { key: 'page_featured', label: t('admin.banners.sections.page_featured'), desc: 'Ảnh nền header trang Featured' },
+  { key: 'general', label: t('admin.banners.sections.general'), desc: 'Banner chung / dự phòng' },
+])
 
-const PAGE_GROUPS = [
-  { key: 'home', label: 'Trang chủ', sections: ['hero', 'collection_women', 'collection_men', 'homepage_categories'] },
-  { key: 'sale', label: 'Trang Sale', sections: ['page_sale'] },
-  { key: 'new_arrivals', label: 'Trang Hàng mới', sections: ['page_new_arrivals'] },
-  { key: 'featured', label: 'Trang Nổi bật', sections: ['page_featured'] },
-  { key: 'about', label: 'Trang About', sections: ['about'] },
-  { key: 'general', label: 'Chung', sections: ['general'] },
-]
+const PAGE_GROUPS = computed(() => [
+  { key: 'home', label: t('admin.banners.groups.home'), sections: ['hero', 'collection_women', 'collection_men', 'homepage_categories'] },
+  { key: 'sale', label: t('admin.banners.groups.sale'), sections: ['page_sale'] },
+  { key: 'new_arrivals', label: t('admin.banners.groups.new_arrivals'), sections: ['page_new_arrivals'] },
+  { key: 'featured', label: t('admin.banners.groups.featured'), sections: ['page_featured'] },
+  { key: 'about', label: t('admin.banners.groups.about'), sections: ['about'] },
+  { key: 'general', label: t('admin.banners.groups.general'), sections: ['general'] },
+])
 
 const currentGroupKey = computed(() => (route.query.group as string) || 'home')
-const currentGroup = computed(() => PAGE_GROUPS.find(g => g.key === currentGroupKey.value) || PAGE_GROUPS[0])
-const currentSections = computed(() => SECTIONS.filter(s => currentGroup.value.sections.includes(s.key)))
+const currentGroup = computed(() => PAGE_GROUPS.value.find((g: any) => g.key === currentGroupKey.value) || PAGE_GROUPS.value[0])
+const currentSections = computed(() => SECTIONS.value.filter((s: any) => currentGroup.value.sections.includes(s.key)))
 
 // Animation types
 const ANIM_OPTIONS = [
@@ -121,15 +121,15 @@ const formData = ref({
 // Computed: group banners by section
 const groupedBanners = computed(() => {
   const groups: Record<string, any[]> = {}
-  for (const s of SECTIONS) {
+  for (const s of SECTIONS.value) { // Changed SECTIONS to SECTIONS.value
     groups[s.key] = banners.value.filter((b: any) => (b.section || 'general') === s.key)
   }
   return groups
 })
 
 // Sections that have banners (for display)
-const activeSections = computed(() => SECTIONS.filter(s => groupedBanners.value[s.key]?.length > 0))
-const emptySections = computed(() => SECTIONS.filter(s => !groupedBanners.value[s.key]?.length))
+const activeSections = computed(() => SECTIONS.value.filter(s => groupedBanners.value[s.key]?.length > 0)) // Changed SECTIONS to SECTIONS.value
+const emptySections = computed(() => SECTIONS.value.filter(s => !groupedBanners.value[s.key]?.length)) // Changed SECTIONS to SECTIONS.value
 
 // Fetch banners
 const fetchBanners = async () => {
@@ -322,7 +322,7 @@ const getStatusClass = (banner: any) => {
   return 'bg-green-50 text-green-700'
 }
 
-const getSectionLabel = (key: string) => SECTIONS.find(s => s.key === key)?.label || key
+const getSectionLabel = (key: string) => SECTIONS.value.find(s => s.key === key)?.label || key // Changed SECTIONS to SECTIONS.value
 
 onMounted(async () => {
   await Promise.all([fetchBanners(), fetchAnimationConfig()])

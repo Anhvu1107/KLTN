@@ -816,7 +816,26 @@
             "createBanner": "Tạo banner",
             "editBanner": "Sửa banner",
             "desktop": "Desktop",
-            "mobile": "Di động"
+            "mobile": "Di động",
+            "groups": {
+                "home": "Trang chủ",
+                "sale": "Trang Sale",
+                "new_arrivals": "Hàng mới",
+                "featured": "Nổi bật",
+                "about": "Giới thiệu",
+                "general": "Chung"
+            },
+            "sections": {
+                "hero": "Hero Section",
+                "collection_women": "BST Nữ",
+                "collection_men": "BST Nam",
+                "homepage_categories": "Danh mục",
+                "about": "Ảnh minh họa",
+                "page_sale": "Header Sale",
+                "page_new_arrivals": "Header Hàng mới",
+                "page_featured": "Header Nổi bật",
+                "general": "Banner dự phòng"
+            }
         },
         "blogs": {
             "title": "Bài viết",

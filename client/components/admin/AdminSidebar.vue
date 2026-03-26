@@ -8,14 +8,14 @@ const { t } = useI18n()
 const route = useRoute()
 
 // Banner groups for sub-menu
-const bannerGroups = [
-  { key: 'home', label: 'Trang chủ' },
-  { key: 'sale', label: 'Trang Sale' },
-  { key: 'new_arrivals', label: 'Hàng mới' },
-  { key: 'featured', label: 'Nổi bật' },
-  { key: 'about', label: 'About' },
-  { key: 'general', label: 'Chung' },
-]
+const bannerGroups = computed(() => [
+  { key: 'home', label: t('admin.banners.groups.home') },
+  { key: 'sale', label: t('admin.banners.groups.sale') },
+  { key: 'new_arrivals', label: t('admin.banners.groups.new_arrivals') },
+  { key: 'featured', label: t('admin.banners.groups.featured') },
+  { key: 'about', label: t('admin.banners.groups.about') },
+  { key: 'general', label: t('admin.banners.groups.general') },
+])
 
 const bannerMenuOpen = ref(false)
 
