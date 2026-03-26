@@ -214,13 +214,16 @@ router.patch('/notifications/:id/read', notificationController.markAdminAsRead);
 router.post('/upload/product-images', uploadProductImages.array('images', 5), adminController.uploadProductImages);
 
 // Avatar upload
-const { uploadAvatar, uploadBanner } = require('../../services/upload.service');
+const { uploadAvatar, uploadBanner, validateAndUpload } = require('../../services/upload.service');
 router.post('/upload/avatar', uploadAvatar.single('avatar'), catchAsync(async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-    res.json({ success: true, data: { url: avatarUrl } });
+    const { valid, url } = await validateAndUpload(req.file, 'aura/avatars');
+    if (!valid) {
+        return res.status(400).json({ success: false, message: 'Invalid image file' });
+    }
+    res.json({ success: true, data: { url } });
 }));
 
 // Banner image upload
@@ -228,8 +231,11 @@ router.post('/upload/banner', uploadBanner.single('banner'), catchAsync(async (r
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    const bannerUrl = `/uploads/banners/${req.file.filename}`;
-    res.json({ success: true, data: { url: bannerUrl } });
+    const { valid, url } = await validateAndUpload(req.file, 'aura/banners');
+    if (!valid) {
+        return res.status(400).json({ success: false, message: 'Invalid image file' });
+    }
+    res.json({ success: true, data: { url } });
 }));
 
 module.exports = router;

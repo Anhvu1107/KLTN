@@ -69,6 +69,13 @@ const heroBanner = computed(() => {
   return banners.find((b: any) => b.position === 0) || null
 })
 
+// Resolve banner image URL (supports both Cloudinary and legacy local paths)
+const heroBannerImage = computed(() => {
+  const url = heroBanner.value?.image_url
+  if (!url) return ''
+  return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
+})
+
 const products = computed(() => featuredProducts.value?.data?.products || [])
 const bestSellers = computed(() => bestSellersData.value?.data?.products || [])
 const saleProducts = computed(() => saleProductsData.value?.data?.products || [])
@@ -133,9 +140,9 @@ useSeoMeta({
               <div class="aspect-[3/4] bg-neutral-200 rounded-sm overflow-hidden shadow-elevated">
                 <!-- Display banner image if available -->
                 <img 
-                  v-if="heroBanner?.image_url"
-                  :src="heroBanner.image_url"
-                  :alt="heroBanner.title || 'Featured Collection'"
+                  v-if="heroBannerImage"
+                  :src="heroBannerImage"
+                  :alt="heroBanner?.title || 'Featured Collection'"
                   class="w-full h-full object-cover"
                 />
                 <!-- Fallback placeholder -->
