@@ -31,7 +31,7 @@ const formData = ref({
   title: '',
   content: '',
   image_url: '',
-  button_text: 'Xem ngay',
+  button_text: '',
   button_link: '',
   position: 'center',
   trigger_type: 'delay',
