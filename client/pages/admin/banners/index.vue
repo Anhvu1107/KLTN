@@ -58,7 +58,7 @@ const setAnimType = async (sectionKey: string, animType: string) => {
     await $fetch(`${config.public.apiUrl}/admin/settings`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}` },
-      body: { key: 'banner_animation_config', value: JSON.stringify(animationConfig.value) },
+      body: { settings: [{ key: 'banner_animation_config', value: JSON.stringify(animationConfig.value) }] },
     })
   } catch (error) {
     console.error('Failed to save animation config:', error)
@@ -72,8 +72,9 @@ const fetchAnimationConfig = async () => {
       `${config.public.apiUrl}/admin/settings`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
-    const allSettings = response.data || {}
+    const allSettings = response.data?.settings || response.data || {}
     for (const group of Object.values(allSettings) as any[]) {
+      if (!Array.isArray(group)) continue
       for (const setting of group) {
         if (setting.key === 'banner_animation_config' && setting.value) {
           try { animationConfig.value = JSON.parse(setting.value) } catch {}
