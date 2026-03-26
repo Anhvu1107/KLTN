@@ -19,15 +19,15 @@ const { confirm: showConfirm } = useDialog()
 
 // Section definitions
 const SECTIONS = computed(() => [
-  { key: 'hero', label: t('admin.banners.sections.hero'), desc: 'Ảnh lớn bên phải hero section trang chủ' },
-  { key: 'collection_women', label: t('admin.banners.sections.collection_women'), desc: 'Ảnh nền block "Bộ sưu tập Nữ" trên trang chủ' },
-  { key: 'collection_men', label: t('admin.banners.sections.collection_men'), desc: 'Ảnh nền block "Bộ sưu tập Nam" trên trang chủ' },
-  { key: 'homepage_categories', label: t('admin.banners.sections.homepage_categories'), desc: 'Mỗi banner = 1 card danh mục. Tiêu đề = tên danh mục, Đường dẫn = link đến danh mục' },
-  { key: 'about', label: t('admin.banners.sections.about'), desc: 'Ảnh minh họa câu chuyện trên trang Giới thiệu' },
-  { key: 'page_sale', label: t('admin.banners.sections.page_sale'), desc: 'Ảnh nền header trang Sale' },
-  { key: 'page_new_arrivals', label: t('admin.banners.sections.page_new_arrivals'), desc: 'Ảnh nền header trang New Arrivals' },
-  { key: 'page_featured', label: t('admin.banners.sections.page_featured'), desc: 'Ảnh nền header trang Featured' },
-  { key: 'general', label: t('admin.banners.sections.general'), desc: 'Banner chung / dự phòng' },
+  { key: 'hero', label: t('admin.banners.sections.hero'), desc: t('admin.banners.sectionDesc.hero') },
+  { key: 'collection_women', label: t('admin.banners.sections.collection_women'), desc: t('admin.banners.sectionDesc.collection_women') },
+  { key: 'collection_men', label: t('admin.banners.sections.collection_men'), desc: t('admin.banners.sectionDesc.collection_men') },
+  { key: 'homepage_categories', label: t('admin.banners.sections.homepage_categories'), desc: t('admin.banners.sectionDesc.homepage_categories') },
+  { key: 'about', label: t('admin.banners.sections.about'), desc: t('admin.banners.sectionDesc.about') },
+  { key: 'page_sale', label: t('admin.banners.sections.page_sale'), desc: t('admin.banners.sectionDesc.page_sale') },
+  { key: 'page_new_arrivals', label: t('admin.banners.sections.page_new_arrivals'), desc: t('admin.banners.sectionDesc.page_new_arrivals') },
+  { key: 'page_featured', label: t('admin.banners.sections.page_featured'), desc: t('admin.banners.sectionDesc.page_featured') },
+  { key: 'general', label: t('admin.banners.sections.general'), desc: t('admin.banners.sectionDesc.general') },
 ])
 
 const PAGE_GROUPS = computed(() => [
@@ -336,7 +336,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="font-serif text-heading-2 text-aura-black">{{ currentGroup.label }}</h1>
-        <p class="text-body-sm text-neutral-500 mt-1">Quản lý các banner hiển thị trên {{ currentGroup.label.toLowerCase() }}</p>
+        <p class="text-sm text-gray-500 mt-1">{{ t('admin.banners.groupDesc', { group: currentGroup.label.toLowerCase() }) }}</p>
       </div>
       <button @click="openCreateModal()" class="btn-primary flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>

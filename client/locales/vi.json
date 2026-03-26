@@ -835,7 +835,19 @@
                 "page_new_arrivals": "Header Hàng mới",
                 "page_featured": "Header Nổi bật",
                 "general": "Banner dự phòng"
-            }
+            },
+            "sectionDesc": {
+                "hero": "Ảnh lớn bên phải hero section trang chủ",
+                "collection_women": "Ảnh nền block \"Bộ sưu tập Nữ\" trên trang chủ",
+                "collection_men": "Ảnh nền block \"Bộ sưu tập Nam\" trên trang chủ",
+                "homepage_categories": "Mỗi banner = 1 card danh mục. Tiêu đề = tên danh mục, Đường dẫn = link đến danh mục",
+                "about": "Ảnh minh họa câu chuyện trên trang Giới thiệu",
+                "page_sale": "Ảnh nền header trang Sale",
+                "page_new_arrivals": "Ảnh nền header trang New Arrivals",
+                "page_featured": "Ảnh nền header trang Featured",
+                "general": "Banner chung / dự phòng"
+            },
+            "groupDesc": "Quản lý các banner hiển thị trên {group}"
         },
         "blogs": {
             "title": "Bài viết",

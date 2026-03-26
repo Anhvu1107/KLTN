@@ -40,7 +40,7 @@ const menuItems = computed(() => [
   { path: '/admin/settings', label: t('admin.settings.title'), icon: 'cog' },
   { path: '/admin/settings/payments', label: t('admin.paymentSettings.title'), icon: 'credit-card' },
   { path: '/admin/ai-config', label: t('admin.aiConfig.title'), icon: 'robot' },
-  { path: '/admin/chats', label: 'Quản lý Chat AI', icon: 'chat' },
+  { path: '/admin/chats', label: t('admin.chatManagement.title'), icon: 'chat' },
 ])
 
 const isActive = (path: string) => route.path === path

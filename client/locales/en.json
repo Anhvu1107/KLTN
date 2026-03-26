@@ -814,7 +814,19 @@
                 "page_new_arrivals": "New Arrivals Header",
                 "page_featured": "Featured Header",
                 "general": "Fallback Banner"
-            }
+            },
+            "sectionDesc": {
+                "hero": "Large image on the right of the homepage hero section",
+                "collection_women": "Background image for 'Women's Collection' block on homepage",
+                "collection_men": "Background image for 'Men's Collection' block on homepage",
+                "homepage_categories": "Each banner = 1 category card. Title = Category name, Link = Category link",
+                "about": "Illustration image for the story on About page",
+                "page_sale": "Background image for Sale page header",
+                "page_new_arrivals": "Background image for New Arrivals page header",
+                "page_featured": "Background image for Featured page header",
+                "general": "General/fallback banner"
+            },
+            "groupDesc": "Manage banners displayed on {group}"
         },
         "blogs": {
             "title": "Blogs",
