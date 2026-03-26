@@ -44,11 +44,11 @@ const currentGroup = computed(() => PAGE_GROUPS.value.find((g: any) => g.key ===
 const currentSections = computed(() => SECTIONS.value.filter((s: any) => currentGroup.value.sections.includes(s.key)))
 
 // Animation types
-const ANIM_OPTIONS = [
-  { key: 'none', label: 'Không', icon: '⏸️' },
-  { key: 'slide', label: 'Lướt', icon: '◀▶' },
-  { key: 'fade', label: 'Nháy', icon: '✨' },
-]
+const ANIM_OPTIONS = computed(() => [
+  { key: 'none', label: t('admin.banners.animNone'), icon: '⏸️' },
+  { key: 'slide', label: t('admin.banners.animSlide'), icon: '◀▶' },
+  { key: 'fade', label: t('admin.banners.animFade'), icon: '✨' },
+])
 
 // State
 const banners = ref<any[]>([])
@@ -197,11 +197,11 @@ const handleBannerUpload = async (file: File) => {
   if (!file) return
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
   if (!allowedTypes.includes(file.type)) {
-    formError.value = 'Chỉ chấp nhận file ảnh JPEG, PNG hoặc WebP'
+    formError.value = t('admin.banners.invalidImageType')
     return
   }
   if (file.size > 10 * 1024 * 1024) {
-    formError.value = 'Kích thước ảnh tối đa 10MB'
+    formError.value = t('admin.banners.maxImageSize')
     return
   }
   const reader = new FileReader()
@@ -219,7 +219,7 @@ const handleBannerUpload = async (file: File) => {
     )
     formData.value.image_url = response.data.url
   } catch (error: any) {
-    formError.value = error.data?.message || 'Upload ảnh thất bại'
+    formError.value = error.data?.message || t('admin.banners.uploadFailed')
     imagePreview.value = ''
   } finally {
     isUploading.value = false
@@ -245,8 +245,8 @@ const removeImage = () => {
 // Submit form
 const submitForm = async () => {
   formError.value = ''
-  if (!formData.value.title.trim()) { formError.value = 'Vui lòng nhập tiêu đề'; return }
-  if (!formData.value.image_url) { formError.value = 'Vui lòng upload ảnh banner'; return }
+  if (!formData.value.title.trim()) { formError.value = t('admin.banners.validationTitle'); return }
+  if (!formData.value.image_url) { formError.value = t('admin.banners.validationImage'); return }
   isSubmitting.value = true
   try {
     const token = getToken()
@@ -266,7 +266,7 @@ const submitForm = async () => {
     showModal.value = false
     await fetchBanners()
   } catch (error: any) {
-    formError.value = error.data?.message || 'Lưu thất bại'
+    formError.value = error.data?.message || t('admin.banners.saveFailed')
   } finally {
     isSubmitting.value = false
   }
@@ -309,10 +309,10 @@ const getBannerImageSrc = (banner: any) => {
 }
 
 const getStatusText = (banner: any) => {
-  if (!banner.is_active) return 'Tắt'
-  if (banner.ends_at && new Date(banner.ends_at) < new Date()) return 'Hết hạn'
-  if (banner.starts_at && new Date(banner.starts_at) > new Date()) return 'Chờ hiển thị'
-  return 'Đang hiển thị'
+  if (!banner.is_active) return t('admin.banners.toggleOff')
+  if (banner.ends_at && new Date(banner.ends_at) < new Date()) return t('admin.banners.statusExpired')
+  if (banner.starts_at && new Date(banner.starts_at) > new Date()) return t('admin.banners.statusScheduled')
+  return t('admin.banners.statusActive')
 }
 
 const getStatusClass = (banner: any) => {
@@ -361,7 +361,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
           <div class="flex items-center gap-2">
             <!-- Animation selector (only when section has 2+ banners) -->
             <div v-if="groupedBanners[section.key]?.length >= 2" class="flex items-center gap-1 mr-2">
-              <span class="text-caption text-neutral-400 mr-1">Hiệu ứng:</span>
+              <span class="text-caption text-neutral-400 mr-1">{{ t('admin.banners.animEffect') }}</span>
               <button
                 v-for="anim in ANIM_OPTIONS"
                 :key="anim.key"
@@ -379,7 +379,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
               class="text-caption text-neutral-500 border border-dashed border-neutral-300 rounded-lg px-3 py-1.5 hover:border-neutral-400 hover:text-aura-black transition-colors flex items-center gap-1"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-              Thêm
+              {{ t('admin.banners.addBtn') }}
             </button>
           </div>
         </div>
@@ -430,15 +430,15 @@ useSeoMeta({ title: 'Banner Management | Admin' })
                       :class="banner.is_active ? 'translate-x-[18px]' : 'translate-x-[3px]'"
                     />
                   </button>
-                  <span class="text-xs text-neutral-400">{{ banner.is_active ? 'Bật' : 'Tắt' }}</span>
+                  <span class="text-xs text-neutral-400">{{ banner.is_active ? t('admin.banners.toggleOn') : t('admin.banners.toggleOff') }}</span>
                   <div class="flex-1"></div>
                   <button @click="openEditModal(banner)" class="px-2.5 py-1 text-xs text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors flex items-center gap-1">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    Sửa
+                    {{ t('admin.banners.editBtn') }}
                   </button>
                   <button @click="deleteBanner(banner.id)" class="px-2.5 py-1 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    Xóa
+                    {{ t('admin.banners.deleteBtn') }}
                   </button>
                 </div>
               </div>
@@ -448,7 +448,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
 
         <!-- Empty state for this section -->
         <div v-else class="border-2 border-dashed border-neutral-200 rounded-xl py-6 text-center text-neutral-400">
-          <p class="text-caption">Chưa có banner cho vị trí này</p>
+          <p class="text-caption">{{ t('admin.banners.noBannersInSection') }}</p>
         </div>
       </div>
     </div>
@@ -458,7 +458,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showModal = false">
         <div class="bg-white rounded-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
           <div class="p-6 border-b border-neutral-200 flex items-center justify-between">
-            <h2 class="font-serif text-heading-4">{{ editingBanner ? 'Sửa banner' : 'Thêm banner' }}</h2>
+            <h2 class="font-serif text-heading-4">{{ editingBanner ? t('admin.banners.editBanner') : t('admin.banners.addBanner') }}</h2>
             <button @click="showModal = false" class="p-1 hover:bg-neutral-100 rounded-lg transition-colors">
               <svg class="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -467,7 +467,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
           <form @submit.prevent="submitForm" class="p-6 space-y-5">
             <!-- Section selector -->
             <div>
-              <label class="input-label">Vị trí hiển thị *</label>
+              <label class="input-label">{{ t('admin.banners.sectionLabel') }} *</label>
               <select v-model="formData.section" class="input-field">
                 <option v-for="s in SECTIONS" :key="s.key" :value="s.key">{{ s.label }}</option>
               </select>
@@ -477,18 +477,18 @@ useSeoMeta({ title: 'Banner Management | Admin' })
             <!-- Title -->
             <div>
               <label class="input-label">{{ t('admin.form.title') }} *</label>
-              <input v-model="formData.title" type="text" class="input-field" required placeholder="Ví dụ: Summer Collection 2024" />
+              <input v-model="formData.title" type="text" class="input-field" required :placeholder="t('admin.banners.titlePlaceholder')" />
             </div>
 
             <!-- Subtitle -->
             <div>
               <label class="input-label">{{ t('admin.form.subtitle') }}</label>
-              <input v-model="formData.subtitle" type="text" class="input-field" placeholder="Mô tả ngắn" />
+              <input v-model="formData.subtitle" type="text" class="input-field" :placeholder="t('admin.banners.subtitlePlaceholder')" />
             </div>
 
             <!-- Image Upload -->
             <div>
-              <label class="input-label">Ảnh banner *</label>
+              <label class="input-label">{{ t('admin.banners.bannerImage') }} *</label>
               <input ref="bannerFileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onFileChange" />
               <div
                 v-if="!imagePreview"
@@ -502,26 +502,26 @@ useSeoMeta({ title: 'Banner Management | Admin' })
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mx-auto text-neutral-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p class="text-body-sm text-neutral-600">Kéo thả ảnh vào đây hoặc <span class="text-aura-black font-medium underline">chọn ảnh</span></p>
-                <p class="text-caption text-neutral-400 mt-1">JPEG, PNG, WebP — Tối đa 10MB</p>
+                <p class="text-body-sm text-neutral-600">{{ t('admin.banners.dragDropHint') }} <span class="text-aura-black font-medium underline">{{ t('admin.banners.chooseImage') }}</span></p>
+                <p class="text-caption text-neutral-400 mt-1">{{ t('admin.banners.imageFormats') }}</p>
               </div>
               <div v-else class="relative rounded-lg overflow-hidden border border-neutral-200">
                 <img :src="imagePreview" alt="Banner preview" class="w-full h-48 object-cover" />
                 <div v-if="isUploading" class="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <div class="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
                 </div>
-                <button v-else type="button" @click="removeImage" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" title="Xóa ảnh">✕</button>
+                <button v-else type="button" @click="removeImage" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" :title="t('admin.banners.removeImage')">✕</button>
               </div>
             </div>
 
             <!-- Link & Button Text -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Đường dẫn khi click</label>
+                <label class="input-label">{{ t('admin.banners.linkLabel') }}</label>
                 <input v-model="formData.link_url" type="text" class="input-field" placeholder="/shop" />
               </div>
               <div>
-                <label class="input-label">Văn bản nút</label>
+                <label class="input-label">{{ t('admin.banners.buttonTextLabel') }}</label>
                 <input v-model="formData.button_text" type="text" class="input-field" placeholder="Shop Now" />
               </div>
             </div>
@@ -529,11 +529,11 @@ useSeoMeta({ title: 'Banner Management | Admin' })
             <!-- Schedule -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="input-label">Ngày bắt đầu <span class="text-neutral-400 font-normal">(tùy chọn)</span></label>
+                <label class="input-label">{{ t('admin.banners.startDateLabel') }} <span class="text-neutral-400 font-normal">({{ t('admin.banners.optional') }})</span></label>
                 <input v-model="formData.starts_at" type="date" class="input-field" />
               </div>
               <div>
-                <label class="input-label">Ngày kết thúc <span class="text-neutral-400 font-normal">(tùy chọn)</span></label>
+                <label class="input-label">{{ t('admin.banners.endDateLabel') }} <span class="text-neutral-400 font-normal">({{ t('admin.banners.optional') }})</span></label>
                 <input v-model="formData.ends_at" type="date" class="input-field" />
               </div>
             </div>
@@ -548,7 +548,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
               >
                 <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform" :class="formData.is_active ? 'translate-x-6' : 'translate-x-1'" />
               </button>
-              <span class="text-body-sm">{{ formData.is_active ? 'Hiển thị ngay sau khi lưu' : 'Ẩn (không hiển thị)' }}</span>
+              <span class="text-body-sm">{{ formData.is_active ? t('admin.banners.activeAfterSave') : t('admin.banners.hiddenNotVisible') }}</span>
             </div>
 
             <p v-if="formError" class="text-red-600 text-body-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ formError }}</p>
