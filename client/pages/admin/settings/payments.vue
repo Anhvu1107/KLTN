@@ -24,8 +24,8 @@ let savedSnapshot = ''
 
 // Payment methods toggle
 const methods = ref({
-  cod: { enabled: true, label: computed(() => t('admin.paymentSettings.cod', 'Thanh toán khi nhận hàng (COD)')) },
-  bank_transfer: { enabled: true, label: computed(() => t('admin.paymentSettings.bank_transfer', 'Chuyển khoản ngân hàng')) },
+  cod: { enabled: true, label: computed(() => t('admin.paymentSettings.cod', 'Thanh to\u00e1n khi nh\u1eadn h\u00e0ng (COD)')) },
+  bank_transfer: { enabled: true, label: computed(() => t('admin.paymentSettings.bank_transfer', 'Chuy\u1ec3n kho\u1ea3n ng\u00e2n h\u00e0ng')) },
   momo: { enabled: true, label: 'MoMo' },
   vnpay: { enabled: true, label: 'VNPay' },
   paypal: { enabled: true, label: 'PayPal' },

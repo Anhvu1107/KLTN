@@ -223,7 +223,7 @@ const toggleJoinRoom = async () => {
 // ====== CLOSE / REOPEN SESSION ======
 const closeSession = async () => {
   if (!selectedSession.value) return
-  const ok = await showConfirm({ title: t('admin.chatManagement.confirmClose', 'Đóng đoạn chat'), message: t('admin.chatManagement.confirmCloseDesc', 'Phiên chat sẽ bị đóng. Bạn có thể mở lại sau nếu cần.'), type: 'warning', confirmText: t('admin.chatManagement.closeSession', 'Đóng'), icon: 'close' })
+  const ok = await showConfirm({ title: t('admin.chatManagement.confirmClose', '\u0110\u00f3ng \u0111o\u1ea1n chat'), message: t('admin.chatManagement.confirmCloseDesc', 'Phi\u00ean chat s\u1ebd b\u1ecb \u0111\u00f3ng. B\u1ea1n c\u00f3 th\u1ec3 m\u1edf l\u1ea1i sau n\u1ebfu c\u1ea7n.'), type: 'warning', confirmText: t('admin.chatManagement.closeSession', '\u0110\u00f3ng'), icon: 'close' })
   if (!ok) return
   try {
     await $fetch(
@@ -267,7 +267,7 @@ const isDeletingSession = ref(false)
 
 const deleteSession = async () => {
   if (!selectedSession.value) return
-  const ok = await showConfirm({ title: t('admin.chatManagement.confirmDeleteTitle', 'Xác nhận xóa đoạn chat'), message: t('admin.chatManagement.confirmDeleteDesc', 'Bạn có chắc chắn muốn xóa vĩnh viễn toàn bộ lịch sử của phiên chat này không? Dữ liệu đã xóa sẽ không thể khôi phục lại được.'), type: 'danger', confirmText: t('admin.chatManagement.delete', 'Xóa vĩnh viễn'), icon: 'trash' })
+  const ok = await showConfirm({ title: t('admin.chatManagement.confirmDeleteTitle', 'X\u00e1c nh\u1eadn x\u00f3a \u0111o\u1ea1n chat'), message: t('admin.chatManagement.confirmDeleteDesc', 'B\u1ea1n c\u00f3 ch\u1eafc ch\u1eafn mu\u1ed1n x\u00f3a v\u0129nh vi\u1ec5n to\u00e0n b\u1ed9 l\u1ecbch s\u1eed c\u1ee7a phi\u00ean chat n\u00e0y kh\u00f4ng? D\u1eef li\u1ec7u \u0111\u00e3 x\u00f3a s\u1ebd kh\u00f4ng th\u1ec3 kh\u00f4i ph\u1ee5c l\u1ea1i \u0111\u01b0\u1ee3c.'), type: 'danger', confirmText: t('admin.chatManagement.delete', 'X\u00f3a v\u0129nh vi\u1ec5n'), icon: 'trash' })
   if (!ok) return
   
   isDeletingSession.value = true
@@ -285,7 +285,7 @@ const deleteSession = async () => {
     fetchSessions(searchQuery.value)
   } catch (e: any) {
     console.error('Failed to delete session:', e)
-    showAlert({ title: t('notifications.error', 'Lỗi'), message: t('admin.chatManagement.deleteFailed', 'Xóa thất bại'), type: 'danger' })
+    showAlert({ title: t('notifications.error', 'L\u1ed7i'), message: t('admin.chatManagement.deleteFailed', 'X\u00f3a th\u1ea5t b\u1ea1i'), type: 'danger' })
   } finally {
     isDeletingSession.value = false
   }
@@ -760,7 +760,7 @@ useSeoMeta({
               v-else
               @click="reopenSession"
               class="p-2 hover:bg-green-50 rounded-lg transition-colors text-neutral-400 hover:text-green-500"
-              :title="$t('admin.chatManagement.reopenSession', 'Mở lại đoạn chat')"
+              :title="$t('admin.chatManagement.reopenSession', 'M\u1edf l\u1ea1i \u0111o\u1ea1n chat')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -772,7 +772,7 @@ useSeoMeta({
               @click="deleteSession"
               :disabled="isDeletingSession"
               class="p-2 hover:bg-red-50 rounded-lg transition-colors text-neutral-400 hover:text-red-500 disabled:opacity-50"
-              :title="$t('admin.chatManagement.deleteSession', 'Xóa vĩnh viễn')"
+              :title="$t('admin.chatManagement.deleteSession', 'X\u00f3a v\u0129nh vi\u1ec5n')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>

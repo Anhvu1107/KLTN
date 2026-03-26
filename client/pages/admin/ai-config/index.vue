@@ -23,7 +23,7 @@ const avatarInput = ref<HTMLInputElement | null>(null)
 // ====== PROMPT TAB STATE ======
 const promptData = ref({
   aiName: 'AURA Stylist',
-  roleDesc: t('admin.aiConfig.roleDescPlaceholder', 'Trợ lý thời trang của bạn'),
+  roleDesc: t('admin.aiConfig.roleDescPlaceholder', 'Tr\u1ee3 l\u00fd th\u1eddi trang c\u1ee7a b\u1ea1n'),
   systemPrompt: '',
   greetingMessage: '',
 })
@@ -31,7 +31,7 @@ const promptData = ref({
 // ====== APPEARANCE TAB STATE ======
 const appearance = ref({
   chatName: 'AURA Stylist',
-  chatDescription: t('admin.aiConfig.chatDescPlaceholder', 'Trợ lý thời trang của bạn'),
+  chatDescription: t('admin.aiConfig.chatDescPlaceholder', 'Tr\u1ee3 l\u00fd th\u1eddi trang c\u1ee7a b\u1ea1n'),
   avatarUrl: '',
   fontFamily: 'Inter',
   headerFontFamily: 'Playfair Display',
