@@ -1258,12 +1258,40 @@
         "refundText": "Hoàn tiền được xử lý trong 5-7 ngày làm việc sau khi chúng tôi nhận và kiểm tra sản phẩm trả. Tiền sẽ được hoàn về phương thức thanh toán ban đầu.",
         "needHelp": "Cần hỗ trợ đổi trả?",
         "needHelpText": "Đội ngũ chăm sóc khách hàng luôn sẵn sàng hỗ trợ bạn."
-        },
+    },
     "chat": {
         "newConversation": "Cu\u1ed9c tr\u00f2 chuy\u1ec7n m\u1edbi",
         "inputPlaceholder": "H\u1ecfi v\u1ec1 th\u1eddi trang, phong c\u00e1ch...",
         "send": "G\u1eedi",
         "connectionError": "L\u1ed7i k\u1ebft n\u1ed1i. Vui l\u00f2ng th\u1eed l\u1ea1i.",
         "welcomeFallback": "Ch\u00e0o m\u1eebng b\u1ea1n \u0111\u1ebfn AURA ARCHIVE! M\u00ecnh c\u00f3 th\u1ec3 gi\u00fap g\u00ec cho b\u1ea1n?"
+    },
+    "common": {
+        "add": "Th\u00eam",
+        "save": "L\u01b0u",
+        "saving": "\u0110ang l\u01b0u...",
+        "loading": "\u0110ang t\u1ea3i...",
+        "saveSuccess": "\u0110\u00e3 l\u01b0u th\u00e0nh c\u00f4ng!",
+        "unknown": "Kh\u00f4ng x\u00e1c \u0111\u1ecbnh",
+        "backTo": "Quay l\u1ea1i",
+        "active": "Ho\u1ea1t \u0111\u1ed9ng",
+        "inactive": "Ng\u01b0ng",
+        "search": "T\u00ecm ki\u1ebfm",
+        "status": "Tr\u1ea1ng th\u00e1i",
+        "actions": "Thao t\u00e1c",
+        "view": "Xem",
+        "edit": "S\u1eeda",
+        "delete": "X\u00f3a",
+        "deleting": "\u0110ang x\u00f3a...",
+        "cancel": "H\u1ee7y",
+        "remove": "X\u00f3a",
+        "uploading": "\u0110ang t\u1ea3i l\u00ean...",
+        "creating": "\u0110ang t\u1ea1o...",
+        "other": "Kh\u00e1c",
+        "noResults": "Kh\u00f4ng t\u00ecm th\u1ea5y k\u1ebft qu\u1ea3",
+        "errorFillRequired": "Vui l\u00f2ng \u0111i\u1ec1n \u0111\u1ea7y \u0111\u1ee7 c\u00e1c tr\u01b0\u1eddng b\u1eaft bu\u1ed9c",
+        "createSuccess": "T\u1ea1o th\u00e0nh c\u00f4ng!",
+        "guest": "Kh\u00e1ch",
+        "viewNow": "Xem ngay"
     }
 }

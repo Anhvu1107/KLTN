@@ -955,7 +955,7 @@
             "startDate": "Start Date",
             "endDate": "End Date",
             "toggleActiveDesc": "Active - Popup will be shown to customers",
-        "toggleInactiveDesc": "Inactive - Popup will be hidden"
+            "toggleInactiveDesc": "Inactive - Popup will be hidden"
         },
         "abandonedCarts": {
             "title": "Abandoned Carts",
@@ -1238,12 +1238,40 @@
         "refundText": "Refunds are processed within 5-7 business days after we receive and inspect the returned item. The refund will be issued to your original payment method.",
         "needHelp": "Need Help with a Return?",
         "needHelpText": "Our customer service team is ready to assist you."
-        },
+    },
     "chat": {
         "newConversation": "New Conversation",
         "inputPlaceholder": "Ask about fashion, style...",
         "send": "Send",
         "connectionError": "Connection error. Please try again.",
         "welcomeFallback": "Welcome to AURA ARCHIVE! How can I help you today?"
+    },
+    "common": {
+        "add": "Add",
+        "save": "Save",
+        "saving": "Saving...",
+        "loading": "Loading...",
+        "saveSuccess": "Saved successfully!",
+        "unknown": "Unknown",
+        "backTo": "Back to",
+        "active": "Active",
+        "inactive": "Inactive",
+        "search": "Search",
+        "status": "Status",
+        "actions": "Actions",
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleting": "Deleting...",
+        "cancel": "Cancel",
+        "remove": "Remove",
+        "uploading": "Uploading...",
+        "creating": "Creating...",
+        "other": "Other",
+        "noResults": "No results found",
+        "errorFillRequired": "Please fill all required fields",
+        "createSuccess": "Created successfully!",
+        "guest": "Guest",
+        "viewNow": "View now"
     }
 }

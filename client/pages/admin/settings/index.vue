@@ -199,6 +199,44 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
         </h2>
 
         <div class="space-y-4">
+          <!-- Special: product_attributes → clickable links to attributes page -->
+          <template v-if="group === 'product_attributes'">
+            <NuxtLink
+              v-for="setting in groupSettings"
+              :key="setting.key"
+              to="/admin/settings/attributes"
+              class="flex items-center justify-between p-4 rounded-lg border border-neutral-100 hover:border-neutral-300 hover:bg-neutral-50 transition-all cursor-pointer group"
+            >
+              <div>
+                <p class="text-body-sm text-neutral-700 font-medium group-hover:text-aura-black">{{ settingLabel(setting) }}</p>
+                <p v-if="setting.description" class="text-caption text-neutral-500 mt-1">{{ settingDescription(setting) }}</p>
+              </div>
+              <svg class="w-5 h-5 text-neutral-400 group-hover:text-aura-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </NuxtLink>
+          </template>
+
+          <!-- Special: payment → clickable link to payment settings page -->
+          <template v-else-if="group === 'payment'">
+            <NuxtLink
+              v-for="setting in groupSettings"
+              :key="setting.key"
+              to="/admin/settings/payments"
+              class="flex items-center justify-between p-4 rounded-lg border border-neutral-100 hover:border-neutral-300 hover:bg-neutral-50 transition-all cursor-pointer group"
+            >
+              <div>
+                <p class="text-body-sm text-neutral-700 font-medium group-hover:text-aura-black">{{ settingLabel(setting) }}</p>
+                <p v-if="setting.description" class="text-caption text-neutral-500 mt-1">{{ settingDescription(setting) }}</p>
+              </div>
+              <svg class="w-5 h-5 text-neutral-400 group-hover:text-aura-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </NuxtLink>
+          </template>
+
+          <!-- Default: normal editable settings -->
+          <template v-else>
           <div v-for="setting in groupSettings" :key="setting.key" class="grid grid-cols-3 gap-4 items-start">
             <label class="text-body-sm text-neutral-700 pt-2">
               {{ settingLabel(setting) }}
@@ -268,6 +306,7 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
               </template>
             </div>
           </div>
+          </template>
         </div>
       </div>
 
