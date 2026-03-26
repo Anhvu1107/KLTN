@@ -185,8 +185,8 @@ useSeoMeta({
               </div>
               <!-- Decorative badge -->
               <div class="absolute -bottom-6 -left-6 bg-aura-white shadow-medium p-6 rounded-sm">
-                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">{{ $t('home.newArrivals') }}</p>
-                <p class="font-serif text-heading-4 text-aura-black">{{ $t('home.season') }}</p>
+                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">{{ heroBanner?.title || $t('home.newArrivals') }}</p>
+                <p class="font-serif text-heading-4 text-aura-black">{{ heroBanner?.subtitle || $t('home.season') }}</p>
               </div>
             </div>
           </div>
