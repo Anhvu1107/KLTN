@@ -20,23 +20,23 @@ const { confirm: showConfirm } = useDialog()
 // Section definitions
 const SECTIONS = [
   { key: 'hero', label: 'Hero Section', desc: 'Ảnh lớn bên phải hero section trang chủ' },
-  { key: 'collection_women', label: '👗 BST Nữ', desc: 'Ảnh nền block "Bộ sưu tập Nữ" trên trang chủ' },
-  { key: 'collection_men', label: '👔 BST Nam', desc: 'Ảnh nền block "Bộ sưu tập Nam" trên trang chủ' },
-  { key: 'homepage_categories', label: '🗂️ Danh mục', desc: 'Mỗi banner = 1 card danh mục. Tiêu đề = tên danh mục, Đường dẫn = link đến danh mục' },
+  { key: 'collection_women', label: 'BST Nữ', desc: 'Ảnh nền block "Bộ sưu tập Nữ" trên trang chủ' },
+  { key: 'collection_men', label: 'BST Nam', desc: 'Ảnh nền block "Bộ sưu tập Nam" trên trang chủ' },
+  { key: 'homepage_categories', label: 'Danh mục', desc: 'Mỗi banner = 1 card danh mục. Tiêu đề = tên danh mục, Đường dẫn = link đến danh mục' },
   { key: 'about', label: 'Ảnh minh họa', desc: 'Ảnh minh họa câu chuyện trên trang Giới thiệu' },
   { key: 'page_sale', label: 'Header Sale', desc: 'Ảnh nền header trang Sale' },
   { key: 'page_new_arrivals', label: 'Header Hàng mới', desc: 'Ảnh nền header trang New Arrivals' },
   { key: 'page_featured', label: 'Header Nổi bật', desc: 'Ảnh nền header trang Featured' },
-  { key: 'general', label: '📌 Banner dự phòng', desc: 'Banner chung / dự phòng' },
+  { key: 'general', label: 'Banner dự phòng', desc: 'Banner chung / dự phòng' },
 ]
 
 const PAGE_GROUPS = [
-  { key: 'home', label: '🏠 Trang chủ', sections: ['hero', 'collection_women', 'collection_men', 'homepage_categories'] },
-  { key: 'sale', label: '🏷️ Trang Sale', sections: ['page_sale'] },
-  { key: 'new_arrivals', label: '🆕 Trang Hàng mới', sections: ['page_new_arrivals'] },
-  { key: 'featured', label: '⭐ Trang Nổi bật', sections: ['page_featured'] },
-  { key: 'about', label: '📖 Trang About', sections: ['about'] },
-  { key: 'general', label: '📌 Chung', sections: ['general'] },
+  { key: 'home', label: 'Trang chủ', sections: ['hero', 'collection_women', 'collection_men', 'homepage_categories'] },
+  { key: 'sale', label: 'Trang Sale', sections: ['page_sale'] },
+  { key: 'new_arrivals', label: 'Trang Hàng mới', sections: ['page_new_arrivals'] },
+  { key: 'featured', label: 'Trang Nổi bật', sections: ['page_featured'] },
+  { key: 'about', label: 'Trang About', sections: ['about'] },
+  { key: 'general', label: 'Chung', sections: ['general'] },
 ]
 
 const currentGroupKey = computed(() => (route.query.group as string) || 'home')

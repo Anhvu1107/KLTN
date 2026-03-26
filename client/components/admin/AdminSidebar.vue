@@ -9,12 +9,12 @@ const route = useRoute()
 
 // Banner groups for sub-menu
 const bannerGroups = [
-  { key: 'home', label: '🏠 Trang chủ' },
-  { key: 'sale', label: '🏷️ Trang Sale' },
-  { key: 'new_arrivals', label: '🆕 Hàng mới' },
-  { key: 'featured', label: '⭐ Nổi bật' },
-  { key: 'about', label: '📖 About' },
-  { key: 'general', label: '📌 Chung' },
+  { key: 'home', label: 'Trang chủ' },
+  { key: 'sale', label: 'Trang Sale' },
+  { key: 'new_arrivals', label: 'Hàng mới' },
+  { key: 'featured', label: 'Nổi bật' },
+  { key: 'about', label: 'About' },
+  { key: 'general', label: 'Chung' },
 ]
 
 const bannerMenuOpen = ref(false)
