@@ -63,6 +63,7 @@ const getPublicSettings = async () => {
         'seo_title', 'seo_description', 'seo_keywords',
         'google_analytics', 'facebook_pixel',
         'bank_accounts', 'payment_methods',
+        'banner_animation_config',
     ];
 
     return getSettings(publicKeys);

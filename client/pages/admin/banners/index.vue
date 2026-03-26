@@ -28,6 +28,13 @@ const SECTIONS = [
   { key: 'general', label: '📌 Chung', desc: 'Banner chung / dự phòng' },
 ]
 
+// Animation types
+const ANIM_OPTIONS = [
+  { key: 'none', label: 'Không', icon: '⏸️' },
+  { key: 'slide', label: 'Lướt', icon: '◀▶' },
+  { key: 'fade', label: 'Nháy', icon: '✨' },
+]
+
 // State
 const banners = ref<any[]>([])
 const isLoading = ref(true)
@@ -35,6 +42,45 @@ const showModal = ref(false)
 const editingBanner = ref<any>(null)
 const formError = ref('')
 const isSubmitting = ref(false)
+
+// Animation config per section
+const animationConfig = ref<Record<string, string>>({})
+
+const getAnimType = (sectionKey: string) => animationConfig.value[sectionKey] || 'none'
+
+const setAnimType = async (sectionKey: string, animType: string) => {
+  animationConfig.value[sectionKey] = animType
+  try {
+    const token = getToken()
+    await $fetch(`${config.public.apiUrl}/admin/settings`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+      body: { key: 'banner_animation_config', value: JSON.stringify(animationConfig.value) },
+    })
+  } catch (error) {
+    console.error('Failed to save animation config:', error)
+  }
+}
+
+const fetchAnimationConfig = async () => {
+  try {
+    const token = getToken()
+    const response = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/admin/settings`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    const allSettings = response.data || {}
+    for (const group of Object.values(allSettings) as any[]) {
+      for (const setting of group) {
+        if (setting.key === 'banner_animation_config' && setting.value) {
+          try { animationConfig.value = JSON.parse(setting.value) } catch {}
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch animation config:', error)
+  }
+}
 
 // Image upload state
 const isUploading = ref(false)
@@ -262,7 +308,9 @@ const getStatusClass = (banner: any) => {
 
 const getSectionLabel = (key: string) => SECTIONS.find(s => s.key === key)?.label || key
 
-onMounted(fetchBanners)
+onMounted(async () => {
+  await Promise.all([fetchBanners(), fetchAnimationConfig()])
+})
 useSeoMeta({ title: 'Banner Management | Admin' })
 </script>
 
@@ -294,14 +342,30 @@ useSeoMeta({ title: 'Banner Management | Admin' })
             <h2 class="text-body font-semibold text-aura-black">{{ section.label }}</h2>
             <p class="text-caption text-neutral-400">{{ section.desc }}</p>
           </div>
-          <button
-            v-if="!groupedBanners[section.key]?.length"
-            @click="openCreateModal(section.key)"
-            class="text-caption text-neutral-500 border border-dashed border-neutral-300 rounded-lg px-3 py-1.5 hover:border-neutral-400 hover:text-aura-black transition-colors flex items-center gap-1"
-          >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Thêm
-          </button>
+          <div class="flex items-center gap-2">
+            <!-- Animation selector (only when section has 2+ banners) -->
+            <div v-if="groupedBanners[section.key]?.length >= 2" class="flex items-center gap-1 mr-2">
+              <span class="text-caption text-neutral-400 mr-1">Hiệu ứng:</span>
+              <button
+                v-for="anim in ANIM_OPTIONS"
+                :key="anim.key"
+                @click="setAnimType(section.key, anim.key)"
+                class="px-2 py-1 text-xs rounded-md border transition-all"
+                :class="getAnimType(section.key) === anim.key
+                  ? 'bg-aura-black text-white border-aura-black'
+                  : 'bg-white text-neutral-500 border-neutral-300 hover:border-neutral-400'"
+              >
+                {{ anim.icon }} {{ anim.label }}
+              </button>
+            </div>
+            <button
+              @click="openCreateModal(section.key)"
+              class="text-caption text-neutral-500 border border-dashed border-neutral-300 rounded-lg px-3 py-1.5 hover:border-neutral-400 hover:text-aura-black transition-colors flex items-center gap-1"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Thêm
+            </button>
+          </div>
         </div>
 
         <!-- Banner cards for this section -->

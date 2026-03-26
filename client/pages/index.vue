@@ -71,15 +71,38 @@ const resolveBannerUrl = (url: string | undefined) => {
 
 // Get banners by section
 const allBanners = computed(() => bannersData.value?.data?.banners || [])
+const getBannersBySection = (section: string) => allBanners.value.filter((b: any) => b.section === section)
 const getBannerBySection = (section: string) => allBanners.value.find((b: any) => b.section === section) || null
 
-const heroBanner = computed(() => getBannerBySection('hero'))
+const heroBanners = computed(() => getBannersBySection('hero'))
+const heroBanner = computed(() => heroBanners.value[0] || null)
 const heroBannerImage = computed(() => resolveBannerUrl(heroBanner.value?.image_url))
+
+const collectionWomenBanners = computed(() => getBannersBySection('collection_women'))
 const collectionWomenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_women')?.image_url))
+const collectionMenBanners = computed(() => getBannersBySection('collection_men'))
 const collectionMenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_men')?.image_url))
 const categoryBagsImage = computed(() => resolveBannerUrl(getBannerBySection('category_bags')?.image_url))
 const categoryOuterwearImage = computed(() => resolveBannerUrl(getBannerBySection('category_outerwear')?.image_url))
 const categoryAccessoriesImage = computed(() => resolveBannerUrl(getBannerBySection('category_accessories')?.image_url))
+
+// Fetch animation config from site settings
+const animationConfig = ref<Record<string, string>>({})
+const getAnimType = (section: string): 'none' | 'slide' | 'fade' => {
+  return (animationConfig.value[section] as any) || 'none'
+}
+
+onMounted(async () => {
+  try {
+    const response = await $fetch<{ success: boolean; data: Record<string, string> }>(
+      `${config.public.apiUrl}/settings/public`
+    )
+    const raw = response.data?.banner_animation_config
+    if (raw) {
+      try { animationConfig.value = JSON.parse(raw) } catch {}
+    }
+  } catch {}
+})
 
 const products = computed(() => featuredProducts.value?.data?.products || [])
 const bestSellers = computed(() => bestSellersData.value?.data?.products || [])
@@ -142,13 +165,13 @@ useSeoMeta({
           <!-- Right: Featured Image from Banner -->
           <div class="hidden lg:block">
             <div class="relative">
-              <div class="aspect-[3/4] bg-neutral-200 rounded-sm overflow-hidden shadow-elevated">
-                <!-- Display banner image if available -->
-                <img 
-                  v-if="heroBannerImage"
-                  :src="heroBannerImage"
-                  :alt="heroBanner?.title || 'Featured Collection'"
-                  class="w-full h-full object-cover"
+              <div class="aspect-[3/4] bg-neutral-200 rounded-sm overflow-hidden shadow-elevated group">
+                <!-- Multiple banners: use slider -->
+                <BannerSlider
+                  v-if="heroBanners.length > 0"
+                  :banners="heroBanners"
+                  :animation="getAnimType('hero')"
+                  aspect-class=""
                 />
                 <!-- Fallback placeholder -->
                 <div v-else class="w-full h-full flex items-center justify-center text-neutral-400">
