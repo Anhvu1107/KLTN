@@ -82,9 +82,9 @@ const collectionWomenBanners = computed(() => getBannersBySection('collection_wo
 const collectionWomenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_women')?.image_url))
 const collectionMenBanners = computed(() => getBannersBySection('collection_men'))
 const collectionMenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_men')?.image_url))
-const categoryBagsImage = computed(() => resolveBannerUrl(getBannerBySection('category_bags')?.image_url))
-const categoryOuterwearImage = computed(() => resolveBannerUrl(getBannerBySection('category_outerwear')?.image_url))
-const categoryAccessoriesImage = computed(() => resolveBannerUrl(getBannerBySection('category_accessories')?.image_url))
+
+// Dynamic homepage categories
+const homepageCategories = computed(() => getBannersBySection('homepage_categories'))
 
 // Fetch animation config from site settings
 const animationConfig = ref<Record<string, string>>({})
@@ -435,30 +435,26 @@ useSeoMeta({
       </div>
     </section>
 
-    <!-- Category Cards (3-column) -->
-    <section class="py-20 lg:py-28 bg-neutral-50">
+    <!-- Category Cards (dynamic from admin) -->
+    <section v-if="homepageCategories.length" class="py-20 lg:py-28 bg-neutral-50">
       <div class="container-aura">
         <div class="text-center mb-16">
           <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.categories') }}</h2>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <div class="grid grid-cols-1 gap-6 lg:gap-8" :class="homepageCategories.length === 2 ? 'md:grid-cols-2' : homepageCategories.length >= 3 ? 'md:grid-cols-3' : ''">
           <NuxtLink
-            v-for="(cat, index) in [
-              { key: 'bags', name: $t('home.catBags'), color: 'from-amber-50 to-orange-50', image: categoryBagsImage },
-              { key: 'outerwear', name: $t('home.catOuterwear'), color: 'from-slate-50 to-gray-100', image: categoryOuterwearImage },
-              { key: 'accessories', name: $t('home.catAccessories'), color: 'from-rose-50 to-pink-50', image: categoryAccessoriesImage }
-            ]"
-            :key="cat.key"
-            :to="`/shop?category=${cat.key.charAt(0).toUpperCase() + cat.key.slice(1)}`"
-            class="group relative aspect-square overflow-hidden bg-gradient-to-br"
-            :class="cat.color"
+            v-for="cat in homepageCategories"
+            :key="cat.id"
+            :to="cat.link_url || '/shop'"
+            class="group relative aspect-square overflow-hidden bg-gradient-to-br from-neutral-100 to-neutral-50"
           >
-            <img v-if="cat.image" :src="cat.image" :alt="cat.name" class="absolute inset-0 w-full h-full object-cover" />
+            <img v-if="cat.image_url" :src="resolveBannerUrl(cat.image_url)" :alt="cat.title" class="absolute inset-0 w-full h-full object-cover" />
+            <div v-if="cat.image_url" class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-300" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-              <h3 class="font-serif text-heading-2 mb-3" :class="cat.image ? 'text-white' : 'text-aura-black'">{{ cat.name }}</h3>
-              <span class="text-caption uppercase tracking-wider underline underline-offset-4" :class="cat.image ? 'text-white/80 group-hover:text-white' : 'text-neutral-600 group-hover:text-aura-black'" style="transition: color 0.3s">
-                {{ $t('home.shopNow') }}
+              <h3 class="font-serif text-heading-2 mb-3" :class="cat.image_url ? 'text-white' : 'text-aura-black'">{{ cat.title }}</h3>
+              <span class="text-caption uppercase tracking-wider underline underline-offset-4" :class="cat.image_url ? 'text-white/80 group-hover:text-white' : 'text-neutral-600 group-hover:text-aura-black'" style="transition: color 0.3s">
+                {{ cat.button_text || $t('home.shopNow') }}
               </span>
             </div>
           </NuxtLink>
