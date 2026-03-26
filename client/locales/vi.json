@@ -900,19 +900,82 @@
         },
         "popups": {
             "title": "Quản lý popup",
+            "subtitle": "Tạo popup quảng cáo, thông báo hoặc thu thập email từ khách truy cập.",
             "content": "Nội dung",
             "trigger": "Kích hoạt",
             "delay": "Thời gian chờ (giây)",
             "active": "Hoạt động",
             "create": "Tạo popup",
             "edit": "Sửa popup",
-            "noPopups": "Không tìm thấy popup",
+            "noPopups": "Không tìm thấy popup nào",
             "addPopup": "Thêm popup",
             "createPopup": "Tạo popup",
             "editPopup": "Sửa popup",
             "onLoad": "Khi tải trang",
             "onExit": "Khi rời trang",
-            "onScroll": "Khi cuộn"
+            "onScroll": "Khi cuộn",
+            "triggerLabel": {
+                "immediate": "⚡ Hiện ngay lập tức",
+                "delay": "⏱️ Sau khoảng thời gian",
+                "scroll": "📜 Khi cuộn trang",
+                "exit": "🚪 Khi rời trang"
+            },
+            "triggerDetail": {
+                "delay": "Hiện sau {value} giây",
+                "scroll": "Hiện khi cuộn {value}%",
+                "exit": "Hiện khi chuột rời trang",
+                "immediate": "Hiện ngay khi vào trang"
+            },
+            "positionLabel": {
+                "center": "📍 Giữa màn hình",
+                "bottom-right": "↘️ Góc dưới phải",
+                "bottom-left": "↙️ Góc dưới trái",
+                "top": "⬆️ Trên cùng"
+            },
+            "status": {
+                "off": "Tắt",
+                "expired": "Hết hạn",
+                "scheduled": "Chờ hiển thị",
+                "active": "Đang hoạt động"
+            },
+            "toggle": {
+                "onText": "Bật",
+                "offText": "Tắt",
+                "onTitle": "Đang bật - Click để tắt",
+                "offTitle": "Đang tắt - Click để bật"
+            },
+            "buttonText": "Văn bản nút",
+            "buttonLink": "Link khi bấm nút",
+            "validationName": "Vui lòng nhập tên popup",
+            "imageFormats": "JPEG, PNG, WebP — Tối đa 10MB",
+            "dragDropHint": "Kéo thả hoặc",
+            "chooseImage": "chọn ảnh",
+            "removeImage": "Xóa ảnh",
+            "basicInfo": "Thông tin cơ bản",
+            "popupName": "Tên popup",
+            "adminOnly": "(chỉ admin thấy)",
+            "popupTitle": "Tiêu đề",
+            "customerVisible": "(hiện cho khách)",
+            "popupImage": "Ảnh popup",
+            "optional": "(tùy chọn)",
+            "cta": "Nút bấm (CTA)",
+            "whenToShow": "Khi nào hiện popup?",
+            "triggerDesc": {
+                "delay": "Popup hiện sau X giây khi khách vào trang",
+                "scroll": "Popup hiện khi khách cuộn xuống X% trang",
+                "exit": "Popup hiện khi chuột di chuyển ra ngoài trang",
+                "immediate": "Popup hiện ngay khi khách vào trang"
+            },
+            "showAfter": "Hiện sau",
+            "seconds": "giây",
+            "showWhenScroll": "Hiện khi cuộn đến",
+            "pagePercent": "% trang",
+            "displayPosition": "Vị trí hiển thị",
+            "schedule": "Lịch hiển thị",
+            "startDate": "Ngày bắt đầu",
+            "endDate": "Ngày kết thúc",
+            "toggleActiveDesc": "Bật - Popup sẽ hiện cho khách hàng",
+            "toggleInactiveDesc": "Tắt - Popup sẽ không hiện"
         },
         "abandonedCarts": {
             "title": "Giỏ hàng bỏ rơi",

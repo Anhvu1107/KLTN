@@ -138,7 +138,7 @@ const submitForm = async () => {
 
 // Delete blog
 const deleteBlog = async (id: string) => {
-  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác. Bạn có chắc chắn?'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
   if (!ok) return
 
   try {
@@ -173,8 +173,8 @@ const getStatusClass = (status: string) => {
 const handleBlogImageUpload = async (file: File) => {
   if (!file) return
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-  if (!allowedTypes.includes(file.type)) { formError.value = 'Chỉ chấp nhận JPEG, PNG hoặc WebP'; return }
-  if (file.size > 10 * 1024 * 1024) { formError.value = 'Kích thước tối đa 10MB'; return }
+  if (!allowedTypes.includes(file.type)) { formError.value = t('admin.popups.imageFormats'); return }
+  if (file.size > 10 * 1024 * 1024) { formError.value = t('admin.popups.imageFormats'); return }
   const reader = new FileReader()
   reader.onload = (e) => { imagePreview.value = e.target?.result as string }
   reader.readAsDataURL(file)
@@ -190,7 +190,7 @@ const handleBlogImageUpload = async (file: File) => {
     )
     formData.value.featured_image = response.data.url
   } catch (error: any) {
-    formError.value = error.data?.message || 'Upload ảnh thất bại'
+    formError.value = error.data?.message || t('notifications.saveError', 'Upload failed')
     imagePreview.value = ''
   } finally {
     isUploading.value = false
@@ -329,15 +329,15 @@ useSeoMeta({ title: () => `${t('admin.blogs.title')} | Admin` })
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 mx-auto text-neutral-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p class="text-body-sm text-neutral-600">Kéo thả hoặc <span class="text-aura-black font-medium underline">chọn ảnh đại diện</span></p>
-                  <p class="text-caption text-neutral-400 mt-1">JPEG, PNG, WebP — Tối đa 10MB</p>
+                  <p class="text-body-sm text-neutral-600">{{ t('admin.popups.dragDropHint') }} <span class="text-aura-black font-medium underline">{{ t('admin.popups.chooseImage') }}</span></p>
+                  <p class="text-caption text-neutral-400 mt-1">{{ t('admin.popups.imageFormats') }}</p>
                 </div>
                 <div v-else class="relative rounded-lg overflow-hidden border border-neutral-200">
                   <img :src="imagePreview || `${config.public.apiUrl}${formData.featured_image}`" alt="Blog preview" class="w-full h-40 object-cover" />
                   <div v-if="isUploading" class="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <div class="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
                   </div>
-                  <button v-else type="button" @click="removeBlogImage" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" title="Xóa ảnh">✕</button>
+                  <button v-else type="button" @click="removeBlogImage" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" :title="t('admin.popups.removeImage')">✕</button>
                 </div>
               </div>
               <div>

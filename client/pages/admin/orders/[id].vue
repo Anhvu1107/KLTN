@@ -194,7 +194,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
                 <p class="text-caption text-neutral-500 uppercase">{{ item.product_brand || '' }}</p>
                 <p class="font-medium">{{ item.product_name }}</p>
                 <p class="text-body-sm text-neutral-500">
-                  Size: {{ item.variant_size || item.variant?.size }} | Màu: {{ item.variant_color || item.variant?.color }}
+                  Size: {{ item.variant_size || item.variant?.size }} | {{ t('shop.filters.color') }}: {{ item.variant_color || item.variant?.color }}
                 </p>
                 <p class="text-caption text-neutral-400">SKU: {{ item.variant?.sku || 'N/A' }}</p>
               </div>

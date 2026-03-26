@@ -112,8 +112,8 @@ const categoryLabel = (category: string) => {
     'Bags': t('categories.bags'),
     'Accessories': t('categories.accessories'),
     'Dresses': t('categories.dresses'),
-    'Jewelry': locale.value === 'vi' ? 'Trang sức' : 'Jewelry',
-    'Watches': locale.value === 'vi' ? 'Đồng hồ' : 'Watches'
+    'Jewelry': t('categories.jewelry', 'Trang sức'),
+    'Watches': t('categories.watches', 'Đồng hồ')
   }
   return map[category] || category
 }

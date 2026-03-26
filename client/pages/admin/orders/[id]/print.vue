@@ -91,16 +91,16 @@ onMounted(fetchOrder)
     <!-- Print Button (hidden in print) -->
     <div class="no-print p-4 flex gap-4 bg-neutral-100 mb-4">
       <button @click="handlePrint" class="btn-primary">
-        🖨️ In hóa đơn
+        🖨️ {{ t('orders.printInvoice') }}
       </button>
       <NuxtLink :to="`/admin/orders/${orderId}`" class="btn-secondary">
-        ← Quay lại
+        ← {{ t('common.back') }}
       </NuxtLink>
     </div>
 
     <!-- Loading -->
     <div v-if="isLoading" class="text-center py-12">
-      <p>Đang tải...</p>
+      <p>{{ t('common.loading') }}...</p>
     </div>
 
     <!-- Invoice -->
@@ -112,7 +112,7 @@ onMounted(fetchOrder)
           <p class="text-sm text-neutral-600 mt-1">Luxury Resell Fashion</p>
         </div>
         <div class="text-right">
-          <h2 class="text-xl font-bold">HÓA ĐƠN</h2>
+          <h2 class="text-xl font-bold">{{ t('orders.invoice') }}</h2>
           <p class="text-sm text-neutral-600">#{{ order.order_number || order.id.slice(0, 8).toUpperCase() }}</p>
           <p class="text-sm text-neutral-600">{{ formatDate(order.created_at) }}</p>
         </div>
@@ -121,13 +121,13 @@ onMounted(fetchOrder)
       <!-- Customer & Shipping Info -->
       <div class="grid grid-cols-2 gap-8 mb-8">
         <div>
-          <h3 class="font-bold text-sm uppercase text-neutral-500 mb-2">Khách hàng</h3>
+          <h3 class="font-bold text-sm uppercase text-neutral-500 mb-2">{{ t('admin.customers.title') }}</h3>
           <p class="font-medium">{{ order.user?.first_name }} {{ order.user?.last_name }}</p>
           <p class="text-sm">{{ order.user?.email }}</p>
           <p class="text-sm">{{ order.user?.phone }}</p>
         </div>
         <div>
-          <h3 class="font-bold text-sm uppercase text-neutral-500 mb-2">Địa chỉ giao hàng</h3>
+          <h3 class="font-bold text-sm uppercase text-neutral-500 mb-2">{{ t('checkout.shippingAddress') }}</h3>
           <p>{{ order.shipping_address?.full_name }}</p>
           <p class="text-sm">{{ order.shipping_address?.address }}</p>
           <p class="text-sm">{{ order.shipping_address?.district }}, {{ order.shipping_address?.city }}</p>
@@ -139,10 +139,10 @@ onMounted(fetchOrder)
       <table class="w-full mb-8">
         <thead>
           <tr class="border-b-2 border-black">
-            <th class="text-left py-2 font-bold">Sản phẩm</th>
+            <th class="text-left py-2 font-bold">{{ t('cart.product') }}</th>
             <th class="text-center py-2 font-bold w-24">Size</th>
-            <th class="text-center py-2 font-bold w-24">Màu</th>
-            <th class="text-right py-2 font-bold w-32">Giá</th>
+            <th class="text-center py-2 font-bold w-24">{{ t('shop.filters.color') }}</th>
+            <th class="text-right py-2 font-bold w-32">{{ t('cart.price') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -162,19 +162,19 @@ onMounted(fetchOrder)
       <div class="flex justify-end">
         <div class="w-64">
           <div class="flex justify-between py-2 border-b">
-            <span>Tạm tính:</span>
+            <span>{{ t('cart.subtotal') }}:</span>
             <span>{{ formatPrice(order.subtotal) }}</span>
           </div>
           <div class="flex justify-between py-2 border-b">
-            <span>Phí vận chuyển:</span>
+            <span>{{ t('checkout.shippingFee') }}:</span>
             <span>{{ formatPrice(order.shipping_fee || 0) }}</span>
           </div>
           <div v-if="order.discount_amount > 0" class="flex justify-between py-2 border-b text-green-600">
-            <span>Giảm giá:</span>
+            <span>{{ t('cart.discount') }}:</span>
             <span>-{{ formatPrice(order.discount_amount) }}</span>
           </div>
           <div class="flex justify-between py-3 font-bold text-lg">
-            <span>Tổng cộng:</span>
+            <span>{{ t('cart.total') }}:</span>
             <span>{{ formatPrice(order.total_amount) }}</span>
           </div>
         </div>
@@ -184,15 +184,15 @@ onMounted(fetchOrder)
       <div class="mt-8 pt-8 border-t">
         <div class="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <span class="text-neutral-500">Phương thức:</span>
+            <span class="text-neutral-500">{{ t('checkout.paymentMethod') }}:</span>
             <span class="ml-2 font-medium">{{ paymentMethodLabel(order.payment_method) }}</span>
           </div>
           <div>
-            <span class="text-neutral-500">Trạng thái:</span>
+            <span class="text-neutral-500">{{ t('common.status') }}:</span>
             <span class="ml-2 font-medium">{{ statusLabel(order.status) }}</span>
           </div>
           <div>
-            <span class="text-neutral-500">Thanh toán:</span>
+            <span class="text-neutral-500">{{ t('orders.paymentMethod') }}:</span>
             <span class="ml-2 font-medium">{{ paymentStatusLabel(order.payment_status) }}</span>
           </div>
         </div>
@@ -200,7 +200,7 @@ onMounted(fetchOrder)
 
       <!-- Footer -->
       <div class="mt-12 pt-8 border-t text-center text-sm text-neutral-500">
-        <p>Cảm ơn quý khách đã mua hàng tại AURA ARCHIVE</p>
+        <p>{{ t('orders.thanksForShopping') }}</p>
         <p class="mt-1">Website: aura-archive.com | Email: support@aura-archive.com</p>
       </div>
     </div>

@@ -38,9 +38,9 @@ const wishlist = computed(() => data.value?.data?.wishlist || [])
 const { formatPrice } = useCurrency()
 
 const formatDate = (date: string) => {
-  if (!date) return locale.value === 'vi' ? 'Không xác định' : 'Unknown'
+  if (!date) return t('common.unknown', 'Kh\u00f4ng x\u00e1c \u0111\u1ecbnh')
   const d = new Date(date)
-  if (isNaN(d.getTime())) return locale.value === 'vi' ? 'Không xác định' : 'Unknown'
+  if (isNaN(d.getTime())) return t('common.unknown', 'Kh\u00f4ng x\u00e1c \u0111\u1ecbnh')
   return d.toLocaleDateString(locale.value === 'vi' ? 'vi-VN' : 'en-US', {
     month: 'short',
     day: 'numeric',

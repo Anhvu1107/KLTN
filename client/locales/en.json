@@ -879,6 +879,7 @@
         },
         "popups": {
             "title": "Popup Management",
+            "subtitle": "Create promotional popups, notices, or email collection forms.",
             "addPopup": "Add Popup",
             "createPopup": "Create Popup",
             "editPopup": "Edit Popup",
@@ -892,7 +893,69 @@
             "onLoad": "On Page Load",
             "onExit": "On Exit Intent",
             "onScroll": "On Scroll",
-            "add": "Create Popup"
+            "add": "Create Popup",
+            "triggerLabel": {
+                "immediate": "⚡ Immediate",
+                "delay": "⏱️ Delay",
+                "scroll": "📜 On Scroll",
+                "exit": "🚪 Exit Intent"
+            },
+            "triggerDetail": {
+                "delay": "Show after {value} seconds",
+                "scroll": "Show when scrolled {value}%",
+                "exit": "Show on mouse exit",
+                "immediate": "Show immediately"
+            },
+            "positionLabel": {
+                "center": "📍 Center",
+                "bottom-right": "↘️ Bottom Right",
+                "bottom-left": "↙️ Bottom Left",
+                "top": "⬆️ Top"
+            },
+            "status": {
+                "off": "Off",
+                "expired": "Expired",
+                "scheduled": "Scheduled",
+                "active": "Active"
+            },
+            "toggle": {
+                "onText": "Active",
+                "offText": "Inactive",
+                "onTitle": "Active - Click to disable",
+                "offTitle": "Inactive - Click to enable"
+            },
+            "buttonText": "Button Text",
+            "buttonLink": "Button Link",
+            "validationName": "Please enter a popup name",
+            "imageFormats": "JPEG, PNG, WebP — Max 10MB",
+            "dragDropHint": "Drag & drop or",
+            "chooseImage": "choose image",
+            "removeImage": "Remove image",
+            "basicInfo": "Basic Info",
+            "popupName": "Popup Name",
+            "adminOnly": "(admin only)",
+            "popupTitle": "Title",
+            "customerVisible": "(visible to customers)",
+            "popupImage": "Popup Image",
+            "optional": "(optional)",
+            "cta": "Call To Action",
+            "whenToShow": "When to show?",
+            "triggerDesc": {
+                "delay": "Show after X seconds",
+                "scroll": "Show after scrolling X% of page",
+                "exit": "Show when mouse leaves the page",
+                "immediate": "Show immediately on page load"
+            },
+            "showAfter": "Show after",
+            "seconds": "seconds",
+            "showWhenScroll": "Show when scrolled to",
+            "pagePercent": "% of page",
+            "displayPosition": "Display Position",
+            "schedule": "Schedule",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "toggleActiveDesc": "Active - Popup will be shown to customers",
+        "toggleInactiveDesc": "Inactive - Popup will be hidden"
         },
         "abandonedCarts": {
             "title": "Abandoned Carts",

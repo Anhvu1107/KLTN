@@ -60,7 +60,7 @@ const openCreate = () => {
   editingPopup.value = null
   formError.value = ''
   imagePreview.value = ''
-  formData.value = { name: '', title: '', content: '', image_url: '', button_text: 'Xem ngay', button_link: '', position: 'center', trigger_type: 'delay', trigger_value: 3, is_active: true, starts_at: '', ends_at: '' }
+  formData.value = { name: '', title: '', content: '', image_url: '', button_text: t('common.viewNow'), button_link: '', position: 'center', trigger_type: 'delay', trigger_value: 3, is_active: true, starts_at: '', ends_at: '' }
   showModal.value = true
 }
 
@@ -78,7 +78,7 @@ const openEdit = (popup: any) => {
 
 const savePopup = async () => {
   formError.value = ''
-  if (!formData.value.name.trim()) { formError.value = 'Vui lòng nhập tên popup'; return }
+  if (!formData.value.name.trim()) { formError.value = t('admin.popups.nameRequired'); return }
   isSubmitting.value = true
   try {
     const token = getToken()
@@ -93,14 +93,14 @@ const savePopup = async () => {
     showModal.value = false
     await fetchPopups()
   } catch (error: any) {
-    formError.value = error.data?.message || 'Lưu thất bại'
+    formError.value = error.data?.message || t('notifications.updateError')
   } finally {
     isSubmitting.value = false
   }
 }
 
 const deletePopup = async (id: string) => {
-  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác.'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
   if (!ok) return
   try {
     const token = getToken()
@@ -128,8 +128,8 @@ const toggleActive = async (popup: any) => {
 const handlePopupImageUpload = async (file: File) => {
   if (!file) return
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-  if (!allowedTypes.includes(file.type)) { formError.value = 'Chỉ chấp nhận JPEG, PNG hoặc WebP'; return }
-  if (file.size > 10 * 1024 * 1024) { formError.value = 'Kích thước tối đa 10MB'; return }
+  if (!allowedTypes.includes(file.type)) { formError.value = t('admin.popups.imageFormats'); return }
+  if (file.size > 10 * 1024 * 1024) { formError.value = t('admin.popups.imageFormats'); return }
   const reader = new FileReader()
   reader.onload = (e) => { imagePreview.value = e.target?.result as string }
   reader.readAsDataURL(file)
@@ -145,7 +145,7 @@ const handlePopupImageUpload = async (file: File) => {
     )
     formData.value.image_url = response.data.url
   } catch (error: any) {
-    formError.value = error.data?.message || 'Upload ảnh thất bại'
+    formError.value = error.data?.message || t('notifications.uploadFailed')
     imagePreview.value = ''
   } finally {
     isUploading.value = false
@@ -170,36 +170,36 @@ const removePopupImage = () => {
 // Helpers
 const getTriggerLabel = (type: string) => {
   const labels: Record<string, string> = {
-    immediate: '⚡ Hiện ngay lập tức',
-    delay: '⏱️ Sau một khoảng thời gian',
-    scroll: '📜 Khi cuộn trang',
-    exit: '🚪 Khi rời trang (exit intent)',
+    immediate: t('admin.popups.triggerLabel.immediate'),
+    delay: t('admin.popups.triggerLabel.delay'),
+    scroll: t('admin.popups.triggerLabel.scroll'),
+    exit: t('admin.popups.triggerLabel.exit'),
   }
   return labels[type] || type
 }
 
 const getTriggerDetail = (popup: any) => {
-  if (popup.trigger_type === 'delay') return `Hiện sau ${popup.trigger_value} giây`
-  if (popup.trigger_type === 'scroll') return `Hiện khi cuộn ${popup.trigger_value}% trang`
-  if (popup.trigger_type === 'exit') return 'Hiện khi chuột rời khỏi trang'
-  return 'Hiện ngay khi vào trang'
+  if (popup.trigger_type === 'delay') return t('admin.popups.triggerDetail.delay', { value: popup.trigger_value })
+  if (popup.trigger_type === 'scroll') return t('admin.popups.triggerDetail.scroll', { value: popup.trigger_value })
+  if (popup.trigger_type === 'exit') return t('admin.popups.triggerDetail.exit')
+  return t('admin.popups.triggerDetail.immediate')
 }
 
 const getPositionLabel = (pos: string) => {
   const labels: Record<string, string> = {
-    center: '📍 Giữa màn hình',
-    'bottom-left': '↙️ Góc dưới trái',
-    'bottom-right': '↘️ Góc dưới phải',
-    top: '⬆️ Trên cùng',
+    center: t('admin.popups.positionLabel.center'),
+    'bottom-left': t('admin.popups.positionLabel.bottom-left'),
+    'bottom-right': t('admin.popups.positionLabel.bottom-right'),
+    top: t('admin.popups.positionLabel.top'),
   }
   return labels[pos] || pos
 }
 
 const getStatusText = (popup: any) => {
-  if (!popup.is_active) return 'Tắt'
-  if (popup.ends_at && new Date(popup.ends_at) < new Date()) return 'Hết hạn'
-  if (popup.starts_at && new Date(popup.starts_at) > new Date()) return 'Chờ hiển thị'
-  return 'Đang hoạt động'
+  if (!popup.is_active) return t('admin.popups.status.off')
+  if (popup.ends_at && new Date(popup.ends_at) < new Date()) return t('admin.popups.status.expired')
+  if (popup.starts_at && new Date(popup.starts_at) > new Date()) return t('admin.popups.status.scheduled')
+  return t('admin.popups.status.active')
 }
 
 const getStatusClass = (popup: any) => {
@@ -219,7 +219,7 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.popups.title') }}</h1>
-        <p class="text-body-sm text-neutral-500 mt-1">Tạo popup quảng cáo, thông báo hoặc thu thập email từ khách truy cập.</p>
+        <p class="text-body-sm text-neutral-500 mt-1">{{ t('admin.popups.subtitle') }}</p>
       </div>
       <button @click="openCreate" class="btn-primary flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -266,7 +266,7 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
                 {{ getPositionLabel(popup.position) }}
               </span>
               <span v-if="popup.button_text" class="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-50 text-neutral-600 rounded-full">
-                🔘 Nút: "{{ popup.button_text }}"
+                {{ t('admin.popups.buttonText') }}: "{{ popup.button_text }}"
               </span>
               <span v-if="popup.button_link" class="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-50 text-neutral-600 rounded-full">
                 🔗 {{ popup.button_link }}
@@ -280,11 +280,11 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
                 @click="toggleActive(popup)"
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
                 :class="popup.is_active ? 'bg-green-500' : 'bg-neutral-300'"
-                :title="popup.is_active ? 'Đang bật - Click để tắt' : 'Đang tắt - Click để bật'"
+                :title="popup.is_active ? t('admin.popups.toggle.onTitle') : t('admin.popups.toggle.offTitle')"
               >
                 <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform" :class="popup.is_active ? 'translate-x-6' : 'translate-x-1'" />
               </button>
-              <span class="text-xs text-neutral-500">{{ popup.is_active ? 'Bật' : 'Tắt' }}</span>
+              <span class="text-xs text-neutral-500">{{ popup.is_active ? t('admin.popups.toggle.onText') : t('admin.popups.toggle.offText') }}</span>
 
               <div class="flex-1"></div>
 
@@ -304,7 +304,7 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
       <!-- Empty state -->
       <div v-if="popups.length === 0" class="text-center py-16 bg-white rounded-xl border-2 border-dashed border-neutral-200">
         <svg class="w-16 h-16 mx-auto text-neutral-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
-        <p class="text-neutral-500 text-body mb-4">Chưa có popup nào</p>
+        <p class="text-neutral-500 text-body mb-4">{{ t('admin.popups.empty', 'Chưa có popup nào') }}</p>
         <button @click="openCreate" class="btn-primary">+ {{ t('admin.popups.addPopup') }}</button>
       </div>
     </div>
@@ -324,21 +324,21 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
           <form @submit.prevent="savePopup" class="p-6 space-y-5">
             <!-- Section: Basic info -->
             <div class="space-y-4">
-              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Thông tin cơ bản</p>
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{{ t('admin.popups.basicInfo') }}</p>
               <div>
-                <label class="input-label">Tên popup * <span class="font-normal text-neutral-400">(chỉ admin thấy)</span></label>
-                <input v-model="formData.name" type="text" class="input-field" required placeholder="Ví dụ: Khuyến mãi Black Friday" />
+                <label class="input-label">{{ t('admin.popups.popupName') }} * <span class="font-normal text-neutral-400">{{ t('admin.popups.adminOnly') }}</span></label>
+                <input v-model="formData.name" type="text" class="input-field" required />
               </div>
               <div>
-                <label class="input-label">Tiêu đề <span class="font-normal text-neutral-400">(hiện cho khách)</span></label>
-                <input v-model="formData.title" type="text" class="input-field" placeholder="Ví dụ: 🔥 Giảm giá 50% hôm nay!" />
+                <label class="input-label">{{ t('admin.popups.popupTitle') }} <span class="font-normal text-neutral-400">{{ t('admin.popups.customerVisible') }}</span></label>
+                <input v-model="formData.title" type="text" class="input-field" />
               </div>
               <div>
-                <label class="input-label">Nội dung</label>
-                <textarea v-model="formData.content" rows="3" class="input-field" placeholder="Mô tả chi tiết popup..."></textarea>
+                <label class="input-label">{{ t('admin.popups.content') }}</label>
+                <textarea v-model="formData.content" rows="3" class="input-field"></textarea>
               </div>
               <div>
-                <label class="input-label">Ảnh popup <span class="font-normal text-neutral-400">(tùy chọn)</span></label>
+                <label class="input-label">{{ t('admin.popups.popupImage') }} <span class="font-normal text-neutral-400">{{ t('admin.popups.optional') }}</span></label>
                 <input ref="popupFileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onPopupFileChange" />
                 <div
                   v-if="!imagePreview && !formData.image_url"
@@ -352,44 +352,44 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 mx-auto text-neutral-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p class="text-body-sm text-neutral-600">Kéo thả hoặc <span class="text-aura-black font-medium underline">chọn ảnh</span></p>
-                  <p class="text-caption text-neutral-400 mt-1">JPEG, PNG, WebP — Tối đa 10MB</p>
+                  <p class="text-body-sm text-neutral-600">{{ t('admin.popups.dragDropHint') }} <span class="text-aura-black font-medium underline">{{ t('admin.popups.chooseImage') }}</span></p>
+                  <p class="text-caption text-neutral-400 mt-1">{{ t('admin.popups.imageFormats') }}</p>
                 </div>
                 <div v-else class="relative rounded-lg overflow-hidden border border-neutral-200">
                   <img :src="imagePreview || `${config.public.apiUrl}${formData.image_url}`" alt="Popup preview" class="w-full h-40 object-cover" />
                   <div v-if="isUploading" class="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <div class="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
                   </div>
-                  <button v-else type="button" @click="removePopupImage" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" title="Xóa ảnh">✕</button>
+                  <button v-else type="button" @click="removePopupImage" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" :title="t('admin.popups.removeImage')">✕</button>
                 </div>
               </div>
             </div>
 
             <!-- Section: Button -->
             <div class="space-y-4 pt-2">
-              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Nút bấm (CTA)</p>
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{{ t('admin.popups.cta') }}</p>
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="input-label">Văn bản nút</label>
-                  <input v-model="formData.button_text" type="text" class="input-field" placeholder="Xem ngay" />
+                  <label class="input-label">{{ t('admin.popups.buttonText') }}</label>
+                  <input v-model="formData.button_text" type="text" class="input-field" />
                 </div>
                 <div>
-                  <label class="input-label">Link khi bấm nút</label>
-                  <input v-model="formData.button_link" type="text" class="input-field" placeholder="/shop hoặc /sale" />
+                  <label class="input-label">{{ t('admin.popups.buttonLink') }}</label>
+                  <input v-model="formData.button_link" type="text" class="input-field" />
                 </div>
               </div>
             </div>
 
             <!-- Section: Trigger -->
             <div class="space-y-4 pt-2">
-              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Khi nào hiện popup?</p>
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{{ t('admin.popups.whenToShow') }}</p>
               <div class="grid grid-cols-1 gap-2">
                 <label
                   v-for="opt in [
-                    { value: 'delay', icon: '⏱️', label: 'Sau một khoảng thời gian', desc: 'Popup hiện sau X giây khi khách vào trang' },
-                    { value: 'scroll', icon: '📜', label: 'Khi cuộn trang', desc: 'Popup hiện khi khách cuộn xuống X% trang' },
-                    { value: 'exit', icon: '🚪', label: 'Khi rời trang (exit intent)', desc: 'Popup hiện khi chuột di chuyển ra ngoài trang' },
-                    { value: 'immediate', icon: '⚡', label: 'Hiện ngay lập tức', desc: 'Popup hiện ngay khi khách vào trang' },
+                    { value: 'delay', icon: '⏱️', label: t('admin.popups.triggerLabel.delay'), desc: t('admin.popups.triggerDesc.delay') },
+                    { value: 'scroll', icon: '📜', label: t('admin.popups.triggerLabel.scroll'), desc: t('admin.popups.triggerDesc.scroll') },
+                    { value: 'exit', icon: '🚪', label: t('admin.popups.triggerLabel.exit'), desc: t('admin.popups.triggerDesc.exit') },
+                    { value: 'immediate', icon: '⚡', label: t('admin.popups.triggerLabel.immediate'), desc: t('admin.popups.triggerDesc.immediate') },
                   ]"
                   :key="opt.value"
                   class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors"
@@ -404,27 +404,27 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
               </div>
               <!-- Conditional value input -->
               <div v-if="formData.trigger_type === 'delay'" class="flex items-center gap-2 pl-1">
-                <label class="text-body-sm text-neutral-600">Hiện sau</label>
+                <label class="text-body-sm text-neutral-600">{{ t('admin.popups.showAfter') }}</label>
                 <input v-model.number="formData.trigger_value" type="number" min="1" max="60" class="input-field w-20 text-center" />
-                <span class="text-body-sm text-neutral-600">giây</span>
+                <span class="text-body-sm text-neutral-600">{{ t('admin.popups.seconds') }}</span>
               </div>
               <div v-if="formData.trigger_type === 'scroll'" class="flex items-center gap-2 pl-1">
-                <label class="text-body-sm text-neutral-600">Hiện khi cuộn đến</label>
+                <label class="text-body-sm text-neutral-600">{{ t('admin.popups.showWhenScroll') }}</label>
                 <input v-model.number="formData.trigger_value" type="number" min="1" max="100" class="input-field w-20 text-center" />
-                <span class="text-body-sm text-neutral-600">% trang</span>
+                <span class="text-body-sm text-neutral-600">{{ t('admin.popups.pagePercent') }}</span>
               </div>
             </div>
 
             <!-- Section: Position -->
             <div class="space-y-4 pt-2">
-              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Vị trí hiển thị</p>
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{{ t('admin.popups.displayPosition') }}</p>
               <div class="grid grid-cols-2 gap-2">
                 <label
                   v-for="pos in [
-                    { value: 'center', icon: '📍', label: 'Giữa màn hình' },
-                    { value: 'bottom-right', icon: '↘️', label: 'Góc dưới phải' },
-                    { value: 'bottom-left', icon: '↙️', label: 'Góc dưới trái' },
-                    { value: 'top', icon: '⬆️', label: 'Trên cùng' },
+                    { value: 'center', icon: '📍', label: t('admin.popups.positionLabel.center') },
+                    { value: 'bottom-right', icon: '↘️', label: t('admin.popups.positionLabel.bottom-right') },
+                    { value: 'bottom-left', icon: '↙️', label: t('admin.popups.positionLabel.bottom-left') },
+                    { value: 'top', icon: '⬆️', label: t('admin.popups.positionLabel.top') },
                   ]"
                   :key="pos.value"
                   class="flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors"
@@ -438,14 +438,14 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
 
             <!-- Section: Schedule -->
             <div class="space-y-4 pt-2">
-              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Lịch hiển thị <span class="font-normal">(tùy chọn)</span></p>
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{{ t('admin.popups.schedule') }} <span class="font-normal">{{ t('admin.popups.optional') }}</span></p>
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="input-label">Ngày bắt đầu</label>
+                  <label class="input-label">{{ t('admin.popups.startDate') }}</label>
                   <input v-model="formData.starts_at" type="date" class="input-field" />
                 </div>
                 <div>
-                  <label class="input-label">Ngày kết thúc</label>
+                  <label class="input-label">{{ t('admin.popups.endDate') }}</label>
                   <input v-model="formData.ends_at" type="date" class="input-field" />
                 </div>
               </div>
@@ -461,7 +461,7 @@ useSeoMeta({ title: 'Popup Manager | Admin' })
               >
                 <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform" :class="formData.is_active ? 'translate-x-6' : 'translate-x-1'" />
               </button>
-              <span class="text-body-sm">{{ formData.is_active ? 'Bật - Popup sẽ hiện cho khách hàng' : 'Tắt - Popup sẽ không hiện' }}</span>
+              <span class="text-body-sm">{{ formData.is_active ? t('admin.popups.toggleActiveDesc') : t('admin.popups.toggleInactiveDesc') }}</span>
             </div>
 
             <p v-if="formError" class="text-red-600 text-body-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ formError }}</p>

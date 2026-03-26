@@ -73,7 +73,7 @@ const getToken = () => {
 const uploadImages = async (files: FileList) => {
   if (!files || files.length === 0) return
   if ((productImages.value?.length || 0) + files.length > 5) {
-    imageError.value = 'Tối đa 5 ảnh'
+    imageError.value = t('admin.productForm.maxImages', 'T\u1ed1i \u0111a 5 \u1ea3nh')
     return
   }
 
@@ -99,7 +99,7 @@ const uploadImages = async (files: FileList) => {
       productImages.value.push(...response.data.urls)
     }
   } catch (err: any) {
-    imageError.value = err?.data?.message || 'Upload thất bại'
+    imageError.value = err?.data?.message || t('notifications.uploadFailed', 'Upload th\u1ea5t b\u1ea1i')
   } finally {
     isImageUploading.value = false
     if (imageFileInput.value) imageFileInput.value.value = ''
@@ -171,7 +171,7 @@ const duplicateVariant = (index: number) => {
 }
 
 // "Other" label (translated)
-const otherLabel = computed(() => locale.value === 'vi' ? 'Khác' : 'Other')
+const otherLabel = computed(() => t('common.other', 'Other'))
 
 // Categories (translated) — same as new.vue
 const categories = computed(() => [
@@ -182,8 +182,8 @@ const categories = computed(() => [
   { value: 'Bags', label: t('categories.bags') },
   { value: 'Accessories', label: t('categories.accessories') },
   { value: 'Dresses', label: t('categories.dresses') },
-  { value: 'Jewelry', label: locale.value === 'vi' ? 'Trang sức' : 'Jewelry' },
-  { value: 'Watches', label: locale.value === 'vi' ? 'Đồng hồ' : 'Watches' },
+  { value: 'Jewelry', label: t('categories.jewelry', 'Trang s\u1ee9c') },
+  { value: 'Watches', label: t('categories.watches', '\u0110\u1ed3ng h\u1ed3') },
   { value: 'Other', label: otherLabel.value },
 ])
 const conditions = computed(() => [
@@ -213,8 +213,8 @@ const sizes = computed(() => [
   { value: 'L', label: 'L' },
   { value: 'XL', label: 'XL' },
   { value: 'XXL', label: 'XXL' },
-  { value: 'One Size', label: locale.value === 'vi' ? 'Một cỡ' : 'One Size' },
-  { value: 'Free Size', label: locale.value === 'vi' ? 'Tự do' : 'Free Size' },
+  { value: 'One Size', label: t('shop.filters.oneSize', 'One Size') },
+  { value: 'Free Size', label: t('shop.filters.freeSize', 'Free Size') },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -228,8 +228,8 @@ const colors = computed(() => [
   { value: 'Cream', label: t('colors.cream') },
   { value: 'Brown', label: t('colors.brown') },
   { value: 'Multi', label: t('colors.multi') },
-  { value: 'Gold', label: locale.value === 'vi' ? 'Vàng' : 'Gold' },
-  { value: 'Silver', label: locale.value === 'vi' ? 'Bạc' : 'Silver' },
+  { value: 'Gold', label: t('colors.gold', 'Gold') },
+  { value: 'Silver', label: t('colors.silver', 'Silver') },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -243,8 +243,8 @@ const materials = computed(() => [
   { value: 'Polyester', label: t('materials.polyester') },
   { value: 'Linen', label: t('materials.linen') },
   { value: 'Mixed', label: t('materials.mixed') },
-  { value: 'Canvas', label: locale.value === 'vi' ? 'Vải canvas' : 'Canvas' },
-  { value: 'Metal', label: locale.value === 'vi' ? 'Kim loại' : 'Metal' },
+  { value: 'Canvas', label: t('materials.canvas', 'Canvas') },
+  { value: 'Metal', label: t('materials.metal', 'Metal') },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -542,7 +542,7 @@ useSeoMeta({
               v-model="customCategory" 
               type="text" 
               class="input-field mt-2" 
-              :placeholder="locale === 'vi' ? 'Nhập tên danh mục mới...' : 'Enter new category...'"
+              :placeholder="t('admin.productForm.enterNew', 'Nh\u1eadp gi\u00e1 tr\u1ecb m\u1edbi...')"
             />
           </div>
 
@@ -556,7 +556,7 @@ useSeoMeta({
               v-model="customSubcategory" 
               type="text" 
               class="input-field mt-2" 
-              :placeholder="locale === 'vi' ? 'Nhập phân loại mới...' : 'Enter new subcategory...'"
+              :placeholder="t('admin.productForm.enterNew', 'Nh\u1eadp gi\u00e1 tr\u1ecb m\u1edbi...')"
             />
           </div>
 
@@ -597,10 +597,10 @@ useSeoMeta({
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
           <p class="text-body-sm text-neutral-600">
-            {{ isImageUploading ? $t('common.uploading') : $t('admin.dragDropImages', 'Kéo thả hoặc nhấn để tải ảnh') }}
+            {{ isImageUploading ? $t('common.uploading') : $t('admin.dragDropImages', 'K\u00e9o th\u1ea3 ho\u1eb7c nh\u1ea5n \u0111\u1ec3 t\u1ea3i \u1ea3nh') }}
           </p>
           <p class="text-caption text-neutral-400 mt-1">
-            {{ $t('admin.imageLimits', { remaining: 5 - (productImages?.length || 0), max: 5 }, `Còn ${5 - (productImages?.length || 0)}/5 ảnh`) }}
+            {{ $t('admin.imageLimits', { remaining: 5 - (productImages?.length || 0), max: 5 }, `C\u00f2n ${5 - (productImages?.length || 0)}/5 \u1ea3nh`) }}
           </p>
         </div>
 
@@ -638,7 +638,7 @@ useSeoMeta({
               </svg>
             </button>
             <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-caption py-1 px-2">
-              {{ index === 0 ? $t('admin.mainImage', 'Ảnh chính') : `#${index + 1}` }}
+              {{ index === 0 ? $t('admin.mainImage', '\u1ea2nh ch\u00ednh') : `#${index + 1}` }}
             </div>
           </div>
         </div>
@@ -689,7 +689,7 @@ useSeoMeta({
               v-model="customCondition" 
               type="text" 
               class="input-field mt-2" 
-              :placeholder="locale === 'vi' ? 'Nhập tình trạng mới...' : 'Enter new condition...'"
+              :placeholder="t('admin.productForm.enterNew', 'Nh\u1eadp gi\u00e1 tr\u1ecb m\u1edbi...')"
             />
           </div>
           
@@ -737,7 +737,7 @@ useSeoMeta({
                   type="button"
                   @click="duplicateVariant(variants.indexOf(v))"
                   class="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  title="Make a new restock copy of this item"
+                  :title="t('admin.duplicateDesc', 'Nh\u00e2n b\u1ea3n b\u1ea3n ghi n\u00e0y')"
                 >
                   {{ $t('admin.duplicate', 'Nhân bản') }}
                 </button>
@@ -763,7 +763,7 @@ useSeoMeta({
                   v-model="v.customSize" 
                   type="text" 
                   class="input-field mt-2" 
-                  :placeholder="locale === 'vi' ? 'Nhập kích cỡ mới...' : 'Enter new size...'"
+                  :placeholder="t('admin.productForm.enterNew', 'Nh\u1eadp gi\u00e1 tr\u1ecb m\u1edbi...')"
                 />
               </div>
               
@@ -777,7 +777,7 @@ useSeoMeta({
                   v-model="v.customColor" 
                   type="text" 
                   class="input-field mt-2" 
-                  :placeholder="locale === 'vi' ? 'Nhập màu sắc mới...' : 'Enter new color...'"
+                  :placeholder="t('admin.productForm.enterNew', 'Nh\u1eadp gi\u00e1 tr\u1ecb m\u1edbi...')"
                 />
               </div>
 
@@ -791,7 +791,7 @@ useSeoMeta({
                   v-model="v.customMaterial" 
                   type="text" 
                   class="input-field mt-2" 
-                  :placeholder="locale === 'vi' ? 'Nhập chất liệu mới...' : 'Enter new material...'"
+                  :placeholder="t('admin.productForm.enterNew', 'Nh\u1eadp gi\u00e1 tr\u1ecb m\u1edbi...')"
                 />
               </div>
 
@@ -809,7 +809,7 @@ useSeoMeta({
                   type="number"
                   min="1"
                   class="input-field"
-                  title="Tạo nhiều bản sao cho sản phẩm này"
+                  :title="$t('admin.duplicateDesc', 'T\u1ea1o nhi\u1ec1u b\u1ea3n sao cho s\u1ea3n ph\u1ea9m n\u00e0y')"
                 />
               </div>
             </div>

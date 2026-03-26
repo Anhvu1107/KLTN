@@ -74,14 +74,15 @@ const deleteUser = async (userId: string, userName: string) => {
     })
     await refresh()
   } catch (error: any) {
-    showAlert({ title: t('notifications.error', 'Lỗi'), message: error?.data?.message || 'Không thể xóa người dùng', type: 'danger' })
+    showAlert({ title: t('notifications.error', 'L\u1ed7i'), message: error?.data?.message || t('notifications.deleteError', 'Kh\u00f4ng th\u1ec3 x\u00f3a ng\u01b0\u1eddi d\u00f9ng'), type: 'danger' })
   }
 }
 
 const { locale } = useI18n()
 const formatDate = (date: string) => {
+  if (!date) return t('common.unknown')
   const d = new Date(date)
-  if (isNaN(d.getTime())) return '—'
+  if (isNaN(d.getTime())) return t('common.unknown')
   return d.toLocaleDateString(locale.value === 'vi' ? 'vi-VN' : 'en-US', {
     month: 'short',
     day: 'numeric',

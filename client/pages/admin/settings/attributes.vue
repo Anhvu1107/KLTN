@@ -15,13 +15,13 @@ const { getToken } = useAuthToken()
 
 // Active tab
 const activeTab = ref('brands')
-const tabs = [
-  { key: 'brands', label: 'Thương hiệu' },
-  { key: 'categories', label: 'Danh mục' },
-  { key: 'colors', label: 'Màu sắc' },
-  { key: 'sizes', label: 'Kích cỡ' },
-  { key: 'materials', label: 'Chất liệu' },
-]
+const tabs = computed(() => [
+  { key: 'brands', label: t('admin.attributes.brands', 'Th\u01b0\u01a1ng hi\u1ec7u') },
+  { key: 'categories', label: t('admin.attributes.categories', 'Danh m\u1ee5c') },
+  { key: 'colors', label: t('admin.attributes.colors', 'M\u00e0u s\u1eafc') },
+  { key: 'sizes', label: t('admin.attributes.sizes', 'K\u00edch c\u1ee1') },
+  { key: 'materials', label: t('admin.attributes.materials', 'Ch\u1ea5t li\u1ec7u') },
+])
 
 // Data state
 const attributes = ref<{
@@ -63,7 +63,7 @@ const fetchAttributes = async () => {
       attributes.value = response.data.attributes
     }
   } catch (err: any) {
-    errorMessage.value = err?.data?.message || 'Failed to load attributes'
+    errorMessage.value = err?.data?.message || t('notifications.loadError', 'Failed to load attributes')
   } finally {
     isLoading.value = false
   }
@@ -84,10 +84,10 @@ const saveAttribute = async (key: string) => {
       body: { items }
     })
 
-    successMessage.value = 'Đã lưu thành công!'
+    successMessage.value = t('common.saveSuccess', '\u0110\u00e3 l\u01b0u th\u00e0nh c\u00f4ng!')
     setTimeout(() => { successMessage.value = '' }, 3000)
   } catch (err: any) {
-    errorMessage.value = err?.data?.message || 'Lưu thất bại'
+    errorMessage.value = err?.data?.message || t('notifications.saveError', 'L\u01b0u th\u1ea5t b\u1ea1i')
   } finally {
     isSaving.value = false
   }
@@ -215,7 +215,7 @@ useSeoMeta({
                 @click="removeBrand(index)"
                 class="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-red-500"
               >
-                ×
+                &#215;
               </button>
             </div>
           </div>
@@ -226,7 +226,7 @@ useSeoMeta({
               v-model="newBrand"
               type="text"
               class="input-field flex-1"
-              placeholder="Thêm thương hiệu mới..."
+              :placeholder="t('admin.attributes.addBrand', 'Th\u00eam th\u01b0\u01a1ng hi\u1ec7u m\u1edbi...')"
               @keyup.enter="addBrand"
             />
             <button type="button" @click="addBrand" class="btn-secondary">
@@ -267,7 +267,7 @@ useSeoMeta({
                 @click="removeCategory(index)"
                 class="ml-auto text-neutral-400 hover:text-red-500"
               >
-                ×
+                &#215;
               </button>
             </div>
           </div>
@@ -276,7 +276,7 @@ useSeoMeta({
           <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <input v-model="newCategory.value" type="text" class="input-field" placeholder="Value (code)" />
             <input v-model="newCategory.label_en" type="text" class="input-field" placeholder="Label (English)" />
-            <input v-model="newCategory.label_vi" type="text" class="input-field" placeholder="Label (Tiếng Việt)" />
+            <input v-model="newCategory.label_vi" type="text" class="input-field" placeholder="Label (Ti\u1ebfng Vi\u1ec7t)" />
             <button type="button" @click="addCategory" class="btn-secondary">
               {{ $t('common.add') }}
             </button>
@@ -315,7 +315,7 @@ useSeoMeta({
                 @click="removeColor(index)"
                 class="ml-auto text-neutral-400 hover:text-red-500"
               >
-                ×
+                &#215;
               </button>
             </div>
           </div>
@@ -324,7 +324,7 @@ useSeoMeta({
           <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <input v-model="newColor.value" type="text" class="input-field" placeholder="Value (code)" />
             <input v-model="newColor.label_en" type="text" class="input-field" placeholder="Label (English)" />
-            <input v-model="newColor.label_vi" type="text" class="input-field" placeholder="Label (Tiếng Việt)" />
+            <input v-model="newColor.label_vi" type="text" class="input-field" placeholder="Label (Ti\u1ebfng Vi\u1ec7t)" />
             <button type="button" @click="addColor" class="btn-secondary">
               {{ $t('common.add') }}
             </button>
@@ -361,7 +361,7 @@ useSeoMeta({
                 @click="removeSize(index)"
                 class="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-red-500"
               >
-                ×
+                &#215;
               </button>
             </div>
           </div>
@@ -372,7 +372,7 @@ useSeoMeta({
               v-model="newSize"
               type="text"
               class="input-field flex-1"
-              placeholder="Thêm kích cỡ mới..."
+              :placeholder="t('admin.attributes.addSize', 'Th\u00eam k\u00edch c\u1ee1 m\u1edbi...')"
               @keyup.enter="addSize"
             />
             <button type="button" @click="addSize" class="btn-secondary">
@@ -413,7 +413,7 @@ useSeoMeta({
                 @click="removeMaterial(index)"
                 class="ml-auto text-neutral-400 hover:text-red-500"
               >
-                ×
+                &#215;
               </button>
             </div>
           </div>
@@ -422,7 +422,7 @@ useSeoMeta({
           <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <input v-model="newMaterial.value" type="text" class="input-field" placeholder="Value (code)" />
             <input v-model="newMaterial.label_en" type="text" class="input-field" placeholder="Label (English)" />
-            <input v-model="newMaterial.label_vi" type="text" class="input-field" placeholder="Label (Tiếng Việt)" />
+            <input v-model="newMaterial.label_vi" type="text" class="input-field" placeholder="Label (Ti\u1ebfng Vi\u1ec7t)" />
             <button type="button" @click="addMaterial" class="btn-secondary">
               {{ $t('common.add') }}
             </button>
