@@ -27,7 +27,7 @@ const createEmptyProductResponse = (): ProductListResponse => ({
   data: { products: [] },
 })
 
-// Keep the hero banner on SSR, but avoid blocking the whole homepage on product feeds.
+// Fetch all banners (SSR)
 const { data: bannersData } = await useFetch<BannerResponse>(`${config.public.apiUrl}/banners`, {
   timeout: 5000,
   default: createEmptyBannerResponse,
@@ -63,18 +63,23 @@ const { data: saleProductsData } = useFetch<ProductListResponse>(
   }
 )
 
-// Get hero banner (position = 0)
-const heroBanner = computed(() => {
-  const banners = bannersData.value?.data?.banners || []
-  return banners.find((b: any) => b.position === 0) || null
-})
-
-// Resolve banner image URL (supports both Cloudinary and legacy local paths)
-const heroBannerImage = computed(() => {
-  const url = heroBanner.value?.image_url
+// Helper: resolve banner image URL
+const resolveBannerUrl = (url: string | undefined) => {
   if (!url) return ''
   return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
-})
+}
+
+// Get banners by section
+const allBanners = computed(() => bannersData.value?.data?.banners || [])
+const getBannerBySection = (section: string) => allBanners.value.find((b: any) => b.section === section) || null
+
+const heroBanner = computed(() => getBannerBySection('hero'))
+const heroBannerImage = computed(() => resolveBannerUrl(heroBanner.value?.image_url))
+const collectionWomenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_women')?.image_url))
+const collectionMenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_men')?.image_url))
+const categoryBagsImage = computed(() => resolveBannerUrl(getBannerBySection('category_bags')?.image_url))
+const categoryOuterwearImage = computed(() => resolveBannerUrl(getBannerBySection('category_outerwear')?.image_url))
+const categoryAccessoriesImage = computed(() => resolveBannerUrl(getBannerBySection('category_accessories')?.image_url))
 
 const products = computed(() => featuredProducts.value?.data?.products || [])
 const bestSellers = computed(() => bestSellersData.value?.data?.products || [])
@@ -195,11 +200,12 @@ useSeoMeta({
             to="/shop?subcategory=Women" 
             class="group relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-rose-50 to-neutral-100"
           >
+            <img v-if="collectionWomenImage" :src="collectionWomenImage" alt="Women's Collection" class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">{{ $t('home.collection') }}</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ $t('home.women') }}</h2>
-              <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3" :class="collectionWomenImage ? 'text-white/80' : ''">{{ $t('home.collection') }}</span>
+              <h2 class="font-serif text-heading-1 mb-4" :class="collectionWomenImage ? 'text-white' : 'text-aura-black'">{{ $t('home.women') }}</h2>
+              <span class="text-body-sm uppercase tracking-wider underline underline-offset-4" :class="collectionWomenImage ? 'text-white/80 group-hover:text-white' : 'text-neutral-600 group-hover:text-aura-black'" style="transition: color 0.3s">
                 {{ $t('home.shopNow') }}
               </span>
             </div>
@@ -210,11 +216,12 @@ useSeoMeta({
             to="/shop?subcategory=Men" 
             class="group relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-slate-100 to-neutral-100"
           >
+            <img v-if="collectionMenImage" :src="collectionMenImage" alt="Men's Collection" class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">{{ $t('home.collection') }}</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ $t('home.men') }}</h2>
-              <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3" :class="collectionMenImage ? 'text-white/80' : ''">{{ $t('home.collection') }}</span>
+              <h2 class="font-serif text-heading-1 mb-4" :class="collectionMenImage ? 'text-white' : 'text-aura-black'">{{ $t('home.men') }}</h2>
+              <span class="text-body-sm uppercase tracking-wider underline underline-offset-4" :class="collectionMenImage ? 'text-white/80 group-hover:text-white' : 'text-neutral-600 group-hover:text-aura-black'" style="transition: color 0.3s">
                 {{ $t('home.shopNow') }}
               </span>
             </div>
@@ -415,18 +422,19 @@ useSeoMeta({
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           <NuxtLink
             v-for="(cat, index) in [
-              { key: 'bags', name: $t('home.catBags'), color: 'from-amber-50 to-orange-50' },
-              { key: 'outerwear', name: $t('home.catOuterwear'), color: 'from-slate-50 to-gray-100' },
-              { key: 'accessories', name: $t('home.catAccessories'), color: 'from-rose-50 to-pink-50' }
+              { key: 'bags', name: $t('home.catBags'), color: 'from-amber-50 to-orange-50', image: categoryBagsImage },
+              { key: 'outerwear', name: $t('home.catOuterwear'), color: 'from-slate-50 to-gray-100', image: categoryOuterwearImage },
+              { key: 'accessories', name: $t('home.catAccessories'), color: 'from-rose-50 to-pink-50', image: categoryAccessoriesImage }
             ]"
             :key="cat.key"
             :to="`/shop?category=${cat.key.charAt(0).toUpperCase() + cat.key.slice(1)}`"
             class="group relative aspect-square overflow-hidden bg-gradient-to-br"
             :class="cat.color"
           >
+            <img v-if="cat.image" :src="cat.image" :alt="cat.name" class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-              <h3 class="font-serif text-heading-2 text-aura-black mb-3">{{ cat.name }}</h3>
-              <span class="text-caption uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
+              <h3 class="font-serif text-heading-2 mb-3" :class="cat.image ? 'text-white' : 'text-aura-black'">{{ cat.name }}</h3>
+              <span class="text-caption uppercase tracking-wider underline underline-offset-4" :class="cat.image ? 'text-white/80 group-hover:text-white' : 'text-neutral-600 group-hover:text-aura-black'" style="transition: color 0.3s">
                 {{ $t('home.shopNow') }}
               </span>
             </div>

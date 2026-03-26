@@ -1,32 +1,38 @@
 /**
  * Banner Service
- * AURA ARCHIVE - Banner management
+ * AURA ARCHIVE - Banner management with section filtering
  */
 
 const { Banner } = require('../models');
 const { Op } = require('sequelize');
 
 /**
- * Get active banners for homepage
+ * Get active banners, optionally filtered by section
  */
-const getActiveBanners = async () => {
+const getActiveBanners = async (section = null) => {
     const now = new Date();
 
+    const where = {
+        is_active: true,
+        [Op.or]: [
+            { starts_at: null, ends_at: null },
+            {
+                starts_at: { [Op.lte]: now },
+                [Op.or]: [
+                    { ends_at: null },
+                    { ends_at: { [Op.gte]: now } },
+                ],
+            },
+        ],
+    };
+
+    if (section) {
+        where.section = section;
+    }
+
     const banners = await Banner.findAll({
-        where: {
-            is_active: true,
-            [Op.or]: [
-                { starts_at: null, ends_at: null },
-                {
-                    starts_at: { [Op.lte]: now },
-                    [Op.or]: [
-                        { ends_at: null },
-                        { ends_at: { [Op.gte]: now } },
-                    ],
-                },
-            ],
-        },
-        order: [['position', 'ASC']],
+        where,
+        order: [['section', 'ASC'], ['position', 'ASC']],
     });
 
     return banners;
@@ -37,7 +43,7 @@ const getActiveBanners = async () => {
  */
 const getAllBanners = async () => {
     const banners = await Banner.findAll({
-        order: [['position', 'ASC'], ['created_at', 'DESC']],
+        order: [['section', 'ASC'], ['position', 'ASC'], ['created_at', 'DESC']],
     });
     return banners;
 };

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Admin Banners Page
- * AURA ARCHIVE - Visual banner management with drag-free reordering
+ * AURA ARCHIVE - Visual banner management grouped by section
  */
 
 import { useDialog } from '~/composables/useDialog'
@@ -15,6 +15,18 @@ const { t } = useI18n()
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
 const { confirm: showConfirm } = useDialog()
+
+// Section definitions
+const SECTIONS = [
+  { key: 'hero', label: '🏠 Trang chủ — Hero', desc: 'Ảnh lớn bên phải hero section trang chủ' },
+  { key: 'collection_women', label: '👗 BST Nữ', desc: 'Ảnh nền block "Bộ sưu tập Nữ" trên trang chủ' },
+  { key: 'collection_men', label: '👔 BST Nam', desc: 'Ảnh nền block "Bộ sưu tập Nam" trên trang chủ' },
+  { key: 'category_bags', label: '👜 Danh mục: Túi xách', desc: 'Ảnh nền card danh mục Túi xách' },
+  { key: 'category_outerwear', label: '🧥 Danh mục: Áo khoác', desc: 'Ảnh nền card danh mục Áo khoác' },
+  { key: 'category_accessories', label: '💍 Danh mục: Phụ kiện', desc: 'Ảnh nền card danh mục Phụ kiện' },
+  { key: 'about', label: '📖 Trang About', desc: 'Ảnh minh họa câu chuyện trên trang Giới thiệu' },
+  { key: 'general', label: '📌 Chung', desc: 'Banner chung / dự phòng' },
+]
 
 // State
 const banners = ref<any[]>([])
@@ -37,11 +49,25 @@ const formData = ref({
   image_url: '',
   link_url: '',
   button_text: 'Shop Now',
+  section: 'general',
   position: 0,
   is_active: true,
   starts_at: '',
   ends_at: '',
 })
+
+// Computed: group banners by section
+const groupedBanners = computed(() => {
+  const groups: Record<string, any[]> = {}
+  for (const s of SECTIONS) {
+    groups[s.key] = banners.value.filter((b: any) => (b.section || 'general') === s.key)
+  }
+  return groups
+})
+
+// Sections that have banners (for display)
+const activeSections = computed(() => SECTIONS.filter(s => groupedBanners.value[s.key]?.length > 0))
+const emptySections = computed(() => SECTIONS.filter(s => !groupedBanners.value[s.key]?.length))
 
 // Fetch banners
 const fetchBanners = async () => {
@@ -52,7 +78,7 @@ const fetchBanners = async () => {
       `${config.public.apiUrl}/admin/banners`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
-    banners.value = (response.data.banners || []).sort((a: any, b: any) => a.position - b.position)
+    banners.value = response.data.banners || []
   } catch (error) {
     console.error('Failed to fetch banners:', error)
   } finally {
@@ -61,7 +87,7 @@ const fetchBanners = async () => {
 }
 
 // Open create modal
-const openCreateModal = () => {
+const openCreateModal = (section = 'general') => {
   editingBanner.value = null
   imagePreview.value = ''
   formData.value = {
@@ -70,7 +96,8 @@ const openCreateModal = () => {
     image_url: '',
     link_url: '',
     button_text: 'Shop Now',
-    position: banners.value.length,
+    section,
+    position: groupedBanners.value[section]?.length || 0,
     is_active: true,
     starts_at: '',
     ends_at: '',
@@ -87,6 +114,7 @@ const openEditModal = (banner: any) => {
     image_url: banner.image_url,
     link_url: banner.link_url || '',
     button_text: banner.button_text || 'Shop Now',
+    section: banner.section || 'general',
     position: banner.position,
     is_active: banner.is_active,
     starts_at: banner.starts_at ? banner.starts_at.split('T')[0] : '',
@@ -165,7 +193,6 @@ const submitForm = async () => {
       : `${config.public.apiUrl}/admin/banners`
     const payload = {
       ...formData.value,
-      position: editingBanner.value ? formData.value.position : banners.value.length,
       starts_at: formData.value.starts_at || null,
       ends_at: formData.value.ends_at || null,
     }
@@ -198,7 +225,7 @@ const deleteBanner = async (id: string) => {
   }
 }
 
-// Toggle active status directly
+// Toggle active status
 const toggleActive = async (banner: any) => {
   try {
     const token = getToken()
@@ -210,33 +237,6 @@ const toggleActive = async (banner: any) => {
     banner.is_active = !banner.is_active
   } catch (error) {
     console.error('Failed to toggle banner:', error)
-  }
-}
-
-// Move banner up/down (swap positions)
-const moveBanner = async (index: number, direction: 'up' | 'down') => {
-  const targetIndex = direction === 'up' ? index - 1 : index + 1
-  if (targetIndex < 0 || targetIndex >= banners.value.length) return
-
-  const token = getToken()
-  const current = banners.value[index]
-  const target = banners.value[targetIndex]
-  const tempPos = current.position
-
-  try {
-    await Promise.all([
-      $fetch(`${config.public.apiUrl}/admin/banners/${current.id}`, {
-        method: 'PUT', headers: { Authorization: `Bearer ${token}` },
-        body: { ...current, position: target.position },
-      }),
-      $fetch(`${config.public.apiUrl}/admin/banners/${target.id}`, {
-        method: 'PUT', headers: { Authorization: `Bearer ${token}` },
-        body: { ...target, position: tempPos },
-      }),
-    ])
-    await fetchBanners()
-  } catch (error) {
-    console.error('Failed to reorder:', error)
   }
 }
 
@@ -260,6 +260,8 @@ const getStatusClass = (banner: any) => {
   return 'bg-green-50 text-green-700'
 }
 
+const getSectionLabel = (key: string) => SECTIONS.find(s => s.key === key)?.label || key
+
 onMounted(fetchBanners)
 useSeoMeta({ title: 'Banner Management | Admin' })
 </script>
@@ -270,18 +272,12 @@ useSeoMeta({ title: 'Banner Management | Admin' })
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.banners.title') }}</h1>
-        <p class="text-body-sm text-neutral-500 mt-1">Quản lý các banner hiển thị trên trang chủ (Hero Slider). Kéo thứ tự để thay đổi vị trí slide.</p>
+        <p class="text-body-sm text-neutral-500 mt-1">Quản lý banner theo từng vị trí hiển thị trên website.</p>
       </div>
-      <button @click="openCreateModal" class="btn-primary flex items-center gap-2">
+      <button @click="openCreateModal()" class="btn-primary flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         {{ t('admin.banners.addBanner') }}
       </button>
-    </div>
-
-    <!-- Info box -->
-    <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6 flex items-start gap-3">
-      <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <p class="text-body-sm text-amber-800">Banner sẽ hiển thị theo thứ tự từ trên xuống dưới. Slide 1 hiển thị đầu tiên khi khách truy cập trang chủ. Dùng nút <strong>↑ ↓</strong> để thay đổi thứ tự.</p>
     </div>
 
     <!-- Loading -->
@@ -289,120 +285,91 @@ useSeoMeta({ title: 'Banner Management | Admin' })
       <div class="animate-spin w-8 h-8 border-2 border-neutral-300 border-t-aura-black rounded-full mx-auto"></div>
     </div>
 
-    <!-- Banner List -->
-    <div v-else class="space-y-4">
-      <div
-        v-for="(banner, index) in banners"
-        :key="banner.id"
-        class="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-      >
-        <div class="flex">
-          <!-- Slide Number -->
-          <div class="w-20 bg-neutral-50 flex flex-col items-center justify-center border-r border-neutral-200 shrink-0 py-4">
-            <span class="text-xs text-neutral-400 uppercase tracking-wider font-medium">Slide</span>
-            <span class="text-2xl font-bold text-aura-black mt-1">{{ index + 1 }}</span>
-            <!-- Reorder buttons -->
-            <div class="flex flex-col gap-1 mt-3">
-              <button
-                @click="moveBanner(index, 'up')"
-                :disabled="index === 0"
-                class="p-1 rounded hover:bg-neutral-200 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
-                title="Di chuyển lên"
-              >
-                <svg class="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-              </button>
-              <button
-                @click="moveBanner(index, 'down')"
-                :disabled="index === banners.length - 1"
-                class="p-1 rounded hover:bg-neutral-200 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
-                title="Di chuyển xuống"
-              >
-                <svg class="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-              </button>
-            </div>
+    <!-- Sections with banners -->
+    <div v-else class="space-y-8">
+      <div v-for="section in SECTIONS" :key="section.key">
+        <!-- Section Header -->
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-body font-semibold text-aura-black">{{ section.label }}</h2>
+            <p class="text-caption text-neutral-400">{{ section.desc }}</p>
           </div>
+          <button
+            v-if="!groupedBanners[section.key]?.length"
+            @click="openCreateModal(section.key)"
+            class="text-caption text-neutral-500 border border-dashed border-neutral-300 rounded-lg px-3 py-1.5 hover:border-neutral-400 hover:text-aura-black transition-colors flex items-center gap-1"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Thêm
+          </button>
+        </div>
 
-          <!-- Image Preview -->
-          <div class="w-64 shrink-0 bg-neutral-100 relative">
-            <img
-              v-if="banner.image_url"
-              :src="getBannerImageSrc(banner)"
-              :alt="banner.title"
-              class="w-full h-full object-cover"
-              style="min-height: 140px; max-height: 160px;"
-            />
-            <div v-else class="w-full h-full flex items-center justify-center text-neutral-400 py-12">
-              <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            </div>
-          </div>
-
-          <!-- Info -->
-          <div class="flex-1 px-5 py-4 flex flex-col justify-between min-w-0">
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <h3 class="font-medium text-aura-black text-body truncate">{{ banner.title }}</h3>
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium shrink-0" :class="getStatusClass(banner)">
-                  {{ getStatusText(banner) }}
-                </span>
-              </div>
-              <p v-if="banner.subtitle" class="text-body-sm text-neutral-500 truncate">{{ banner.subtitle }}</p>
-              <div class="flex items-center gap-4 mt-2 text-xs text-neutral-400">
-                <span v-if="banner.link_url" class="flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                  {{ banner.link_url }}
-                </span>
-                <span v-if="banner.button_text" class="flex items-center gap-1">
-                  Nút: "{{ banner.button_text }}"
-                </span>
-              </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="flex items-center gap-3 mt-3">
-              <!-- Active Toggle -->
-              <button
-                @click="toggleActive(banner)"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
-                :class="banner.is_active ? 'bg-green-500' : 'bg-neutral-300'"
-                :title="banner.is_active ? 'Đang bật - Click để tắt' : 'Đang tắt - Click để bật'"
-              >
-                <span
-                  class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform"
-                  :class="banner.is_active ? 'translate-x-6' : 'translate-x-1'"
+        <!-- Banner cards for this section -->
+        <div v-if="groupedBanners[section.key]?.length" class="space-y-3">
+          <div
+            v-for="banner in groupedBanners[section.key]"
+            :key="banner.id"
+            class="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div class="flex">
+              <!-- Image Preview -->
+              <div class="w-48 shrink-0 bg-neutral-100 relative">
+                <img
+                  v-if="banner.image_url"
+                  :src="getBannerImageSrc(banner)"
+                  :alt="banner.title"
+                  class="w-full h-full object-cover"
+                  style="min-height: 100px; max-height: 120px;"
                 />
-              </button>
-              <span class="text-xs text-neutral-500">{{ banner.is_active ? 'Bật' : 'Tắt' }}</span>
+                <div v-else class="w-full h-full flex items-center justify-center text-neutral-400 py-8">
+                  <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+              </div>
 
-              <div class="flex-1"></div>
+              <!-- Info -->
+              <div class="flex-1 px-4 py-3 flex flex-col justify-between min-w-0">
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-medium text-aura-black text-body truncate">{{ banner.title }}</h3>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium shrink-0" :class="getStatusClass(banner)">
+                      {{ getStatusText(banner) }}
+                    </span>
+                  </div>
+                  <p v-if="banner.subtitle" class="text-caption text-neutral-500 truncate">{{ banner.subtitle }}</p>
+                </div>
 
-              <!-- Edit -->
-              <button
-                @click="openEditModal(banner)"
-                class="px-3 py-1.5 text-body-sm text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 hover:border-neutral-400 transition-colors flex items-center gap-1.5"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                {{ t('common.edit') }}
-              </button>
-              <!-- Delete -->
-              <button
-                @click="deleteBanner(banner.id)"
-                class="px-3 py-1.5 text-body-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors flex items-center gap-1.5"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                {{ t('common.delete') }}
-              </button>
+                <!-- Actions -->
+                <div class="flex items-center gap-3 mt-2">
+                  <button
+                    @click="toggleActive(banner)"
+                    class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
+                    :class="banner.is_active ? 'bg-green-500' : 'bg-neutral-300'"
+                  >
+                    <span
+                      class="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transform transition-transform"
+                      :class="banner.is_active ? 'translate-x-[18px]' : 'translate-x-[3px]'"
+                    />
+                  </button>
+                  <span class="text-xs text-neutral-400">{{ banner.is_active ? 'Bật' : 'Tắt' }}</span>
+                  <div class="flex-1"></div>
+                  <button @click="openEditModal(banner)" class="px-2.5 py-1 text-xs text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    Sửa
+                  </button>
+                  <button @click="deleteBanner(banner.id)" class="px-2.5 py-1 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Xóa
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Empty state -->
-      <div v-if="banners.length === 0" class="text-center py-16 bg-white rounded-xl border-2 border-dashed border-neutral-200">
-        <svg class="w-16 h-16 mx-auto text-neutral-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        <p class="text-neutral-500 text-body mb-4">{{ t('admin.banners.noBanners') }}</p>
-        <button @click="openCreateModal" class="btn-primary">
-          + {{ t('admin.banners.addBanner') }}
-        </button>
+        <!-- Empty state for this section -->
+        <div v-else class="border-2 border-dashed border-neutral-200 rounded-xl py-6 text-center text-neutral-400">
+          <p class="text-caption">Chưa có banner cho vị trí này</p>
+        </div>
       </div>
     </div>
 
@@ -411,13 +378,22 @@ useSeoMeta({ title: 'Banner Management | Admin' })
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showModal = false">
         <div class="bg-white rounded-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
           <div class="p-6 border-b border-neutral-200 flex items-center justify-between">
-            <h2 class="font-serif text-heading-4">{{ editingBanner ? t('admin.banners.editBanner') : t('admin.banners.createBanner') }}</h2>
+            <h2 class="font-serif text-heading-4">{{ editingBanner ? 'Sửa banner' : 'Thêm banner' }}</h2>
             <button @click="showModal = false" class="p-1 hover:bg-neutral-100 rounded-lg transition-colors">
               <svg class="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
 
           <form @submit.prevent="submitForm" class="p-6 space-y-5">
+            <!-- Section selector -->
+            <div>
+              <label class="input-label">Vị trí hiển thị *</label>
+              <select v-model="formData.section" class="input-field">
+                <option v-for="s in SECTIONS" :key="s.key" :value="s.key">{{ s.label }}</option>
+              </select>
+              <p class="text-caption text-neutral-400 mt-1">{{ SECTIONS.find(s => s.key === formData.section)?.desc }}</p>
+            </div>
+
             <!-- Title -->
             <div>
               <label class="input-label">{{ t('admin.form.title') }} *</label>
@@ -427,7 +403,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
             <!-- Subtitle -->
             <div>
               <label class="input-label">{{ t('admin.form.subtitle') }}</label>
-              <input v-model="formData.subtitle" type="text" class="input-field" placeholder="Mô tả ngắn cho banner" />
+              <input v-model="formData.subtitle" type="text" class="input-field" placeholder="Mô tả ngắn" />
             </div>
 
             <!-- Image Upload -->
@@ -447,7 +423,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p class="text-body-sm text-neutral-600">Kéo thả ảnh vào đây hoặc <span class="text-aura-black font-medium underline">chọn ảnh</span></p>
-                <p class="text-caption text-neutral-400 mt-1">JPEG, PNG, WebP — Tối đa 10MB — Khuyến nghị 1920×600px</p>
+                <p class="text-caption text-neutral-400 mt-1">JPEG, PNG, WebP — Tối đa 10MB</p>
               </div>
               <div v-else class="relative rounded-lg overflow-hidden border border-neutral-200">
                 <img :src="imagePreview" alt="Banner preview" class="w-full h-48 object-cover" />
@@ -482,7 +458,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
               </div>
             </div>
 
-            <!-- Active toggle in form -->
+            <!-- Active toggle -->
             <div class="flex items-center gap-3 py-2">
               <button
                 type="button"
@@ -492,7 +468,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
               >
                 <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform" :class="formData.is_active ? 'translate-x-6' : 'translate-x-1'" />
               </button>
-              <span class="text-body-sm">{{ formData.is_active ? 'Hiển thị ngay sau khi lưu' : 'Ẩn (không hiển thị trên trang chủ)' }}</span>
+              <span class="text-body-sm">{{ formData.is_active ? 'Hiển thị ngay sau khi lưu' : 'Ẩn (không hiển thị)' }}</span>
             </div>
 
             <p v-if="formError" class="text-red-600 text-body-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ formError }}</p>
