@@ -11,6 +11,7 @@ definePageMeta({
   middleware: 'admin',
 })
 
+const route = useRoute()
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
@@ -18,16 +19,29 @@ const { confirm: showConfirm } = useDialog()
 
 // Section definitions
 const SECTIONS = [
-  { key: 'hero', label: '🏠 Trang chủ — Hero', desc: 'Ảnh lớn bên phải hero section trang chủ' },
+  { key: 'hero', label: 'Hero Section', desc: 'Ảnh lớn bên phải hero section trang chủ' },
   { key: 'collection_women', label: '👗 BST Nữ', desc: 'Ảnh nền block "Bộ sưu tập Nữ" trên trang chủ' },
   { key: 'collection_men', label: '👔 BST Nam', desc: 'Ảnh nền block "Bộ sưu tập Nam" trên trang chủ' },
-  { key: 'homepage_categories', label: '🗂️ Danh mục trang chủ', desc: 'Mỗi banner = 1 card danh mục. Tiêu đề = tên danh mục, Đường dẫn = link đến danh mục' },
-  { key: 'about', label: '📖 Trang About', desc: 'Ảnh minh họa câu chuyện trên trang Giới thiệu' },
-  { key: 'page_sale', label: '🏷️ Trang Sale', desc: 'Ảnh nền header trang Sale' },
-  { key: 'page_new_arrivals', label: '🆕 Trang Hàng mới', desc: 'Ảnh nền header trang New Arrivals' },
-  { key: 'page_featured', label: '⭐ Trang Nổi bật', desc: 'Ảnh nền header trang Featured' },
-  { key: 'general', label: '📌 Chung', desc: 'Banner chung / dự phòng' },
+  { key: 'homepage_categories', label: '🗂️ Danh mục', desc: 'Mỗi banner = 1 card danh mục. Tiêu đề = tên danh mục, Đường dẫn = link đến danh mục' },
+  { key: 'about', label: 'Ảnh minh họa', desc: 'Ảnh minh họa câu chuyện trên trang Giới thiệu' },
+  { key: 'page_sale', label: 'Header Sale', desc: 'Ảnh nền header trang Sale' },
+  { key: 'page_new_arrivals', label: 'Header Hàng mới', desc: 'Ảnh nền header trang New Arrivals' },
+  { key: 'page_featured', label: 'Header Nổi bật', desc: 'Ảnh nền header trang Featured' },
+  { key: 'general', label: '📌 Banner dự phòng', desc: 'Banner chung / dự phòng' },
 ]
+
+const PAGE_GROUPS = [
+  { key: 'home', label: '🏠 Trang chủ', sections: ['hero', 'collection_women', 'collection_men', 'homepage_categories'] },
+  { key: 'sale', label: '🏷️ Trang Sale', sections: ['page_sale'] },
+  { key: 'new_arrivals', label: '🆕 Trang Hàng mới', sections: ['page_new_arrivals'] },
+  { key: 'featured', label: '⭐ Trang Nổi bật', sections: ['page_featured'] },
+  { key: 'about', label: '📖 Trang About', sections: ['about'] },
+  { key: 'general', label: '📌 Chung', sections: ['general'] },
+]
+
+const currentGroupKey = computed(() => (route.query.group as string) || 'home')
+const currentGroup = computed(() => PAGE_GROUPS.find(g => g.key === currentGroupKey.value) || PAGE_GROUPS[0])
+const currentSections = computed(() => SECTIONS.filter(s => currentGroup.value.sections.includes(s.key)))
 
 // Animation types
 const ANIM_OPTIONS = [
@@ -321,8 +335,8 @@ useSeoMeta({ title: 'Banner Management | Admin' })
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="font-serif text-heading-2 text-aura-black">{{ t('admin.banners.title') }}</h1>
-        <p class="text-body-sm text-neutral-500 mt-1">Quản lý banner theo từng vị trí hiển thị trên website.</p>
+        <h1 class="font-serif text-heading-2 text-aura-black">{{ currentGroup.label }}</h1>
+        <p class="text-body-sm text-neutral-500 mt-1">Quản lý các banner hiển thị trên {{ currentGroup.label.toLowerCase() }}</p>
       </div>
       <button @click="openCreateModal()" class="btn-primary flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -337,7 +351,7 @@ useSeoMeta({ title: 'Banner Management | Admin' })
 
     <!-- Sections with banners -->
     <div v-else class="space-y-8">
-      <div v-for="section in SECTIONS" :key="section.key">
+      <div v-for="section in currentSections" :key="section.key">
         <!-- Section Header -->
         <div class="flex items-center justify-between mb-3">
           <div>

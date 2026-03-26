@@ -7,6 +7,25 @@
 const { t } = useI18n()
 const route = useRoute()
 
+// Banner groups for sub-menu
+const bannerGroups = [
+  { key: 'home', label: '🏠 Trang chủ' },
+  { key: 'sale', label: '🏷️ Trang Sale' },
+  { key: 'new_arrivals', label: '🆕 Hàng mới' },
+  { key: 'featured', label: '⭐ Nổi bật' },
+  { key: 'about', label: '📖 About' },
+  { key: 'general', label: '📌 Chung' },
+]
+
+const bannerMenuOpen = ref(false)
+
+// Auto-expand when on banners page
+watchEffect(() => {
+  if (route.path.startsWith('/admin/banners')) {
+    bannerMenuOpen.value = true
+  }
+})
+
 const menuItems = computed(() => [
   { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'chart' },
   { path: '/admin/orders', label: t('admin.orders'), icon: 'cart' },
@@ -14,7 +33,7 @@ const menuItems = computed(() => [
   { path: '/admin/users', label: t('admin.users'), icon: 'users' },
   { path: '/admin/coupons', label: t('admin.coupons.title'), icon: 'tag' },
   { path: '/admin/reviews', label: t('admin.reviews.title'), icon: 'star' },
-  { path: '/admin/banners', label: t('admin.banners.title'), icon: 'image' },
+  { path: '/admin/banners', label: t('admin.banners.title'), icon: 'image', hasSubmenu: true },
   { path: '/admin/blogs', label: t('admin.blogs.title'), icon: 'document' },
   { path: '/admin/popups', label: t('admin.popups.title'), icon: 'popup' },
   { path: '/admin/abandoned-carts', label: t('admin.abandonedCarts.title'), icon: 'cart-abandon' },
@@ -47,7 +66,38 @@ const isActive = (path: string) => route.path === path
     <nav class="flex-1 px-3 py-2 overflow-y-auto sidebar-nav">
       <ul class="space-y-1">
         <li v-for="item in menuItems" :key="item.path">
+          <!-- Banner item with submenu -->
+          <template v-if="item.hasSubmenu">
+            <button
+              @click="bannerMenuOpen = !bannerMenuOpen"
+              class="w-full flex items-center justify-between px-3 py-2 rounded-sm transition-colors"
+              :class="isActive(item.path) ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'"
+            >
+              <span class="flex items-center gap-3">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="text-body-sm">{{ item.label }}</span>
+              </span>
+              <svg class="w-4 h-4 transition-transform" :class="bannerMenuOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul v-show="bannerMenuOpen" class="ml-8 mt-1 space-y-0.5">
+              <li v-for="group in bannerGroups" :key="group.key">
+                <NuxtLink
+                  :to="`/admin/banners?group=${group.key}`"
+                  class="block px-3 py-1.5 text-xs rounded-sm transition-colors"
+                  :class="route.query.group === group.key || (!route.query.group && group.key === 'home') ? 'text-white bg-neutral-800' : 'text-neutral-500 hover:text-white hover:bg-neutral-800/30'"
+                >
+                  {{ group.label }}
+                </NuxtLink>
+              </li>
+            </ul>
+          </template>
+          <!-- Regular items -->
           <NuxtLink
+            v-else
             :to="item.path"
             class="flex items-center gap-3 px-3 py-2 rounded-sm transition-colors"
             :class="isActive(item.path) ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'"
