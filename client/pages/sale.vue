@@ -15,6 +15,17 @@ const { data, pending } = await useFetch<{
 
 const products = computed(() => data.value?.data?.products || [])
 
+// Fetch banner
+const { data: bannerData } = await useFetch<{ success: boolean; data: { banners: any[] } }>(
+  `${config.public.apiUrl}/banners?section=page_sale`
+)
+const saleBanner = computed(() => bannerData.value?.data?.banners?.[0] || null)
+const saleBannerImage = computed(() => {
+  const url = saleBanner.value?.image_url
+  if (!url) return ''
+  return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
+})
+
 // Format price
 const { formatPrice } = useCurrency()
 
@@ -40,8 +51,10 @@ useSeoMeta({
 <template>
   <div>
     <!-- Hero Banner -->
-    <div class="bg-gradient-to-br from-red-600 to-rose-700 text-white">
-      <div class="container-aura py-16 lg:py-24 text-center">
+    <div class="relative text-white overflow-hidden" :class="saleBannerImage ? '' : 'bg-gradient-to-br from-red-600 to-rose-700'">
+      <img v-if="saleBannerImage" :src="saleBannerImage" alt="Sale" class="absolute inset-0 w-full h-full object-cover" />
+      <div v-if="saleBannerImage" class="absolute inset-0 bg-black/40" />
+      <div class="relative container-aura py-16 lg:py-24 text-center">
         <span class="text-caption uppercase tracking-[0.2em] text-red-200 mb-4 block">
           {{ t('home.limitedTime') }}
         </span>

@@ -11,6 +11,9 @@ const BANNER_SECTIONS = [
     'category_outerwear',
     'category_accessories',
     'about',
+    'page_sale',
+    'page_new_arrivals',
+    'page_featured',
     'general',
 ];
 

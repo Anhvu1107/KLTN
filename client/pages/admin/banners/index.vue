@@ -25,6 +25,9 @@ const SECTIONS = [
   { key: 'category_outerwear', label: '🧥 Danh mục: Áo khoác', desc: 'Ảnh nền card danh mục Áo khoác' },
   { key: 'category_accessories', label: '💍 Danh mục: Phụ kiện', desc: 'Ảnh nền card danh mục Phụ kiện' },
   { key: 'about', label: '📖 Trang About', desc: 'Ảnh minh họa câu chuyện trên trang Giới thiệu' },
+  { key: 'page_sale', label: '🏷️ Trang Sale', desc: 'Ảnh nền header trang Sale' },
+  { key: 'page_new_arrivals', label: '🆕 Trang Hàng mới', desc: 'Ảnh nền header trang New Arrivals' },
+  { key: 'page_featured', label: '⭐ Trang Nổi bật', desc: 'Ảnh nền header trang Featured' },
   { key: 'general', label: '📌 Chung', desc: 'Banner chung / dự phòng' },
 ]
 

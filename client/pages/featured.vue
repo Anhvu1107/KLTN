@@ -15,6 +15,17 @@ const { data, pending } = await useFetch<{
 
 const products = computed(() => data.value?.data?.products || [])
 
+// Fetch banner
+const { data: bannerData } = await useFetch<{ success: boolean; data: { banners: any[] } }>(
+  `${config.public.apiUrl}/banners?section=page_featured`
+)
+const pageBanner = computed(() => bannerData.value?.data?.banners?.[0] || null)
+const pageBannerImage = computed(() => {
+  const url = pageBanner.value?.image_url
+  if (!url) return ''
+  return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
+})
+
 // Format price
 const { formatPrice } = useCurrency()
 
@@ -35,8 +46,10 @@ useSeoMeta({
 <template>
   <div>
     <!-- Hero Banner -->
-    <div class="bg-gradient-to-b from-neutral-900 to-neutral-800 text-white">
-      <div class="container-aura py-16 lg:py-24 text-center">
+    <div class="relative text-white overflow-hidden" :class="pageBannerImage ? '' : 'bg-gradient-to-b from-neutral-900 to-neutral-800'">
+      <img v-if="pageBannerImage" :src="pageBannerImage" alt="Featured" class="absolute inset-0 w-full h-full object-cover" />
+      <div v-if="pageBannerImage" class="absolute inset-0 bg-black/50" />
+      <div class="relative container-aura py-16 lg:py-24 text-center">
         <span class="text-caption uppercase tracking-[0.2em] text-neutral-400 mb-4 block">
           {{ t('home.curatedSelection') }}
         </span>
