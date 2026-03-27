@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 
 const chatController = require('../../controllers/chat.controller');
+const voiceController = require('../../controllers/voice.controller');
 const { optionalAuth } = require('../../middlewares/auth.middleware');
 const rateLimit = require('express-rate-limit');
 
@@ -29,5 +30,9 @@ router.get('/greeting', chatController.getGreeting);
 router.get('/health', chatController.checkHealth);
 router.get('/history/:sessionId', chatController.getChatHistory);
 router.get('/appearance', chatController.getAppearance);
+
+// Voice endpoints
+router.get('/voice-token', voiceController.getVoiceToken);
+router.post('/voice-tool-call', chatLimiter, voiceController.handleToolCall);
 
 module.exports = router;

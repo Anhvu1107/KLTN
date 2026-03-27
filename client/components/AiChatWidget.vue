@@ -38,6 +38,7 @@ type ChatMessage = {
 const isOpen = ref(false)
 const isLoading = ref(false)
 const isWaitingForAdmin = ref(false)
+const isVoiceActive = ref(false)
 const sessionId = ref('')
 const inputMessage = ref('')
 const messages = ref<ChatMessage[]>([])
@@ -539,6 +540,20 @@ const handleChatClick = (e: MouseEvent) => {
       <!-- Input -->
       <div class="border-t border-neutral-200 p-3">
         <div class="flex gap-2">
+          <!-- Voice Call Button -->
+          <button
+            @click="isVoiceActive = true"
+            class="p-2 rounded-lg text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition-colors flex-shrink-0"
+            :title="t('chat.voiceCall', 'Gọi thoại với AURA')"
+            aria-label="Voice call"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 10v2a7 7 0 01-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" stroke-width="1.5" />
+              <line x1="8" y1="23" x2="16" y2="23" stroke-width="1.5" />
+            </svg>
+          </button>
           <input
             ref="inputRef"
             v-model="inputMessage"
@@ -561,6 +576,9 @@ const handleChatClick = (e: MouseEvent) => {
       </div>
     </div>
   </Transition>
+
+  <!-- Voice Chat Overlay -->
+  <LazyVoiceChat v-if="isVoiceActive" @close="isVoiceActive = false" />
 </template>
 
 <style scoped>
