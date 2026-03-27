@@ -104,7 +104,13 @@
         "productName": "Product Name",
         "or": "or",
         "viewAll": "View All",
-        "pageLoading": "Loading page..."
+        "pageLoading": "Loading page...",
+        "saveSuccess": "Saved successfully!",
+        "unknown": "Unknown",
+        "errorFillRequired": "Please fill all required fields",
+        "createSuccess": "Created successfully!",
+        "viewNow": "View now",
+        "other": "Other"
     },
     "header": {
         "freeShipping": "Free Shipping & Returns On All Orders",
@@ -1245,33 +1251,5 @@
         "send": "Send",
         "connectionError": "Connection error. Please try again.",
         "welcomeFallback": "Welcome to AURA ARCHIVE! How can I help you today?"
-    },
-    "common": {
-        "add": "Add",
-        "save": "Save",
-        "saving": "Saving...",
-        "loading": "Loading...",
-        "saveSuccess": "Saved successfully!",
-        "unknown": "Unknown",
-        "backTo": "Back to",
-        "active": "Active",
-        "inactive": "Inactive",
-        "search": "Search",
-        "status": "Status",
-        "actions": "Actions",
-        "view": "View",
-        "edit": "Edit",
-        "delete": "Delete",
-        "deleting": "Deleting...",
-        "cancel": "Cancel",
-        "remove": "Remove",
-        "uploading": "Uploading...",
-        "creating": "Creating...",
-        "other": "Other",
-        "noResults": "No results found",
-        "errorFillRequired": "Please fill all required fields",
-        "createSuccess": "Created successfully!",
-        "guest": "Guest",
-        "viewNow": "View now"
     }
 }
