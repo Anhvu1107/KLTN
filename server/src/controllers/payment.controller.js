@@ -9,6 +9,9 @@ const paypalService = require('../services/paypal.service');
 const { Order } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 
+// Exchange rate: 1 USD = 25,000 VND (must match client-side EXCHANGE_RATE)
+const EXCHANGE_RATE_VND = 25000;
+
 /**
  * POST /api/v1/payments/vnpay/create
  * Create VNPay payment URL
@@ -97,9 +100,9 @@ const vnpayIPN = catchAsync(async (req, res) => {
         return res.status(200).json({ RspCode: '02', Message: 'Order already paid' });
     }
 
-    // Verify amount
-    const expectedAmount = Math.round(order.total_amount * 24000 * 100);
-    if (result.amount !== expectedAmount / 100) {
+    // Verify amount (use integer math to avoid floating-point errors)
+    const expectedAmountVND = Math.round(order.total_amount * EXCHANGE_RATE_VND);
+    if (Math.round(result.amount) !== expectedAmountVND) {
         return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
     }
 
@@ -144,8 +147,8 @@ const createMoMoPayment = catchAsync(async (req, res) => {
         });
     }
 
-    // Convert USD to VND (approximate rate)
-    const amountVND = Math.round(order.total_amount * 24000);
+    // Convert USD to VND
+    const amountVND = Math.round(order.total_amount * EXCHANGE_RATE_VND);
 
     const result = await momoService.createPaymentUrl({
         orderId: order.id.toString(),
@@ -177,7 +180,13 @@ const createMoMoPayment = catchAsync(async (req, res) => {
 const momoReturn = catchAsync(async (req, res) => {
     const { orderId, resultCode, message } = req.query;
 
-    if (resultCode === '0') {
+    // Verify MoMo signature before trusting any query params
+    const isValid = momoService.verifySignature(req.query);
+    if (!isValid) {
+        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent('Invalid payment signature')}`);
+    }
+
+    if (String(resultCode) === '0') {
         // Payment successful
         await Order.update(
             {
@@ -221,7 +230,7 @@ const momoIPN = catchAsync(async (req, res) => {
         return res.status(200).json({ resultCode: 0, message: 'Order already paid' });
     }
 
-    if (resultCode === 0) {
+    if (String(resultCode) === '0') {
         // Payment successful
         await Order.update(
             {

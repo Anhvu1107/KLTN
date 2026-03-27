@@ -1,12 +1,23 @@
-/**
- * Socket.io Server Module
- * AURA ARCHIVE - Real-time chat communication
- */
-
 const { Server } = require('socket.io');
 const logger = require('./utils/logger');
 
 let io = null;
+
+const getAllowedOrigins = () => {
+    const origins = [
+        (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, ''),
+        ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : []),
+    ].filter(Boolean);
+    return origins;
+};
+
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    const origins = getAllowedOrigins();
+    if (origins.some(allowed => origin === allowed || origin === allowed.replace(/\/$/, ''))) return true;
+    if (/\.vercel\.app$/.test(origin)) return true;
+    return false;
+};
 
 /**
  * Initialize Socket.io with the HTTP server
@@ -14,7 +25,10 @@ let io = null;
 const initSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
-            origin: process.env.CLIENT_URL || 'http://localhost:3000',
+            origin: (origin, callback) => {
+                if (isAllowedOrigin(origin)) return callback(null, true);
+                callback(new Error('Not allowed by CORS'));
+            },
             methods: ['GET', 'POST'],
             credentials: true,
         },

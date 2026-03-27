@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Reusable image upload with preview and drag-drop
  */
 
-import { useI18n } from '#imports'
 
 const props = defineProps<{
   modelValue: string[]
@@ -22,12 +21,12 @@ const isDragging = ref(false)
 const error = ref('')
 
 const images = computed({
-  get: () => props.modelValue,
+  get: () => props.modelValue || [],
   set: (value) => emit('update:modelValue', value),
 })
 
 const maxAllowed = computed(() => props.maxFiles || 5)
-const remainingSlots = computed(() => maxAllowed.value - images.value.length)
+const remainingSlots = computed(() => maxAllowed.value - (images.value?.length || 0))
 
 // Get token
 const getToken = () => {
@@ -116,9 +115,9 @@ const removeImage = (index: number) => {
   images.value = newImages
 }
 
-// Get full URL for image
+// Get full URL for image (supports Cloudinary URLs and legacy local paths)
 const getImageUrl = (path: string) => {
-  if (path.startsWith('http')) return path
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
   return `${config.public.apiUrl.replace('/api/v1', '')}${path}`
 }
 </script>

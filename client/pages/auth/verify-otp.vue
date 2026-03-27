@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Email verification with 6-digit OTP
  */
 
-import { useI18n } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({

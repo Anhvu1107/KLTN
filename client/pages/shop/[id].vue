@@ -5,7 +5,7 @@
  */
 
 import { useCartStore } from '~/stores/cart'
-import { useI18n } from '#imports'
+import { useAuthStore } from '~/stores/auth'
 import { useRecentlyViewed } from '~/composables/useRecentlyViewed'
 import { useCompare } from '~/composables/useCompare'
 
@@ -13,6 +13,7 @@ const { t } = useI18n()
 const route = useRoute()
 const config = useRuntimeConfig()
 const cartStore = useCartStore()
+const authStore = useAuthStore()
 const { getImageUrl } = useImageUrl()
 
 const productId = route.params.id as string
@@ -24,11 +25,43 @@ const { data, pending, error } = await useFetch<{
 }>(`${config.public.apiUrl}/products/${productId}`)
 
 const product = computed(() => data.value?.data?.product)
-const variant = computed(() => product.value?.variants?.[0])
 
-// Check if item is in cart
-const isInCart = computed(() => variant.value ? cartStore.isInCart(variant.value.id) : false)
-const isSold = computed(() => variant.value?.status === 'SOLD')
+const availableVariants = computed(() => product.value?.variants?.filter((v: any) => v.status === 'AVAILABLE') || [])
+const availableQuantity = computed(() => availableVariants.value.length)
+
+// Choose the first available variant to put in cart, or fallback to the first one if all are sold
+const variant = computed(() => availableVariants.value[0] || product.value?.variants?.[0])
+
+// Add a helper for translating database values like colors and materials
+const tValue = (dict: string, val: string) => {
+  if (!val) return ''
+  const keyMatch = val.toLowerCase().replace(/\s+/g, '')
+  const fullPath = `${dict}.${keyMatch}`
+  const translated = t(fullPath)
+  return translated === fullPath ? val : translated
+}
+
+// How many of these identical items are already in the cart?
+const inCartCount = computed(() => {
+  return availableVariants.value.filter((v: any) => cartStore.isInCart(v.id)).length
+})
+
+// Max amount we can still add to cart
+const maxCanAdd = computed(() => availableQuantity.value - inCartCount.value)
+
+// User selected quantity
+const selectedQuantity = ref(1)
+
+// Reset quantity when maxCanAdd changes to avoid invalid state
+watch(maxCanAdd, (newMax) => {
+  if (selectedQuantity.value > newMax) {
+    selectedQuantity.value = Math.max(1, newMax)
+  }
+})
+
+// Check if item is fully in cart or sold out
+const isFullyInCart = computed(() => maxCanAdd.value === 0 && availableQuantity.value > 0)
+const isSold = computed(() => availableQuantity.value === 0)
 
 // Add to cart
 const addedToCart = ref(false)
@@ -37,20 +70,35 @@ const addedToCart = ref(false)
 const reviewsRef = ref<{ refresh: () => void } | null>(null)
 
 const handleAddToCart = () => {
-  if (!variant.value || isSold.value || isInCart.value) return
+  if (isSold.value || isFullyInCart.value || maxCanAdd.value === 0) return
 
-  const success = cartStore.addToCart({
-    id: variant.value.id,
-    productId: product.value.id,
-    productName: product.value.name,
-    productBrand: product.value.brand,
-    productImage: getImageUrl(product.value.images?.[0]) || '',
-    variantSize: variant.value.size,
-    variantColor: variant.value.color,
-    price: parseFloat(product.value.sale_price || product.value.base_price),
-  })
+  // Auth check
+  if (!authStore.isAuthenticated) {
+    navigateTo(`/auth/login?redirect=${route.fullPath}`)
+    return
+  }
 
-  if (success) {
+  // Find variants to add
+  const variantsToAdd = availableVariants.value
+    .filter((v: any) => !cartStore.isInCart(v.id))
+    .slice(0, selectedQuantity.value)
+
+  let count = 0
+  for (const v of variantsToAdd) {
+    const success = cartStore.addToCart({
+      id: v.id,
+      productId: product.value.id,
+      productName: product.value.name,
+      productBrand: product.value.brand,
+      productImage: getImageUrl(product.value.images?.[0]) || '',
+      variantSize: v.size,
+      variantColor: v.color,
+      price: parseFloat(product.value.sale_price || product.value.base_price),
+    })
+    if (success) count++
+  }
+
+  if (count > 0) {
     addedToCart.value = true
     setTimeout(() => {
       addedToCart.value = false
@@ -60,18 +108,28 @@ const handleAddToCart = () => {
 
 // Buy Now - add to cart and go to checkout
 const handleBuyNow = () => {
-  if (!variant.value || isSold.value) return
+  if (isSold.value || isFullyInCart.value || maxCanAdd.value === 0) return
 
-  // Add to cart if not already
-  if (!isInCart.value) {
+  // Auth check
+  if (!authStore.isAuthenticated) {
+    navigateTo(`/auth/login?redirect=${route.fullPath}`)
+    return
+  }
+
+  // Add selected quantity to cart
+  const variantsToAdd = availableVariants.value
+    .filter((v: any) => !cartStore.isInCart(v.id))
+    .slice(0, selectedQuantity.value)
+
+  for (const v of variantsToAdd) {
     cartStore.addToCart({
-      id: variant.value.id,
+      id: v.id,
       productId: product.value.id,
       productName: product.value.name,
       productBrand: product.value.brand,
       productImage: getImageUrl(product.value.images?.[0]) || '',
-      variantSize: variant.value.size,
-      variantColor: variant.value.color,
+      variantSize: v.size,
+      variantColor: v.color,
       price: parseFloat(product.value.sale_price || product.value.base_price),
     })
   }
@@ -304,19 +362,19 @@ useSeoMeta({
           </div>
 
           <!-- Variant Info -->
-          <div v-if="variant" class="mb-8 space-y-3">
+          <div v-if="variant" class="mb-6 space-y-3">
             <div class="flex gap-8">
               <div>
                 <p class="text-caption text-neutral-500 uppercase">{{ t('shop.size') }}</p>
                 <p class="text-body font-medium">{{ variant.size }}</p>
               </div>
-              <div>
+              <div v-if="variant.color">
                 <p class="text-caption text-neutral-500 uppercase">{{ t('shop.color') }}</p>
-                <p class="text-body font-medium">{{ variant.color }}</p>
+                <p class="text-body font-medium">{{ tValue('colors', variant.color) }}</p>
               </div>
               <div v-if="variant.material">
                 <p class="text-caption text-neutral-500 uppercase">{{ t('shop.material') }}</p>
-                <p class="text-body font-medium">{{ variant.material }}</p>
+                <p class="text-body font-medium">{{ tValue('materials', variant.material) }}</p>
               </div>
             </div>
             
@@ -333,29 +391,70 @@ useSeoMeta({
             </button>
           </div>
 
+          <!-- Stock Status -->
+          <div class="mb-6">
+            <p v-if="availableQuantity === 0" class="text-body-sm text-neutral-500 font-medium">
+              {{ t('shop.soldOutMessage', 'Sản phẩm đã hết hàng') }}
+            </p>
+            <p v-else-if="availableQuantity === 1" class="text-body-sm text-accent-burgundy font-medium flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-accent-burgundy"></span>
+              {{ t('shop.onlyOneLeft', 'Chỉ còn duy nhất 1 sản phẩm!') }}
+            </p>
+            <p v-else-if="availableQuantity <= 3" class="text-body-sm text-orange-600 font-medium flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-orange-600"></span>
+              {{ t('shop.onlyFewLeft', 'Chỉ còn vài sản phẩm!') }}
+            </p>
+            <p v-else class="text-body-sm text-green-600 font-medium flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+              {{ t('shop.inStock', 'Còn hàng') }}: {{ availableQuantity }} {{ t('shop.products', 'sản phẩm') }}
+            </p>
+          </div>
+
+          <!-- Quantity Selector (if more than 1 available) -->
+          <div v-if="maxCanAdd > 1 && !isSold" class="mb-6 flex items-center gap-4">
+            <span class="text-caption text-neutral-500 uppercase">{{ t('shop.quantity', 'Số lượng') }}</span>
+            <div class="flex items-center border border-neutral-300 rounded-sm">
+              <button 
+                type="button"
+                @click="selectedQuantity > 1 ? selectedQuantity-- : null"
+                class="px-3 py-1 text-neutral-500 hover:text-aura-black transition-colors"
+                :disabled="selectedQuantity <= 1"
+                :class="{ 'opacity-50 cursor-not-allowed': selectedQuantity <= 1 }"
+              >-</button>
+              <span class="px-4 py-1 text-body font-medium select-none w-12 text-center">{{ selectedQuantity }}</span>
+              <button 
+                type="button"
+                @click="selectedQuantity < maxCanAdd ? selectedQuantity++ : null"
+                class="px-3 py-1 text-neutral-500 hover:text-aura-black transition-colors"
+                :disabled="selectedQuantity >= maxCanAdd"
+                :class="{ 'opacity-50 cursor-not-allowed': selectedQuantity >= maxCanAdd }"
+              >+</button>
+            </div>
+            <span class="text-caption text-neutral-400 font-medium">{{ t('shop.maxQuantity', 'Tối đa:') }} {{ maxCanAdd }}</span>
+          </div>
+
           <!-- Action Buttons -->
           <div class="mb-8 space-y-3">
             <!-- Add to Cart -->
             <button
               @click="handleAddToCart"
-              :disabled="isSold || isInCart"
+              :disabled="isSold || isFullyInCart"
               class="w-full py-4 text-body font-medium uppercase tracking-wider transition-all duration-300"
               :class="{
-                'bg-neutral-200 text-neutral-500 cursor-not-allowed': isSold,
+                'bg-neutral-200 text-neutral-500 cursor-not-allowed': isSold || (isFullyInCart && !addedToCart),
                 'bg-green-600 text-white': addedToCart,
-                'bg-neutral-400 text-white cursor-not-allowed': isInCart && !addedToCart,
-                'bg-aura-black text-aura-white hover:bg-neutral-800': !isSold && !isInCart && !addedToCart,
+                'bg-aura-black text-aura-white hover:bg-neutral-800': !isSold && !isFullyInCart && !addedToCart,
               }"
             >
               <span v-if="isSold">{{ t('shop.soldOut') }}</span>
               <span v-else-if="addedToCart">✓ {{ t('shop.addedToCart') }}</span>
-              <span v-else-if="isInCart">{{ t('shop.alreadyInCart') }}</span>
+              <span v-else-if="isFullyInCart">{{ t('shop.alreadyInCart') }}</span>
               <span v-else>{{ t('shop.addToCart') }}</span>
             </button>
 
             <!-- Buy Now -->
             <button
-              v-if="!isSold"
+              v-if="!isSold && !isFullyInCart"
               @click="handleBuyNow"
               class="w-full py-4 text-body font-medium uppercase tracking-wider bg-accent-navy text-white hover:bg-opacity-90 transition-all duration-300"
             >
@@ -402,7 +501,7 @@ useSeoMeta({
             </button>
 
             <NuxtLink 
-              v-if="isInCart && !isSold" 
+              v-if="inCartCount > 0 && !isSold" 
               to="/cart" 
               class="block text-center text-body-sm text-neutral-600 hover:text-aura-black"
             >

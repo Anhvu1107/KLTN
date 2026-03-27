@@ -98,7 +98,7 @@
 
   /* Cards */
   .card {
-    @apply bg-aura-white rounded-sm shadow-card transition-shadow duration-350 hover:shadow-card-hover;
+    @apply bg-aura-white rounded-xl shadow-md border border-neutral-300 transition-shadow duration-300 hover:shadow-lg;
   }
 
   /* Product Card specific */

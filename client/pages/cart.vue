@@ -1,95 +1,100 @@
 <script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
-import { useI18n } from '#imports'
+import { useDialog } from '~/composables/useDialog'
 
 const { t } = useI18n()
 const cartStore = useCartStore()
 const config = useRuntimeConfig()
-
-// Coupon state
-const couponCode = ref('')
-const couponError = ref('')
-const couponSuccess = ref('')
-const isApplyingCoupon = ref(false)
-const appliedCoupon = ref<{
-  id: string
-  code: string
-  name: string
-  discountAmount: number
-} | null>(null)
+const { alert: showDialog } = useDialog()
 
 // Format price
 const { formatPrice } = useCurrency()
 
-// Remove item
-const removeItem = (variantId: string) => {
-  cartStore.removeFromCart(variantId)
-  // Reset coupon when cart changes
-  appliedCoupon.value = null
-  couponSuccess.value = ''
-}
-
-// Apply coupon
-const applyCoupon = async () => {
-  if (!couponCode.value.trim()) {
-    couponError.value = 'Please enter a coupon code'
-    return
-  }
-
-  couponError.value = ''
-  couponSuccess.value = ''
-  isApplyingCoupon.value = true
-
-  try {
-    const token = localStorage.getItem('token')
-    const response = await $fetch<{
-      success: boolean
-      data: {
-        coupon: { id: string; code: string; name: string }
-        discountAmount: number
-        newTotal: number
-      }
-    }>(`${config.public.apiUrl}/coupons/validate`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: {
-        code: couponCode.value,
-        cartTotal: cartStore.subtotal,
-      },
-    })
-
-    if (response.success) {
-      appliedCoupon.value = {
-        id: response.data.coupon.id,
-        code: response.data.coupon.code,
-        name: response.data.coupon.name,
-        discountAmount: response.data.discountAmount,
-      }
-      couponSuccess.value = `Coupon "${response.data.coupon.code}" applied! You save ${formatPrice(response.data.discountAmount)}`
-      // Store in cart store for checkout
-      cartStore.setCoupon(appliedCoupon.value)
+// Group identical items
+const groupedItems = computed(() => {
+  const groups = new Map()
+  for (const item of cartStore.items) {
+    // Generate a unique key for identical variants of the same product
+    const key = `${item.productId}-${item.variantSize}-${item.variantColor}`
+    if (!groups.has(key)) {
+      groups.set(key, { 
+        ...item, 
+        quantity: 1, 
+        variantIds: [item.id] 
+      })
+    } else {
+      const g = groups.get(key)
+      g.quantity++
+      g.variantIds.push(item.id)
     }
-  } catch (err: any) {
-    couponError.value = err.data?.message || 'Invalid coupon code'
-    appliedCoupon.value = null
-    cartStore.clearCoupon()
-  } finally {
-    isApplyingCoupon.value = false
+  }
+  return Array.from(groups.values())
+})
+
+// Remove group of items
+const removeGroup = (variantIds: string[]) => {
+  for (const id of variantIds) {
+    cartStore.removeFromCart(id)
   }
 }
 
-// Remove coupon
-const removeCoupon = () => {
-  appliedCoupon.value = null
-  couponCode.value = ''
-  couponSuccess.value = ''
-  couponError.value = ''
-  cartStore.clearCoupon()
+// Decrease quantity by removing ONE variant
+const decreaseQuantity = (variantIds: string[]) => {
+  if (variantIds.length > 1) {
+    cartStore.removeFromCart(variantIds[variantIds.length - 1])
+  }
 }
 
-// Computed totals
-const discountAmount = computed(() => appliedCoupon.value?.discountAmount || 0)
-const subtotalAfterDiscount = computed(() => cartStore.subtotal - discountAmount.value)
+// Increase quantity by finding available variant from backend
+const isAddingKey = ref('')
+
+const increaseQuantity = async (item: any) => {
+  const itemKey = `${item.productId}-${item.variantSize}-${item.variantColor}`
+  isAddingKey.value = itemKey
+  
+  try {
+    const res = await $fetch<{ success: boolean; data: { product: any } }>(
+      `${config.public.apiUrl}/products/${item.productId}`
+    )
+    
+    if (res.success && res.data.product) {
+      const product = res.data.product
+      
+      const matchingVariants = product.variants.filter((v: any) => 
+        v.status === 'AVAILABLE' && 
+        v.size === item.variantSize && 
+        v.color === item.variantColor
+      )
+      
+      const availableToAdd = matchingVariants.find((v: any) => 
+        !cartStore.isInCart(v.id)
+      )
+      
+      if (availableToAdd) {
+        cartStore.addToCart({
+          id: availableToAdd.id,
+          productId: product.id,
+          productName: product.name,
+          productBrand: product.brand,
+          productImage: item.productImage,
+          variantSize: availableToAdd.size,
+          variantColor: availableToAdd.color,
+          price: parseFloat(product.sale_price || product.base_price),
+        })
+      } else {
+        showDialog({
+          title: t('shop.soldOutTitle', 'Hết hàng'),
+          message: t('shop.soldOut', 'Đã đạt số lượng tối đa trong kho'),
+          type: 'warning'
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Failed to increase quantity:', error)
+  } finally {
+    isAddingKey.value = ''
+  }
+}
 
 // SEO
 useSeoMeta({
@@ -122,32 +127,59 @@ useSeoMeta({
         <div class="lg:col-span-2">
           <div class="space-y-6">
             <div
-              v-for="item in cartStore.items"
-              :key="item.id"
+              v-for="item in groupedItems"
+              :key="item.variantIds[0]"
               class="flex gap-6 p-6 bg-neutral-50 rounded-sm"
             >
               <!-- Image -->
-              <div class="w-24 h-32 bg-neutral-200 rounded-sm flex-shrink-0"></div>
+              <div class="w-24 h-32 bg-neutral-200 rounded-sm flex-shrink-0 overflow-hidden">
+                <img v-if="item.productImage" :src="item.productImage" :alt="item.productName" class="w-full h-full object-cover" />
+              </div>
 
               <!-- Details -->
               <div class="flex-1 min-w-0">
                 <p class="text-caption text-neutral-500 uppercase tracking-wider mb-1">
                   {{ item.productBrand }}
                 </p>
-                <h3 class="text-body font-medium text-aura-black mb-2">
+                <h3 class="text-body font-medium text-aura-black mb-2 flex items-center gap-2">
                   {{ item.productName }}
+                  <span v-if="item.quantity > 1" class="text-neutral-500 text-sm bg-neutral-200 px-2 py-0.5 rounded-full">x{{ item.quantity }}</span>
                 </h3>
                 <p class="text-body-sm text-neutral-600 mb-4">
                   {{ item.variantSize }} / {{ item.variantColor }}
                 </p>
-                <p class="text-body font-medium text-aura-black">
-                  {{ formatPrice(item.price) }}
+                <p class="text-body font-medium text-aura-black mb-4">
+                  {{ formatPrice(item.price) }} <span v-if="item.quantity > 1" class="text-neutral-500 text-sm ml-1">({{ formatPrice(item.price * item.quantity) }})</span>
                 </p>
+                
+                <!-- Quantity Controls -->
+                <div class="flex items-center gap-3">
+                  <span class="text-caption text-neutral-500 uppercase">{{ $t('shop.quantity', 'SL') }}:</span>
+                  <div class="flex items-center border border-neutral-200 rounded-sm">
+                    <button 
+                      @click="decreaseQuantity(item.variantIds)"
+                      class="px-3 py-1 text-neutral-500 hover:bg-neutral-100 transition-colors"
+                      :disabled="item.quantity <= 1 || isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}`"
+                      :class="{ 'opacity-30 cursor-not-allowed': item.quantity <= 1 || isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` }"
+                    >-</button>
+                    <span class="px-3 text-body-sm font-medium w-8 text-center flex justify-center items-center h-full">
+                      <svg v-if="isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}`" class="animate-spin w-4 h-4 text-aura-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <span v-else>{{ item.quantity }}</span>
+                    </span>
+                    <button 
+                      @click="increaseQuantity(item)"
+                      class="px-3 py-1 text-neutral-500 hover:bg-neutral-100 transition-colors"
+                      :disabled="isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}`"
+                      :class="{ 'opacity-30 cursor-not-allowed': isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` }"
+                      title="Thêm số lượng"
+                    >+</button>
+                  </div>
+                </div>
               </div>
 
               <!-- Remove Button -->
               <button
-                @click="removeItem(item.id)"
+                @click="removeGroup(item.variantIds)"
                 class="self-start p-2 text-neutral-400 hover:text-red-500 transition-colors"
                 aria-label="Remove item"
               >
@@ -176,58 +208,17 @@ useSeoMeta({
                 <span class="text-neutral-600">{{ $t('cart.items') }} ({{ cartStore.itemCount }})</span>
                 <span>{{ formatPrice(cartStore.subtotal) }}</span>
               </div>
-              <div v-if="appliedCoupon" class="flex justify-between text-green-600">
-                <span>{{ $t('cart.discount') }} ({{ appliedCoupon.code }})</span>
-                <span>-{{ formatPrice(discountAmount) }}</span>
-              </div>
               <div class="flex justify-between">
                 <span class="text-neutral-600">{{ $t('cart.shipping') }}</span>
                 <span class="text-neutral-500">{{ $t('cart.calculatedAtCheckout') }}</span>
               </div>
             </div>
 
-            <!-- Coupon Input -->
-            <div class="mb-6">
-              <label class="input-label">{{ $t('cart.couponCode') }}</label>
-              <div v-if="!appliedCoupon" class="flex gap-2">
-                <input
-                  v-model="couponCode"
-                  type="text"
-                  :placeholder="$t('cart.enterCode')"
-                  class="input-field flex-1 uppercase"
-                  @keyup.enter="applyCoupon"
-                />
-                <button
-                  @click="applyCoupon"
-                  :disabled="isApplyingCoupon"
-                  class="px-4 py-2 bg-neutral-800 text-white text-body-sm hover:bg-neutral-700 transition-colors"
-                  :class="{ 'opacity-50 cursor-not-allowed': isApplyingCoupon }"
-                >
-                  {{ isApplyingCoupon ? '...' : $t('cart.apply') }}
-                </button>
-              </div>
-              <!-- Applied coupon display -->
-              <div v-else class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-sm">
-                <div>
-                  <span class="text-body-sm font-medium text-green-700">{{ appliedCoupon.code }}</span>
-                  <span class="text-caption text-green-600 ml-2">-{{ formatPrice(discountAmount) }}</span>
-                </div>
-                <button @click="removeCoupon" class="text-green-600 hover:text-green-800">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-              <!-- Error/Success messages -->
-              <p v-if="couponError" class="text-caption text-red-600 mt-2">{{ couponError }}</p>
-              <p v-if="couponSuccess" class="text-caption text-green-600 mt-2">{{ couponSuccess }}</p>
-            </div>
-
             <div class="divider mb-4"></div>
 
             <div class="flex justify-between text-body font-medium mb-6">
               <span>{{ $t('cart.subtotal') }}</span>
-              <span>{{ formatPrice(subtotalAfterDiscount) }}</span>
+              <span>{{ formatPrice(cartStore.subtotal) }}</span>
             </div>
 
             <NuxtLink to="/checkout" class="btn-primary w-full block text-center">

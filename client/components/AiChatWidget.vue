@@ -10,28 +10,50 @@ marked.setOptions({
   breaks: true,
 })
 
+const { sanitize } = useSanitizeHtml()
+
+const autoLinkPaths = (text: string): string => {
+  return text.replace(/(?<!\]\()(?<!\()(\/shop\/[\w-]+)/g, '[Xem sản phẩm]($1)')
+}
+
 const renderMarkdown = (text: string): string => {
-  return marked.parse(text, { async: false }) as string
+  const linked = autoLinkPaths(text)
+  const raw = marked.parse(linked, { async: false }) as string
+  return sanitize(raw)
 }
 
 const config = useRuntimeConfig()
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 import { useSocket } from '~/composables/useSocket'
+
+// Constants
+const STORAGE_KEY = 'aura_chat_session_id'
+
+type ChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 // State
 const isOpen = ref(false)
 const isLoading = ref(false)
 const isWaitingForAdmin = ref(false)
+const isVoiceActive = ref(false)
 const sessionId = ref('')
 const inputMessage = ref('')
-const messages = ref<{ role: 'user' | 'assistant'; content: string }[]>([])
+const messages = ref<ChatMessage[]>([])
 const chatContainer = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
+let hasSocketListener = false
+let isMounted = true
 
 // Appearance config (loaded from API)
 const appearance = ref({
   chatName: 'AURA Stylist',
   chatDescription: 'Trợ lý thời trang của bạn',
   avatarUrl: '',
+  fontFamily: 'Inter',
+  headerFontFamily: 'Playfair Display',
   headerBgColor: '#1a1a1a',
   headerTextColor: '#ffffff',
   botBgColor: '#f5f5f5',
@@ -39,6 +61,18 @@ const appearance = ref({
   userBgColor: '#1a1a1a',
   userTextColor: '#ffffff',
 })
+
+// Dynamic Google Font loading
+const loadGoogleFont = (font: string) => {
+  if (!font || font === 'system-ui') return
+  const id = `gfont-${font.replace(/ /g, '-')}`
+  if (document.getElementById(id)) return
+  const link = document.createElement('link')
+  link.id = id
+  link.rel = 'stylesheet'
+  link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
+  document.head.appendChild(link)
+}
 
 // Load appearance config
 const loadAppearance = async () => {
@@ -48,18 +82,121 @@ const loadAppearance = async () => {
     )
     if (res.data) {
       appearance.value = { ...appearance.value, ...res.data }
+      if (import.meta.client && appearance.value.fontFamily) {
+        loadGoogleFont(appearance.value.fontFamily)
+      }
+      if (import.meta.client && appearance.value.headerFontFamily) {
+        loadGoogleFont(appearance.value.headerFontFamily)
+      }
     }
-  } catch {}
+  } catch (e) {
+    console.warn('[AiChat] Failed to load appearance config, using defaults:', e)
+  }
 }
 
-// Initialize with greeting
+// Save sessionId to localStorage
+const saveSessionId = (sid: string) => {
+  if (import.meta.client && sid) {
+    localStorage.setItem(STORAGE_KEY, sid)
+  }
+}
+
+// Clear sessionId from localStorage
+const clearSessionId = () => {
+  if (import.meta.client) {
+    localStorage.removeItem(STORAGE_KEY)
+  }
+}
+
+// Get saved sessionId from localStorage
+const getSavedSessionId = (): string | null => {
+  if (import.meta.client) {
+    return localStorage.getItem(STORAGE_KEY)
+  }
+  return null
+}
+
+const normalizeMessage = (message: ChatMessage): ChatMessage => ({
+  role: message.role,
+  content: message.content.trim(),
+})
+
+const isSameMessage = (left?: ChatMessage | null, right?: ChatMessage | null): boolean => {
+  if (!left || !right) return false
+  return left.role === right.role && left.content.trim() === right.content.trim()
+}
+
+const mapDbMessages = (dbMessages: { role: string; content: string }[]): ChatMessage[] =>
+  dbMessages.map((message) =>
+    normalizeMessage({
+      role: message.role === 'USER' ? 'user' : 'assistant',
+      content: message.content,
+    })
+  )
+
+const pushUniqueMessage = (message: ChatMessage): boolean => {
+  const normalized = normalizeMessage(message)
+  const lastMessage = messages.value[messages.value.length - 1]
+
+  if (isSameMessage(lastMessage, normalized)) {
+    return false
+  }
+
+  messages.value.push(normalized)
+  return true
+}
+
+const syncMessagesFromHistory = (dbMessages: { role: string; content: string }[]): boolean => {
+  const serverMessages = mapDbMessages(dbMessages)
+  const currentGreeting = messages.value[0]
+  const shouldKeepGreeting = currentGreeting
+    && currentGreeting.role === 'assistant'
+    && !serverMessages.some((message) => isSameMessage(message, currentGreeting))
+
+  const mergedMessages = [
+    ...(shouldKeepGreeting ? [normalizeMessage(currentGreeting)] : []),
+    ...serverMessages,
+  ].filter((message, index, list) => index === 0 || !isSameMessage(message, list[index - 1]))
+
+  const hasChanged = mergedMessages.length !== messages.value.length
+    || mergedMessages.some((message, index) => !isSameMessage(message, messages.value[index]))
+
+  if (hasChanged) {
+    messages.value = mergedMessages
+  }
+
+  return hasChanged
+}
+
+// Load chat history from server
+const loadChatHistory = async (sid: string): Promise<boolean> => {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await $fetch<{
+      success: boolean
+      data: { messages: { role: string; content: string }[] }
+    }>(`${config.public.apiUrl}/chat/history/${sid}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    const dbMessages = response.data?.messages || []
+    if (dbMessages.length > 0) {
+      sessionId.value = sid
+      messages.value = mapDbMessages(dbMessages)
+        .filter((message, index, list) => index === 0 || !isSameMessage(message, list[index - 1]))
+      setupSocket(sid)
+      startWidgetPolling()
+      scrollToBottom()
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+// Initialize with greeting (new session)
 const initChat = async () => {
-  if (messages.value.length > 0) return
-
   isLoading.value = true
-
-  // Load appearance first
-  await loadAppearance()
   
   try {
     const response = await $fetch<{
@@ -69,7 +206,8 @@ const initChat = async () => {
     }>(`${config.public.apiUrl}/chat/greeting`)
 
     sessionId.value = response.sessionId
-    messages.value.push({
+    saveSessionId(response.sessionId)
+    pushUniqueMessage({
       role: 'assistant',
       content: response.message,
     })
@@ -78,50 +216,79 @@ const initChat = async () => {
     setupSocket(response.sessionId)
     startWidgetPolling()
   } catch (error) {
-    messages.value.push({
+    pushUniqueMessage({
       role: 'assistant',
-      content: 'Chào mừng bạn đến AURA ARCHIVE! Tôi là AURA, stylist riêng của bạn. Tôi có thể giúp gì cho bạn hôm nay?',
+      content: t('chat.welcomeFallback', 'Chào mừng bạn đến AURA ARCHIVE! Tôi là AURA, stylist riêng của bạn. Tôi có thể giúp gì cho bạn hôm nay?'),
     })
   } finally {
     isLoading.value = false
   }
 }
 
+// Start a brand new conversation
+const startNewChat = async () => {
+  // Disconnect from current session
+  hasSocketListener = false
+  disconnectSocket()
+  stopWidgetPolling()
+  
+  // Clear state
+  clearSessionId()
+  sessionId.value = ''
+  messages.value = []
+  isWaitingForAdmin.value = false
+  
+  // Initialize fresh
+  await initChat()
+}
+
 // ====== WebSocket Real-time ======
-const { connect, joinSession, onNewMessage, disconnect } = useSocket()
+const { connect, joinSession, onNewMessage, disconnect: disconnectSocket } = useSocket()
 
 const setupSocket = async (sid: string) => {
   await connect()
   joinSession(sid)
+  if (hasSocketListener) return
   onNewMessage((data: any) => {
     // Only handle messages for our session
     if (data.sessionId !== sessionId.value) return
-    
-    // Don't duplicate messages we already sent locally
+
     const msg = data.message
     const role = msg.role === 'USER' ? 'user' as const : 'assistant' as const
-    
-    // When admin replies, clear the waiting indicator
+
     if (role === 'assistant') {
       isWaitingForAdmin.value = false
     }
-    
-    // Check if this message already exists (avoid duplicates)
-    const lastMsg = messages.value[messages.value.length - 1]
-    if (lastMsg && lastMsg.content === msg.content && lastMsg.role === role) return
-    
-    messages.value.push({ role, content: msg.content })
-    scrollToBottom()
+
+    if (pushUniqueMessage({ role, content: msg.content })) {
+      scrollToBottom()
+    }
   })
+  hasSocketListener = true
 }
 
 // Open chat
-const openChat = () => {
+const openChat = async () => {
   isOpen.value = true
+  
   if (messages.value.length === 0) {
-    initChat()
+    await loadAppearance()
+    
+    // Try to resume previous session from localStorage
+    const savedSid = getSavedSessionId()
+    if (savedSid) {
+      isLoading.value = true
+      const restored = await loadChatHistory(savedSid)
+      isLoading.value = false
+      if (restored) return
+    }
+    
+    // No saved session or restore failed — start new
+    await initChat()
+    return
   }
-  if (sessionId.value) setupSocket(sessionId.value)
+  
+  if (sessionId.value) await setupSocket(sessionId.value)
 }
 
 // Close chat
@@ -134,7 +301,7 @@ const closeChat = () => {
 let widgetPollTimer: ReturnType<typeof setInterval> | null = null
 
 const pollForNewMessages = async () => {
-  if (!sessionId.value || isLoading.value) return
+  if (!sessionId.value || isLoading.value || !isOpen.value) return
   try {
     const token = localStorage.getItem('token')
     const response = await $fetch<{
@@ -145,16 +312,14 @@ const pollForNewMessages = async () => {
     })
     const dbMessages = response.data?.messages || []
     if (dbMessages.length > 0) {
-      const mapped = dbMessages.map((m: any) => ({
-        role: m.role === 'USER' ? 'user' as const : 'assistant' as const,
-        content: m.content,
-      }))
-      const localCount = messages.value.length - 1 // -1 for greeting
-      if (mapped.length > localCount) {
-        const greeting = messages.value[0]
-        messages.value = greeting ? [greeting, ...mapped] : mapped
-        // Clear waiting indicator if admin has replied
-        const hasNewAssistant = mapped.some((m: any, i: number) => i >= localCount && m.role === 'assistant')
+      const previousLength = messages.value.length
+      const didSync = syncMessagesFromHistory(dbMessages)
+
+      if (didSync) {
+        const hasNewAssistant = messages.value
+          .slice(previousLength)
+          .some((message) => message.role === 'assistant')
+
         if (hasNewAssistant) isWaitingForAdmin.value = false
         scrollToBottom()
       }
@@ -163,15 +328,18 @@ const pollForNewMessages = async () => {
 }
 
 const startWidgetPolling = () => {
+  if (!isMounted) return
   stopWidgetPolling()
-  widgetPollTimer = setInterval(pollForNewMessages, 1000)
+  widgetPollTimer = setInterval(pollForNewMessages, 5000)
 }
 const stopWidgetPolling = () => {
   if (widgetPollTimer) { clearInterval(widgetPollTimer); widgetPollTimer = null }
 }
 
 onUnmounted(() => {
-  disconnect()
+  isMounted = false
+  hasSocketListener = false
+  disconnectSocket()
   stopWidgetPolling()
 })
 
@@ -181,7 +349,7 @@ const sendMessage = async () => {
   if (!message || isLoading.value) return
 
   // Add user message
-  messages.value.push({
+  pushUniqueMessage({
     role: 'user',
     content: message,
   })
@@ -208,6 +376,7 @@ const sendMessage = async () => {
     })
 
     sessionId.value = response.sessionId
+    saveSessionId(response.sessionId)
     
     // Connect to WebSocket for real-time updates
     setupSocket(response.sessionId)
@@ -218,7 +387,7 @@ const sendMessage = async () => {
       isWaitingForAdmin.value = true
     } else if (response.message) {
       // Normal AI response
-      messages.value.push({
+      pushUniqueMessage({
         role: 'assistant',
         content: response.message,
       })
@@ -229,13 +398,14 @@ const sendMessage = async () => {
       setupSocket(sessionId.value)
       startWidgetPolling()
     }
-    messages.value.push({
+    pushUniqueMessage({
       role: 'assistant',
-      content: 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.',
+      content: t('chat.connectionError', 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.'),
     })
   } finally {
     isLoading.value = false
     scrollToBottom()
+    nextTick(() => inputRef.value?.focus())
   }
 }
 
@@ -253,6 +423,20 @@ const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     sendMessage()
+  }
+}
+
+// Handle clicks on internal links in chat messages
+const router = useRouter()
+const handleChatClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (target.tagName === 'A') {
+    const href = target.getAttribute('href')
+    if (href && href.startsWith('/')) {
+      e.preventDefault()
+      closeChat()
+      router.push(href)
+    }
   }
 }
 </script>
@@ -282,6 +466,7 @@ const handleKeydown = (e: KeyboardEvent) => {
     <div
       v-if="isOpen"
       class="fixed bottom-6 right-6 w-96 h-[500px] max-h-[80vh] bg-aura-white rounded-lg shadow-elevated overflow-hidden z-50 flex flex-col"
+      :style="{ fontFamily: appearance.fontFamily + ', sans-serif' }"
     >
       <!-- Header -->
       <div class="px-4 py-3 flex items-center justify-between" :style="{ backgroundColor: appearance.headerBgColor, color: appearance.headerTextColor }">
@@ -291,25 +476,38 @@ const handleKeydown = (e: KeyboardEvent) => {
             <span v-else class="text-caption font-serif">A</span>
           </div>
           <div>
-            <h3 class="text-body-sm font-medium">{{ appearance.chatName }}</h3>
-            <p class="text-caption" style="opacity: 0.7">{{ appearance.chatDescription }}</p>
+            <h3 class="text-body-sm font-medium" :style="{ color: appearance.headerTextColor, fontFamily: appearance.headerFontFamily + ', serif' }">{{ appearance.chatName }}</h3>
+            <p class="text-caption" :style="{ color: appearance.headerTextColor, opacity: 0.7 }">{{ appearance.chatDescription }}</p>
           </div>
         </div>
-        <button
-          @click="closeChat"
-          class="p-1 hover:bg-neutral-700 rounded transition-colors"
-          aria-label="Close chat"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            @click="startNewChat"
+            class="p-1 hover:bg-neutral-700 rounded transition-colors"
+            aria-label="New conversation"
+            :title="t('chat.newConversation', 'Cuộc trò chuyện mới')"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <button
+            @click="closeChat"
+            class="p-1 hover:bg-neutral-700 rounded transition-colors"
+            aria-label="Close chat"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Messages -->
       <div
         ref="chatContainer"
         class="flex-1 overflow-y-auto p-4 space-y-4"
+        @click="handleChatClick"
       >
         <div
           v-for="(msg, index) in messages"
@@ -342,11 +540,26 @@ const handleKeydown = (e: KeyboardEvent) => {
       <!-- Input -->
       <div class="border-t border-neutral-200 p-3">
         <div class="flex gap-2">
+          <!-- Voice Call Button -->
+          <button
+            @click="isVoiceActive = true"
+            class="p-2 rounded-lg text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition-colors flex-shrink-0"
+            :title="t('chat.voiceCall', 'Gọi thoại với AURA')"
+            aria-label="Voice call"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 10v2a7 7 0 01-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" stroke-width="1.5" />
+              <line x1="8" y1="23" x2="16" y2="23" stroke-width="1.5" />
+            </svg>
+          </button>
           <input
+            ref="inputRef"
             v-model="inputMessage"
             @keydown="handleKeydown"
             type="text"
-            placeholder="Hỏi về thời trang, phong cách..."
+            :placeholder="t('chat.inputPlaceholder', 'Hỏi về thời trang, phong cách...')"
             class="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-neutral-300"
             :disabled="isLoading"
           />
@@ -357,23 +570,28 @@ const handleKeydown = (e: KeyboardEvent) => {
             :style="{ backgroundColor: appearance.headerBgColor, color: appearance.headerTextColor }"
             :class="(!inputMessage.trim() || isLoading) ? 'cursor-not-allowed' : 'cursor-pointer'"
           >
-            Gửi
+            {{ t('chat.send', 'Gửi') }}
           </button>
         </div>
       </div>
     </div>
   </Transition>
+
+  <!-- Voice Chat Overlay -->
+  <LazyVoiceChat v-if="isVoiceActive" @close="isVoiceActive = false" />
 </template>
 
 <style scoped>
 .chat-markdown :deep(p) {
   margin: 0 0 0.25rem 0;
+  color: inherit !important;
 }
 .chat-markdown :deep(p:last-child) {
   margin-bottom: 0;
 }
 .chat-markdown :deep(strong) {
   font-weight: 700;
+  color: inherit !important;
 }
 .chat-markdown :deep(em) {
   font-style: italic;
@@ -385,6 +603,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 .chat-markdown :deep(li) {
   margin-bottom: 0.125rem;
+  color: inherit !important;
 }
 .chat-markdown :deep(a) {
   color: inherit;

@@ -42,7 +42,7 @@ const isPageLoading = inject<Ref<boolean>>('isPageLoading', ref(false))
 
     <!-- Simple Footer -->
     <footer class="py-8 text-center text-body-sm text-neutral-500">
-      <p>&copy; {{ new Date().getFullYear() }} AURA ARCHIVE. {{ $t('footer.copyright') }}</p>
+      <p>{{ $t('footer.copyright', { year: new Date().getFullYear() }) }}</p>
     </footer>
   </div>
 </template>

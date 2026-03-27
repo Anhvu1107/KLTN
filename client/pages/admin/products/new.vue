@@ -31,6 +31,7 @@ const form = reactive({
   size: 'M',
   color: 'Black',
   material: 'Cotton',
+  quantity: 1,
 })
 
 const isSubmitting = ref(false)
@@ -41,13 +42,12 @@ const success = ref('')
 // File input ref
 const fileInput = ref<HTMLInputElement | null>(null)
 
-// Default options (always available) - using computed for reactive i18n
-const otherLabel = computed(() => locale.value === 'vi' ? 'Khác' : 'Other')
+const otherLabel = computed(() => t('common.other', 'Other'))
 
 const brands = computed(() => [
   { value: 'Rick Owens', label: 'Rick Owens' },
   { value: 'Acronym', label: 'Acronym' },
-  { value: 'Comme des Garçons', label: 'Comme des Garçons' },
+  { value: 'Comme des Garcons', label: t('brands.cdg', 'Comme des Gar\u00e7ons') },
   { value: 'Ralph Lauren', label: 'Ralph Lauren' },
   { value: 'Prada', label: 'Prada' },
   { value: 'Balenciaga', label: 'Balenciaga' },
@@ -58,7 +58,7 @@ const brands = computed(() => [
   { value: 'Gucci', label: 'Gucci' },
   { value: 'Louis Vuitton', label: 'Louis Vuitton' },
   { value: 'Chanel', label: 'Chanel' },
-  { value: 'Hermès', label: 'Hermès' },
+  { value: 'Hermes', label: t('brands.hermes', 'Herm\u00e8s') },
   { value: 'Dior', label: 'Dior' },
   { value: 'Other', label: otherLabel.value },
 ])
@@ -71,8 +71,8 @@ const categories = computed(() => [
   { value: 'Bags', label: t('categories.bags') },
   { value: 'Accessories', label: t('categories.accessories') },
   { value: 'Dresses', label: t('categories.dresses') },
-  { value: 'Jewelry', label: locale.value === 'vi' ? 'Trang sức' : 'Jewelry' },
-  { value: 'Watches', label: locale.value === 'vi' ? 'Đồng hồ' : 'Watches' },
+  { value: 'Jewelry', label: t('categories.jewelry', 'Trang sức') },
+  { value: 'Watches', label: t('categories.watches', 'Đồng hồ') },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -83,8 +83,8 @@ const sizes = computed(() => [
   { value: 'L', label: 'L' },
   { value: 'XL', label: 'XL' },
   { value: 'XXL', label: 'XXL' },
-  { value: 'One Size', label: locale.value === 'vi' ? 'Một cỡ' : 'One Size' },
-  { value: 'Free Size', label: locale.value === 'vi' ? 'Tự do' : 'Free Size' },
+  { value: 'One Size', label: t('shop.filters.oneSize', 'One Size') },
+  { value: 'Free Size', label: t('shop.filters.freeSize', 'Free Size') },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -98,8 +98,8 @@ const colors = computed(() => [
   { value: 'Cream', label: t('colors.cream') },
   { value: 'Brown', label: t('colors.brown') },
   { value: 'Multi', label: t('colors.multi') },
-  { value: 'Gold', label: locale.value === 'vi' ? 'Vàng' : 'Gold' },
-  { value: 'Silver', label: locale.value === 'vi' ? 'Bạc' : 'Silver' },
+  { value: 'Gold', label: t('colors.gold', 'Gold') },
+  { value: 'Silver', label: t('colors.silver', 'Silver') },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -113,8 +113,8 @@ const materials = computed(() => [
   { value: 'Polyester', label: t('materials.polyester') },
   { value: 'Linen', label: t('materials.linen') },
   { value: 'Mixed', label: t('materials.mixed') },
-  { value: 'Canvas', label: locale.value === 'vi' ? 'Vải canvas' : 'Canvas' },
-  { value: 'Metal', label: locale.value === 'vi' ? 'Kim loại' : 'Metal' },
+  { value: 'Canvas', label: t('materials.canvas', 'Canvas') },
+  { value: 'Metal', label: t('materials.metal', 'Metal') },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -173,7 +173,7 @@ const handleFileSelect = async (event: Event) => {
   
   if (!files || files.length === 0) return
   if (form.images.length + files.length > 5) {
-    error.value = 'Maximum 5 images allowed'
+    error.value = t('admin.productForm.maxImages', 'Maximum 5 images allowed')
     return
   }
 
@@ -200,7 +200,7 @@ const handleFileSelect = async (event: Event) => {
       form.images.push(...response.data.urls)
     }
   } catch (err: any) {
-    error.value = err?.data?.message || 'Failed to upload images'
+    error.value = err?.data?.message || t('notifications.uploadFailed', 'Failed to upload images')
   } finally {
     isUploading.value = false
     // Reset file input
@@ -224,7 +224,7 @@ const handleSubmit = async () => {
   const actualCondition = form.conditionText === 'Other' ? customCondition.value : form.conditionText
 
   if (!form.name || !actualBrand || !form.basePrice) {
-    error.value = 'Please fill all required fields'
+    error.value = t('common.errorFillRequired', 'Please fill all required fields')
     return
   }
 
@@ -237,7 +237,7 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    await $fetch(`${config.public.apiUrl}/admin/products`, {
+    const response = await $fetch<{ success: boolean; data: { product: any } }>(`${config.public.apiUrl}/admin/products`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getToken()}` },
       body: {
@@ -262,13 +262,28 @@ const handleSubmit = async () => {
       },
     })
 
-    success.value = 'Product created successfully!'
+    if (response.success && form.quantity > 1) {
+      const productId = response.data.product.id;
+      for (let i = 1; i < form.quantity; i++) {
+        await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${getToken()}` },
+          body: {
+            size: actualSize,
+            color: actualColor,
+            material: actualMaterial,
+          },
+        });
+      }
+    }
+
+    success.value = t('common.createSuccess', 'Product created successfully!')
     
     setTimeout(() => {
       router.push('/admin/products')
     }, 1500)
   } catch (err: any) {
-    error.value = err?.data?.message || 'Failed to create product'
+    error.value = err?.data?.message || t('notifications.updateError', 'Failed to create product')
   } finally {
     isSubmitting.value = false
   }
@@ -320,7 +335,7 @@ useSeoMeta({
                 @click="removeImage(index)"
                 class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
               >
-                ×
+                &#215;
               </button>
             </div>
             
@@ -377,7 +392,7 @@ useSeoMeta({
                 v-model="customBrand" 
                 type="text" 
                 class="input-field mt-2" 
-                placeholder="Nhập tên thương hiệu mới..."
+                :placeholder="t('admin.productForm.enterNew', 'Nhập giá trị mới...')"
               />
             </div>
 
@@ -391,7 +406,7 @@ useSeoMeta({
                 v-model="customCategory" 
                 type="text" 
                 class="input-field mt-2" 
-                placeholder="Nhập tên danh mục mới..."
+                :placeholder="t('admin.productForm.enterNew', 'Nhập giá trị mới...')"
               />
             </div>
 
@@ -405,7 +420,7 @@ useSeoMeta({
                 v-model="customSubcategory" 
                 type="text" 
                 class="input-field mt-2" 
-                placeholder="Nhập phân loại mới..."
+                :placeholder="t('admin.productForm.enterNew', 'Nhập giá trị mới...')"
               />
             </div>
 
@@ -419,7 +434,7 @@ useSeoMeta({
                 v-model="customCondition" 
                 type="text" 
                 class="input-field mt-2" 
-                placeholder="Nhập tình trạng mới..."
+                :placeholder="t('admin.productForm.enterNew', 'Nhập giá trị mới...')"
               />
             </div>
 
@@ -455,7 +470,7 @@ useSeoMeta({
                 v-model="customSize" 
                 type="text" 
                 class="input-field mt-2" 
-                placeholder="Nhập kích cỡ mới..."
+                :placeholder="t('admin.productForm.enterNew', 'Nhập giá trị mới...')"
               />
             </div>
 
@@ -469,7 +484,7 @@ useSeoMeta({
                 v-model="customColor" 
                 type="text" 
                 class="input-field mt-2" 
-                placeholder="Nhập màu sắc mới..."
+                :placeholder="t('admin.productForm.enterNew', 'Nhập giá trị mới...')"
               />
             </div>
 
@@ -483,8 +498,16 @@ useSeoMeta({
                 v-model="customMaterial" 
                 type="text" 
                 class="input-field mt-2" 
-                placeholder="Nhập chất liệu mới..."
+                :placeholder="t('admin.productForm.enterNew', 'Nhập giá trị mới...')"
               />
+            </div>
+
+            <div class="md:col-span-3 border-t border-neutral-100 pt-4 mt-2">
+              <label class="input-label">{{ t('admin.quantity', 'Số lượng') }}</label>
+              <div class="flex items-center gap-2">
+                <input v-model.number="form.quantity" type="number" min="1" class="input-field max-w-[150px]" />
+                <span class="text-caption text-neutral-500">{{ t('admin.productForm.skuNote', 'Sẽ tạo ra bấy nhiêu mã SKU độc lập') }}</span>
+              </div>
             </div>
           </div>
         </div>

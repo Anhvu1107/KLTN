@@ -3,39 +3,105 @@
  * Homepage - AURA ARCHIVE (Bright & Elegant)
  * Luxury fashion homepage with light, airy design
  */
-import { useI18n } from '#imports'
 
 const config = useRuntimeConfig()
 const { t } = useI18n()
 
-// Fetch banners for hero section
-const { data: bannersData } = await useFetch<{
+type BannerResponse = {
   success: boolean
   data: { banners: any[] }
-}>(`${config.public.apiUrl}/banners`)
+}
 
-// Fetch new arrivals
-const { data: featuredProducts } = await useFetch<{
+type ProductListResponse = {
   success: boolean
   data: { products: any[] }
-}>(`${config.public.apiUrl}/products?limit=4&sort=newest`)
+}
 
-// Fetch best sellers
-const { data: bestSellersData } = await useFetch<{
-  success: boolean
-  data: { products: any[] }
-}>(`${config.public.apiUrl}/products/best-sellers?limit=4`)
+const createEmptyBannerResponse = (): BannerResponse => ({
+  success: true,
+  data: { banners: [] },
+})
 
-// Fetch sale products
-const { data: saleProductsData } = await useFetch<{
-  success: boolean
-  data: { products: any[] }
-}>(`${config.public.apiUrl}/products/sale?limit=4`)
+const createEmptyProductResponse = (): ProductListResponse => ({
+  success: true,
+  data: { products: [] },
+})
 
-// Get hero banner (position = 0)
-const heroBanner = computed(() => {
-  const banners = bannersData.value?.data?.banners || []
-  return banners.find((b: any) => b.position === 0) || null
+// Fetch all banners (SSR)
+const { data: bannersData } = await useFetch<BannerResponse>(`${config.public.apiUrl}/banners`, {
+  timeout: 5000,
+  default: createEmptyBannerResponse,
+})
+
+const { data: featuredProducts } = useFetch<ProductListResponse>(
+  `${config.public.apiUrl}/products?limit=4&sort=newest`,
+  {
+    server: false,
+    lazy: true,
+    timeout: 5000,
+    default: createEmptyProductResponse,
+  }
+)
+
+const { data: bestSellersData } = useFetch<ProductListResponse>(
+  `${config.public.apiUrl}/products/best-sellers?limit=4`,
+  {
+    server: false,
+    lazy: true,
+    timeout: 5000,
+    default: createEmptyProductResponse,
+  }
+)
+
+const { data: saleProductsData } = useFetch<ProductListResponse>(
+  `${config.public.apiUrl}/products/sale?limit=4`,
+  {
+    server: false,
+    lazy: true,
+    timeout: 5000,
+    default: createEmptyProductResponse,
+  }
+)
+
+// Helper: resolve banner image URL
+const resolveBannerUrl = (url: string | undefined) => {
+  if (!url) return ''
+  return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
+}
+
+// Get banners by section
+const allBanners = computed(() => bannersData.value?.data?.banners || [])
+const getBannersBySection = (section: string) => allBanners.value.filter((b: any) => b.section === section)
+const getBannerBySection = (section: string) => allBanners.value.find((b: any) => b.section === section) || null
+
+const heroBanners = computed(() => getBannersBySection('hero'))
+const heroBanner = computed(() => heroBanners.value[0] || null)
+const heroBannerImage = computed(() => resolveBannerUrl(heroBanner.value?.image_url))
+
+const collectionWomenBanners = computed(() => getBannersBySection('collection_women'))
+const collectionWomenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_women')?.image_url))
+const collectionMenBanners = computed(() => getBannersBySection('collection_men'))
+const collectionMenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_men')?.image_url))
+
+// Dynamic homepage categories
+const homepageCategories = computed(() => getBannersBySection('homepage_categories'))
+
+// Fetch animation config from site settings
+const animationConfig = ref<Record<string, string>>({})
+const getAnimType = (section: string): 'none' | 'slide' | 'fade' => {
+  return (animationConfig.value[section] as any) || 'none'
+}
+
+onMounted(async () => {
+  try {
+    const response = await $fetch<{ success: boolean; data: Record<string, string> }>(
+      `${config.public.apiUrl}/settings/public`
+    )
+    const raw = response.data?.banner_animation_config
+    if (raw) {
+      try { animationConfig.value = JSON.parse(raw) } catch {}
+    }
+  } catch {}
 })
 
 const products = computed(() => featuredProducts.value?.data?.products || [])
@@ -99,13 +165,13 @@ useSeoMeta({
           <!-- Right: Featured Image from Banner -->
           <div class="hidden lg:block">
             <div class="relative">
-              <div class="aspect-[3/4] bg-neutral-200 rounded-sm overflow-hidden shadow-elevated">
-                <!-- Display banner image if available -->
-                <img 
-                  v-if="heroBanner?.image_url"
-                  :src="heroBanner.image_url"
-                  :alt="heroBanner.title || 'Featured Collection'"
-                  class="w-full h-full object-cover"
+              <div class="aspect-[3/4] bg-neutral-200 rounded-sm overflow-hidden shadow-elevated group">
+                <!-- Multiple banners: use slider -->
+                <BannerSlider
+                  v-if="heroBanners.length > 0"
+                  :banners="heroBanners"
+                  :animation="getAnimType('hero')"
+                  aspect-class=""
                 />
                 <!-- Fallback placeholder -->
                 <div v-else class="w-full h-full flex items-center justify-center text-neutral-400">
@@ -119,8 +185,8 @@ useSeoMeta({
               </div>
               <!-- Decorative badge -->
               <div class="absolute -bottom-6 -left-6 bg-aura-white shadow-medium p-6 rounded-sm">
-                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">{{ $t('home.newArrivals') }}</p>
-                <p class="font-serif text-heading-4 text-aura-black">{{ $t('home.season') }}</p>
+                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">{{ heroBanner?.title || $t('home.newArrivals') }}</p>
+                <p class="font-serif text-heading-4 text-aura-black">{{ heroBanner?.subtitle || $t('home.season') }}</p>
               </div>
             </div>
           </div>
@@ -157,11 +223,12 @@ useSeoMeta({
             to="/shop?subcategory=Women" 
             class="group relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-rose-50 to-neutral-100"
           >
+            <img v-if="collectionWomenImage" :src="collectionWomenImage" alt="Women's Collection" class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3">{{ $t('home.collection') }}</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ $t('home.women') }}</h2>
-              <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-burgundy mb-3" :class="collectionWomenImage ? 'text-white/80' : ''">{{ $t('home.collection') }}</span>
+              <h2 class="font-serif text-heading-1 mb-4" :class="collectionWomenImage ? 'text-white' : 'text-aura-black'">{{ $t('home.women') }}</h2>
+              <span class="text-body-sm uppercase tracking-wider underline underline-offset-4" :class="collectionWomenImage ? 'text-white/80 group-hover:text-white' : 'text-neutral-600 group-hover:text-aura-black'" style="transition: color 0.3s">
                 {{ $t('home.shopNow') }}
               </span>
             </div>
@@ -172,11 +239,12 @@ useSeoMeta({
             to="/shop?subcategory=Men" 
             class="group relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-slate-100 to-neutral-100"
           >
+            <img v-if="collectionMenImage" :src="collectionMenImage" alt="Men's Collection" class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 bg-aura-black/0 group-hover:bg-aura-black/10 transition-all duration-500" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3">{{ $t('home.collection') }}</span>
-              <h2 class="font-serif text-heading-1 text-aura-black mb-4">{{ $t('home.men') }}</h2>
-              <span class="text-body-sm uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
+              <span class="text-caption uppercase tracking-[0.3em] text-accent-navy mb-3" :class="collectionMenImage ? 'text-white/80' : ''">{{ $t('home.collection') }}</span>
+              <h2 class="font-serif text-heading-1 mb-4" :class="collectionMenImage ? 'text-white' : 'text-aura-black'">{{ $t('home.men') }}</h2>
+              <span class="text-body-sm uppercase tracking-wider underline underline-offset-4" :class="collectionMenImage ? 'text-white/80 group-hover:text-white' : 'text-neutral-600 group-hover:text-aura-black'" style="transition: color 0.3s">
                 {{ $t('home.shopNow') }}
               </span>
             </div>
@@ -367,29 +435,26 @@ useSeoMeta({
       </div>
     </section>
 
-    <!-- Category Cards (3-column) -->
-    <section class="py-20 lg:py-28 bg-neutral-50">
+    <!-- Category Cards (dynamic from admin) -->
+    <section v-if="homepageCategories.length" class="py-20 lg:py-28 bg-neutral-50">
       <div class="container-aura">
         <div class="text-center mb-16">
           <h2 class="font-serif text-heading-1 text-aura-black">{{ $t('home.categories') }}</h2>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <div class="grid grid-cols-1 gap-6 lg:gap-8" :class="homepageCategories.length === 2 ? 'md:grid-cols-2' : homepageCategories.length >= 3 ? 'md:grid-cols-3' : ''">
           <NuxtLink
-            v-for="(cat, index) in [
-              { key: 'bags', name: $t('home.catBags'), color: 'from-amber-50 to-orange-50' },
-              { key: 'outerwear', name: $t('home.catOuterwear'), color: 'from-slate-50 to-gray-100' },
-              { key: 'accessories', name: $t('home.catAccessories'), color: 'from-rose-50 to-pink-50' }
-            ]"
-            :key="cat.key"
-            :to="`/shop?category=${cat.key.charAt(0).toUpperCase() + cat.key.slice(1)}`"
-            class="group relative aspect-square overflow-hidden bg-gradient-to-br"
-            :class="cat.color"
+            v-for="cat in homepageCategories"
+            :key="cat.id"
+            :to="cat.link_url || '/shop'"
+            class="group relative aspect-square overflow-hidden bg-gradient-to-br from-neutral-100 to-neutral-50"
           >
+            <img v-if="cat.image_url" :src="resolveBannerUrl(cat.image_url)" :alt="cat.title" class="absolute inset-0 w-full h-full object-cover" />
+            <div v-if="cat.image_url" class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-300" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-              <h3 class="font-serif text-heading-2 text-aura-black mb-3">{{ cat.name }}</h3>
-              <span class="text-caption uppercase tracking-wider text-neutral-600 group-hover:text-aura-black transition-colors underline underline-offset-4">
-                {{ $t('home.shopNow') }}
+              <h3 class="font-serif text-heading-2 mb-3" :class="cat.image_url ? 'text-white' : 'text-aura-black'">{{ cat.title }}</h3>
+              <span class="text-caption uppercase tracking-wider underline underline-offset-4" :class="cat.image_url ? 'text-white/80 group-hover:text-white' : 'text-neutral-600 group-hover:text-aura-black'" style="transition: color 0.3s">
+                {{ cat.button_text || $t('home.shopNow') }}
               </span>
             </div>
           </NuxtLink>

@@ -6,6 +6,8 @@
 
 let socket: any = null
 let ioModule: any = null
+let connectPromise: Promise<any> | null = null
+let activeUsers = 0
 
 export const useSocket = () => {
     const config = useRuntimeConfig()
@@ -13,30 +15,46 @@ export const useSocket = () => {
     const connect = async () => {
         // Only run in browser
         if (!import.meta.client) return null
+        activeUsers++
         if (socket?.connected) return socket
-
-        // Dynamic import to avoid SSR issues
-        if (!ioModule) {
-            const mod = await import('socket.io-client')
-            ioModule = mod.io
+        if (socket) {
+            try {
+                socket.connect?.()
+            } catch {}
+            return socket
         }
+        if (connectPromise) return connectPromise
 
-        const serverUrl = config.public.apiUrl.replace('/api/v1', '')
+        connectPromise = (async () => {
+            // Dynamic import to avoid SSR issues
+            if (!ioModule) {
+                const mod = await import('socket.io-client')
+                ioModule = mod.io
+            }
 
-        socket = ioModule(serverUrl, {
-            transports: ['websocket', 'polling'],
-            autoConnect: true,
-        })
+            const serverUrl = config.public.socketUrl || config.public.apiUrl.replace(/\/api\/v1$/, '')
 
-        socket.on('connect', () => {
-            console.log('[Socket] Connected:', socket?.id)
-        })
+            socket = ioModule(serverUrl, {
+                transports: ['websocket', 'polling'],
+                autoConnect: true,
+            })
 
-        socket.on('disconnect', () => {
-            console.log('[Socket] Disconnected')
-        })
+            socket.on('connect', () => {
+                console.log('[Socket] Connected:', socket?.id)
+            })
 
-        return socket
+            socket.on('disconnect', () => {
+                console.log('[Socket] Disconnected')
+            })
+
+            return socket
+        })()
+
+        try {
+            return await connectPromise
+        } finally {
+            connectPromise = null
+        }
     }
 
     const getSocket = () => {
@@ -46,6 +64,10 @@ export const useSocket = () => {
 
     const joinSession = (sessionId: string) => {
         socket?.emit('join-session', sessionId)
+    }
+
+    const leaveSession = (sessionId: string) => {
+        socket?.emit('leave-session', sessionId)
     }
 
     const joinAdmin = () => {
@@ -63,14 +85,19 @@ export const useSocket = () => {
     }
 
     const disconnect = () => {
-        socket?.disconnect()
-        socket = null
+        activeUsers = Math.max(0, activeUsers - 1)
+        if (activeUsers === 0 && socket) {
+            socket.disconnect()
+            socket = null
+            connectPromise = null
+        }
     }
 
     return {
         connect,
         getSocket,
         joinSession,
+        leaveSession,
         joinAdmin,
         onNewMessage,
         onSessionUpdated,

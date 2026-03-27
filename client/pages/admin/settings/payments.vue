@@ -4,7 +4,7 @@
  * AURA ARCHIVE - Configure payment methods, bank accounts, and gateway settings
  */
 
-import { useI18n } from '#imports'
+import { useAuthToken } from '#imports'
 
 definePageMeta({
   layout: 'admin',
@@ -24,8 +24,8 @@ let savedSnapshot = ''
 
 // Payment methods toggle
 const methods = ref({
-  cod: { enabled: true, label: 'Thanh toán khi nhận hàng (COD)' },
-  bank_transfer: { enabled: true, label: 'Chuyển khoản ngân hàng' },
+  cod: { enabled: true, label: computed(() => t('admin.paymentSettings.cod', 'Thanh to\u00e1n khi nh\u1eadn h\u00e0ng (COD)')) },
+  bank_transfer: { enabled: true, label: computed(() => t('admin.paymentSettings.bank_transfer', 'Chuy\u1ec3n kho\u1ea3n ng\u00e2n h\u00e0ng')) },
   momo: { enabled: true, label: 'MoMo' },
   vnpay: { enabled: true, label: 'VNPay' },
   paypal: { enabled: true, label: 'PayPal' },
@@ -177,7 +177,7 @@ useSeoMeta({ title: `${t('admin.paymentSettings.title')} | Admin` })
       <div class="flex items-center gap-3">
         <span v-if="isDirty" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-body-sm font-medium border border-amber-200">
           <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-          Có thay đổi chưa lưu
+          {{ t('admin.paymentSettings.unsavedChanges') }}
         </span>
         <span v-if="saveMessage" class="text-green-600 text-body-sm">{{ saveMessage }}</span>
         <span v-if="saveError" class="text-red-600 text-body-sm">{{ saveError }}</span>
@@ -194,7 +194,7 @@ useSeoMeta({ title: `${t('admin.paymentSettings.title')} | Admin` })
 
     <div v-else class="space-y-8">
       <!-- Payment Methods Toggle -->
-      <div class="bg-white rounded-sm border border-neutral-200 p-6">
+      <div class="card p-6">
         <h2 class="font-serif text-heading-4 text-aura-black mb-6 pb-4 border-b">
           {{ t('admin.paymentSettings.methodsTitle') }}
         </h2>
@@ -223,7 +223,7 @@ useSeoMeta({ title: `${t('admin.paymentSettings.title')} | Admin` })
       </div>
 
       <!-- Bank Accounts for Bank Transfer -->
-      <div class="bg-white rounded-sm border border-neutral-200 p-6">
+      <div class="card p-6">
         <div class="flex items-center justify-between mb-6 pb-4 border-b">
           <h2 class="font-serif text-heading-4 text-aura-black">
             {{ t('admin.paymentSettings.bankAccountsTitle') }}
@@ -263,7 +263,7 @@ useSeoMeta({ title: `${t('admin.paymentSettings.title')} | Admin` })
               </div>
               <div>
                 <label class="text-body-sm text-neutral-700 block mb-1">{{ t('admin.paymentSettings.branch') }}</label>
-                <input v-model="account.branch" type="text" class="input-field" placeholder="Chi nhánh HCM" />
+                <input v-model="account.branch" type="text" class="input-field" :placeholder="t('admin.paymentSettings.branch')" />
               </div>
             </div>
           </div>
@@ -271,7 +271,7 @@ useSeoMeta({ title: `${t('admin.paymentSettings.title')} | Admin` })
       </div>
 
       <!-- Gateway Info -->
-      <div class="bg-white rounded-sm border border-neutral-200 p-6">
+      <div class="card p-6">
         <h2 class="font-serif text-heading-4 text-aura-black mb-6 pb-4 border-b">
           {{ t('admin.paymentSettings.gatewayTitle') }}
         </h2>

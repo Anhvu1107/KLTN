@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Successful payment confirmation with receipt link
  */
 
-import { useI18n } from '#imports'
 
 const { t } = useI18n()
 const route = useRoute()

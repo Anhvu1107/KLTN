@@ -11,7 +11,8 @@ const catchAsync = require('../utils/catchAsync');
  * Get active banners for homepage
  */
 const getActiveBanners = catchAsync(async (req, res) => {
-    const banners = await bannerService.getActiveBanners();
+    const { section } = req.query;
+    const banners = await bannerService.getActiveBanners(section || null);
 
     res.status(200).json({
         success: true,

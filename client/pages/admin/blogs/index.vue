@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Blog management with CRUD
  */
 
+import { useDialog } from '~/composables/useDialog'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
@@ -12,6 +14,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
+const { confirm: showConfirm } = useDialog()
 
 // State
 const blogs = ref<any[]>([])
@@ -21,6 +24,10 @@ const showModal = ref(false)
 const editingBlog = ref<any>(null)
 const formError = ref('')
 const isSubmitting = ref(false)
+const isUploading = ref(false)
+const imagePreview = ref('')
+const blogFileInput = ref<HTMLInputElement | null>(null)
+const isDragging = ref(false)
 
 // Form data
 const formData = ref({
@@ -78,6 +85,7 @@ const openCreateModal = () => {
     tags: [],
     status: 'draft',
   }
+  imagePreview.value = ''
   showModal.value = true
 }
 
@@ -93,6 +101,11 @@ const openEditModal = (blog: any) => {
     category: blog.category || 'News',
     tags: blog.tags || [],
     status: blog.status,
+  }
+  if (blog.featured_image) {
+    imagePreview.value = blog.featured_image.startsWith('http') ? blog.featured_image : `${config.public.apiUrl}${blog.featured_image}`
+  } else {
+    imagePreview.value = ''
   }
   showModal.value = true
 }
@@ -125,7 +138,8 @@ const submitForm = async () => {
 
 // Delete blog
 const deleteBlog = async (id: string) => {
-  if (!confirm(t('admin.deleteConfirm'))) return
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  if (!ok) return
 
   try {
     const token = getToken()
@@ -155,6 +169,49 @@ const getStatusClass = (status: string) => {
   return classes[status] || 'bg-neutral-100'
 }
 
+// Image upload handlers
+const handleBlogImageUpload = async (file: File) => {
+  if (!file) return
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) { formError.value = t('admin.popups.imageFormats'); return }
+  if (file.size > 10 * 1024 * 1024) { formError.value = t('admin.popups.imageFormats'); return }
+  const reader = new FileReader()
+  reader.onload = (e) => { imagePreview.value = e.target?.result as string }
+  reader.readAsDataURL(file)
+  isUploading.value = true
+  formError.value = ''
+  try {
+    const token = getToken()
+    const uploadData = new FormData()
+    uploadData.append('banner', file)
+    const response = await $fetch<{ success: boolean; data: { url: string } }>(
+      `${config.public.apiUrl}/admin/upload/banner`,
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: uploadData }
+    )
+    formData.value.featured_image = response.data.url
+  } catch (error: any) {
+    formError.value = error.data?.message || t('notifications.saveError', 'Upload failed')
+    imagePreview.value = ''
+  } finally {
+    isUploading.value = false
+  }
+}
+const onBlogFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) handleBlogImageUpload(input.files[0])
+}
+const onBlogDragOver = (e: DragEvent) => { e.preventDefault(); isDragging.value = true }
+const onBlogDragLeave = () => { isDragging.value = false }
+const onBlogDrop = (e: DragEvent) => {
+  e.preventDefault(); isDragging.value = false
+  if (e.dataTransfer?.files && e.dataTransfer.files[0]) handleBlogImageUpload(e.dataTransfer.files[0])
+}
+const removeBlogImage = () => {
+  imagePreview.value = ''
+  formData.value.featured_image = ''
+  if (blogFileInput.value) blogFileInput.value.value = ''
+}
+
 onMounted(fetchBlogs)
 
 useSeoMeta({ title: () => `${t('admin.blogs.title')} | Admin` })
@@ -175,7 +232,7 @@ useSeoMeta({ title: () => `${t('admin.blogs.title')} | Admin` })
     </div>
 
     <!-- Blogs Table -->
-    <div v-else class="bg-white rounded-sm border border-neutral-200 overflow-hidden">
+    <div v-else class="card overflow-hidden">
       <table class="w-full">
         <thead class="bg-neutral-50 border-b border-neutral-200">
           <tr>
@@ -259,7 +316,29 @@ useSeoMeta({ title: () => `${t('admin.blogs.title')} | Admin` })
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="input-label">{{ t('admin.blogs.featuredImage') }}</label>
-                <input v-model="formData.featured_image" type="url" class="input-field" placeholder="https://..." />
+                <input ref="blogFileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onBlogFileChange" />
+                <div
+                  v-if="!imagePreview && !formData.featured_image"
+                  class="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors"
+                  :class="isDragging ? 'border-aura-black bg-neutral-50' : 'border-neutral-300 hover:border-neutral-400'"
+                  @click="blogFileInput?.click()"
+                  @dragover="onBlogDragOver"
+                  @dragleave="onBlogDragLeave"
+                  @drop="onBlogDrop"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 mx-auto text-neutral-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p class="text-body-sm text-neutral-600">{{ t('admin.popups.dragDropHint') }} <span class="text-aura-black font-medium underline">{{ t('admin.popups.chooseImage') }}</span></p>
+                  <p class="text-caption text-neutral-400 mt-1">{{ t('admin.popups.imageFormats') }}</p>
+                </div>
+                <div v-else class="relative rounded-lg overflow-hidden border border-neutral-200">
+                  <img :src="imagePreview || `${config.public.apiUrl}${formData.featured_image}`" alt="Blog preview" class="w-full h-40 object-cover" />
+                  <div v-if="isUploading" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <div class="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
+                  </div>
+                  <button v-else type="button" @click="removeBlogImage" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors" :title="t('admin.popups.removeImage')">✕</button>
+                </div>
               </div>
               <div>
                 <label class="input-label">{{ t('shop.category') }}</label>

@@ -8,7 +8,6 @@
 declare const google: any
 
 import { useAuthStore } from '~/stores/auth'
-import { useI18n } from '#imports'
 
 definePageMeta({
   layout: 'auth',

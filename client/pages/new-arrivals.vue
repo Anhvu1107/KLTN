@@ -24,6 +24,17 @@ const { data, pending, refresh } = await useFetch<{
 const products = computed(() => data.value?.data?.products || [])
 const pagination = computed(() => data.value?.data?.pagination || { total: 0, page: 1, totalPages: 1 })
 
+// Fetch banner
+const { data: bannerData } = await useFetch<{ success: boolean; data: { banners: any[] } }>(
+  `${config.public.apiUrl}/banners?section=page_new_arrivals`
+)
+const pageBanner = computed(() => bannerData.value?.data?.banners?.[0] || null)
+const pageBannerImage = computed(() => {
+  const url = pageBanner.value?.image_url
+  if (!url) return ''
+  return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
+})
+
 // Format price
 const { formatPrice } = useCurrency()
 
@@ -44,18 +55,20 @@ useSeoMeta({
 <template>
   <div>
     <!-- Hero Banner -->
-    <div class="bg-gradient-to-b from-neutral-100 to-white border-b border-neutral-200">
-      <div class="container-aura py-16 lg:py-24 text-center">
-        <span class="text-caption uppercase tracking-[0.2em] text-accent-navy mb-4 block">
+    <div class="relative overflow-hidden border-b border-neutral-200" :class="pageBannerImage ? 'text-white' : 'bg-gradient-to-b from-neutral-100 to-white'">
+      <img v-if="pageBannerImage" :src="pageBannerImage" alt="New Arrivals" class="absolute inset-0 w-full h-full object-cover" />
+      <div v-if="pageBannerImage" class="absolute inset-0 bg-black/40" />
+      <div class="relative container-aura py-16 lg:py-24 text-center">
+        <span class="text-caption uppercase tracking-[0.2em] mb-4 block" :class="pageBannerImage ? 'text-white/70' : 'text-accent-navy'">
           {{ t('home.newArrivals') }}
         </span>
-        <h1 class="font-serif text-display-2 lg:text-display-1 text-aura-black mb-4">
+        <h1 class="font-serif text-display-2 lg:text-display-1 mb-4" :class="pageBannerImage ? 'text-white' : 'text-aura-black'">
           {{ t('nav.newArrivals') }}
         </h1>
-        <p class="text-body text-neutral-600 max-w-2xl mx-auto">
+        <p class="text-body max-w-2xl mx-auto" :class="pageBannerImage ? 'text-white/80' : 'text-neutral-600'">
           {{ t('home.newArrivalsDesc') }}
         </p>
-        <p v-if="pagination.total" class="text-body-sm text-neutral-500 mt-4">
+        <p v-if="pagination.total" class="text-body-sm mt-4" :class="pageBannerImage ? 'text-white/60' : 'text-neutral-500'">
           {{ pagination.total }} {{ t('shop.products') }}
         </p>
       </div>

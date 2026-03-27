@@ -65,6 +65,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING(100),
             allowNull: true,
         },
+        payment_transaction_id: {
+            type: DataTypes.STRING(255),
+            allowNull: true,
+            comment: 'Transaction ID from payment gateway (VNPay/MoMo/PayPal)',
+        },
         notes: {
             type: DataTypes.TEXT,
             allowNull: true,
@@ -110,11 +115,16 @@ module.exports = (sequelize, DataTypes) => {
     };
 
     // Generate unique order number
-    Order.beforeCreate(async (order) => {
-        const date = new Date();
-        const prefix = `AA${date.getFullYear().toString().slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}`;
-        const random = Math.floor(1000 + Math.random() * 9000);
-        order.order_number = `${prefix}${random}`;
+    Order.beforeValidate(async (order) => {
+        if (!order.order_number) {
+            const date = new Date();
+            // Format: AA + YYMM + DDHHMM + 2-digit random
+            // e.g., AA2603-231459-42 → ~1M unique values/month vs old 9000
+            const prefix = `AA${date.getFullYear().toString().slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const timePart = `${String(date.getDate()).padStart(2, '0')}${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}${String(date.getSeconds()).padStart(2, '0')}`;
+            const random = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+            order.order_number = `${prefix}-${timePart}-${random}`;
+        }
     });
 
     return Order;

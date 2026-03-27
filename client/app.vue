@@ -2,12 +2,30 @@
 /**
  * App.vue - Root component
  * AURA ARCHIVE - Global page loading integration
- * 
+ *
  * Luxury UX: Fast, elegant loading experience
  */
 
+import { defineAsyncComponent } from 'vue'
+
 // Use Nuxt's built-in useLoadingIndicator
 const { isLoading } = useLoadingIndicator()
+const route = useRoute()
+
+const layoutMap = {
+  admin: defineAsyncComponent({
+    loader: () => import('~/layouts/admin.vue'),
+    suspensible: false,
+  }),
+  auth: defineAsyncComponent({
+    loader: () => import('~/layouts/auth.vue'),
+    suspensible: false,
+  }),
+  default: defineAsyncComponent({
+    loader: () => import('~/layouts/default.vue'),
+    suspensible: false,
+  }),
+} as const
 
 // Create reactive loading state
 const isPageLoading = ref(false)
@@ -58,14 +76,23 @@ watch(isLoading, (loading) => {
 
 // Provide loading state to layouts
 provide('isPageLoading', isPageLoading)
+
+const activeLayout = computed(() => {
+  const layoutName = typeof route?.meta?.layout === 'string' ? route.meta.layout : 'default'
+  return layoutMap[layoutName as keyof typeof layoutMap] || layoutMap.default
+})
 </script>
 
 <template>
-  <NuxtLayout>
+  <component :is="activeLayout">
     <NuxtPage />
-  </NuxtLayout>
-  <!-- Global Live Chat Widget -->
-  <ChatLiveChatWidget />
-  <!-- Global Toast Notifications -->
-  <CommonAppToast />
+  </component>
+  <!-- Zalo/Messenger Widget (bottom-left) -->
+  <ClientOnly>
+    <LiveChatWidget />
+  </ClientOnly>
+  <!-- Global Toast Notifications (client-only to avoid hydration mismatch) -->
+  <ClientOnly>
+    <AppToast />
+  </ClientOnly>
 </template>

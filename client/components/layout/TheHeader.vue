@@ -5,7 +5,6 @@
  */
 
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue'
-import { useI18n } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { useCartStore } from '~/stores/cart'
 
@@ -51,20 +50,25 @@ onMounted(() => {
           <div class="flex items-center gap-6 w-full md:w-auto justify-center md:justify-end">
             <LanguageSwitcher />
             <CurrencySwitcher />
-            <NuxtLink 
-              v-if="!isLoggedIn" 
-              to="/auth/login" 
-              class="hover:text-aura-black transition-colors"
-            >
-              {{ t('header.signInOrCreate') }}
-            </NuxtLink>
-            <NuxtLink
-              v-else
-              to="/account"
-              class="hover:text-aura-black transition-colors"
-            >
-              {{ t('header.hello') }}, {{ authStore.fullName || authStore.user?.email }}
-            </NuxtLink>
+            <ClientOnly>
+              <NuxtLink 
+                v-if="!isLoggedIn" 
+                to="/auth/login" 
+                class="hover:text-aura-black transition-colors"
+              >
+                {{ t('header.signInOrCreate') }}
+              </NuxtLink>
+              <NuxtLink
+                v-else
+                to="/account"
+                class="hover:text-aura-black transition-colors"
+              >
+                {{ t('header.hello') }}, {{ authStore.fullName || authStore.user?.email }}
+              </NuxtLink>
+              <template #fallback>
+                <span class="text-neutral-400">{{ t('header.signInOrCreate') }}</span>
+              </template>
+            </ClientOnly>
           </div>
         </div>
       </div>
@@ -157,10 +161,12 @@ onMounted(() => {
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                     />
                   </svg>
-                  <span
-                    v-if="isLoggedIn"
-                    class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"
-                  />
+                  <ClientOnly>
+                    <span
+                      v-if="isLoggedIn"
+                      class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"
+                    />
+                  </ClientOnly>
                 </div>
               </MenuButton>
 
@@ -256,16 +262,18 @@ onMounted(() => {
             </Menu>
 
             <!-- Wishlist (Desktop only, if logged in) -->
-            <NuxtLink
-              v-if="isLoggedIn"
-              to="/account/wishlist"
-              class="hidden lg:block p-2 text-neutral-600 hover:text-aura-black transition-colors"
-              :aria-label="t('common.wishlist')"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </NuxtLink>
+            <ClientOnly>
+              <NuxtLink
+                v-if="isLoggedIn"
+                to="/account/wishlist"
+                class="hidden lg:block p-2 text-neutral-600 hover:text-aura-black transition-colors"
+                :aria-label="t('common.wishlist')"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </NuxtLink>
+            </ClientOnly>
 
             <!-- Cart -->
             <NuxtLink

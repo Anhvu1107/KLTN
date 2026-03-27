@@ -102,7 +102,7 @@ useSeoMeta({ title: 'Abandoned Carts | Admin' })
             </td>
             <td class="p-4 text-center">
               <span :class="getStatusClass(cart.status)" class="px-2 py-1 text-caption rounded">
-                {{ cart.status }}
+                {{ cart.status === 'active' ? t('admin.abandonedCarts.pending') : t(`admin.abandonedCarts.${cart.status}`) }}
               </span>
             </td>
             <td class="p-4 text-body-sm text-neutral-500">

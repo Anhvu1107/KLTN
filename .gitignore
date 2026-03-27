@@ -50,3 +50,14 @@ coverage/
 *.bak
 *.tmp
 *.temp
+temp_*
+
+# AI Service (merged into server — no longer needed as separate service)
+ai_service/
+
+# Agent config
+.agent
+
+# Analysis/temp files
+PROJECT_ANALYSIS.md
+eslint-errors.txt

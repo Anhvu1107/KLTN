@@ -48,22 +48,31 @@ const getSessions = async (options = {}) => {
 
     const where = {};
 
-    // Filter by read status
-    if (filter === 'unread') where.is_read = false;
-    if (filter === 'paused') where.is_ai_paused = true;
-    if (filter === 'active') {
-        where.last_activity = {
-            [Op.gte]: new Date(Date.now() - 30 * 60 * 1000), // 30 min
-        };
+    // Filter by tab
+    if (filter === 'unread') {
+        where.is_read = false;
+        where.status = 'active';
+    } else if (filter === 'joined') {
+        where.admin_joined = true;
+        where.status = 'active';
+    } else if (filter === 'closed') {
+        where.status = 'closed';
+    } else if (filter === 'paused') {
+        where.is_ai_paused = true;
+        where.status = 'active';
+    } else {
+        // Default: show only active sessions
+        where.status = 'active';
     }
 
     // Search
-    const includeWhere = {};
     if (search) {
         where[Op.or] = [
             { customer_name: { [Op.iLike]: `%${search}%` } },
             { customer_email: { [Op.iLike]: `%${search}%` } },
             { last_message: { [Op.iLike]: `%${search}%` } },
+            { '$user.first_name$': { [Op.iLike]: `%${search}%` } },
+            { '$user.last_name$': { [Op.iLike]: `%${search}%` } },
         ];
     }
 
@@ -72,7 +81,7 @@ const getSessions = async (options = {}) => {
         include: [{
             model: User,
             as: 'user',
-            attributes: ['id', 'email', 'first_name', 'last_name', 'avatar_url'],
+            attributes: ['id', 'email', 'first_name', 'last_name', 'avatar_url', 'phone', 'address'],
             required: false,
         }],
         order: [['last_activity', 'DESC']],
@@ -147,10 +156,20 @@ const getSessionMessages = async (sessionId) => {
         { where: { session_id: sessionId } }
     );
 
-    // Get session info
+    // Get session info with user data
     const session = await ensureSession(sessionId);
+    // Re-fetch with user include for customer panel
+    const sessionWithUser = await ChatSession.findOne({
+        where: { session_id: sessionId },
+        include: [{
+            model: User,
+            as: 'user',
+            attributes: ['id', 'email', 'first_name', 'last_name', 'avatar_url', 'phone', 'address'],
+            required: false,
+        }],
+    });
 
-    return { messages, session };
+    return { messages, session: sessionWithUser || session };
 };
 
 /**
@@ -291,6 +310,56 @@ const sendAdminMessage = async (sessionId, content) => {
     return message;
 };
 
+/**
+ * Close a chat session
+ */
+const closeSession = async (sessionId) => {
+    const session = await ensureSession(sessionId);
+    await session.update({
+        status: 'closed',
+        admin_joined: false,
+        is_ai_paused: false,
+    });
+    return session;
+};
+
+/**
+ * Reopen a closed chat session
+ */
+const reopenSession = async (sessionId) => {
+    const session = await ensureSession(sessionId);
+    await session.update({ status: 'active' });
+    return session;
+};
+
+/**
+ * Auto-archive sessions inactive for more than 30 days
+ */
+const autoArchiveOldSessions = async () => {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [count] = await ChatSession.update(
+        { status: 'closed' },
+        {
+            where: {
+                status: 'active',
+                last_activity: { [Op.lt]: thirtyDaysAgo },
+            },
+        }
+    );
+    return count;
+};
+
+const deleteSession = async (sessionId) => {
+    // Delete logs first due to possible foreign key constraints
+    await ChatLog.destroy({ where: { session_id: sessionId } });
+    // Delete session
+    const deleted = await ChatSession.destroy({ where: { session_id: sessionId } });
+    if (!deleted) {
+        throw new AppError('Session not found', 404);
+    }
+    return true;
+};
+
 module.exports = {
     getSessions,
     syncSessionsFromLogs,
@@ -305,4 +374,8 @@ module.exports = {
     updateSessionStats,
     ensureSession,
     sendAdminMessage,
+    closeSession,
+    reopenSession,
+    deleteSession,
+    autoArchiveOldSessions,
 };

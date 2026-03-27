@@ -76,6 +76,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             defaultValue: 0,
         },
+        status: {
+            type: DataTypes.ENUM('active', 'closed'),
+            defaultValue: 'active',
+            comment: 'Session status: active (ongoing), closed (ended by admin)',
+        },
     }, {
         tableName: 'chat_sessions',
         timestamps: true,
@@ -85,6 +90,7 @@ module.exports = (sequelize, DataTypes) => {
             { fields: ['user_id'] },
             { fields: ['is_read'] },
             { fields: ['last_activity'] },
+            { fields: ['status'] },
         ],
     });
 

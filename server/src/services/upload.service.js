@@ -1,63 +1,49 @@
 /**
  * Upload Service
- * AURA ARCHIVE - Handle file uploads with multer
+ * AURA ARCHIVE - Handle file uploads via Cloudinary
+ *
+ * Images are uploaded to Cloudinary and full HTTPS URLs are stored in the DB.
+ * Multer with memoryStorage is used only to parse multipart form data;
+ * no files are written to the local filesystem.
  */
 
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+const { v2: cloudinary } = require('cloudinary');
 
-// Ensure upload directories exist
-const uploadDir = path.join(__dirname, '../../uploads');
-const productImagesDir = path.join(uploadDir, 'products');
-const avatarDir = path.join(uploadDir, 'avatars');
-const bannerDir = path.join(uploadDir, 'banners');
+// ---------------------------------------------------------------------------
+// Cloudinary configuration
+// ---------------------------------------------------------------------------
 
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-if (!fs.existsSync(productImagesDir)) {
-    fs.mkdirSync(productImagesDir, { recursive: true });
-}
-if (!fs.existsSync(avatarDir)) {
-    fs.mkdirSync(avatarDir, { recursive: true });
-}
-if (!fs.existsSync(bannerDir)) {
-    fs.mkdirSync(bannerDir, { recursive: true });
-}
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-// Allowed file types
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-// Magic bytes for image formats (file signature validation)
-const MAGIC_BYTES = {
-    jpeg: [0xFF, 0xD8, 0xFF],           // JPEG
-    png: [0x89, 0x50, 0x4E, 0x47],       // PNG
-    webp: [0x52, 0x49, 0x46, 0x46],      // RIFF (WebP container)
-};
+// ---------------------------------------------------------------------------
+// Magic-bytes validation (runs on the in-memory buffer)
+// ---------------------------------------------------------------------------
 
-/**
- * Validate file by checking magic bytes (file signature)
- * This prevents malicious files disguised as images
- */
 const validateMagicBytes = (buffer) => {
     if (!buffer || buffer.length < 4) return false;
 
-    // Check JPEG
+    // JPEG
     if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
         return 'image/jpeg';
     }
-
-    // Check PNG
+    // PNG
     if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
         return 'image/png';
     }
-
-    // Check WebP (RIFF....WEBP)
+    // WebP (RIFF....WEBP)
     if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
-        // Also check for WEBP marker at offset 8
         if (buffer.length >= 12 &&
             buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) {
             return 'image/webp';
@@ -67,25 +53,13 @@ const validateMagicBytes = (buffer) => {
     return false;
 };
 
-/**
- * Storage configuration for product images
- */
-const productStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, productImagesDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = uuidv4();
-        const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `product-${uniqueSuffix}${ext}`);
-    },
-});
+// ---------------------------------------------------------------------------
+// Multer – memory storage (no files on disk)
+// ---------------------------------------------------------------------------
 
-/**
- * File filter - only allow images (checks mimetype)
- * Note: Magic bytes are validated after upload in validateUploadedFile()
- */
-const imageFileFilter = (req, file, cb) => {
+const memoryStorage = multer.memoryStorage();
+
+const imageFileFilter = (_req, file, cb) => {
     if (ALLOWED_TYPES.includes(file.mimetype)) {
         cb(null, true);
     } else {
@@ -93,143 +67,133 @@ const imageFileFilter = (req, file, cb) => {
     }
 };
 
-/**
- * Validate uploaded file by checking magic bytes
- * Call this AFTER multer processes the file
- * @param {string} filePath - Path to uploaded file
- * @returns {object} - { valid: boolean, detectedType: string | null }
- */
-const validateUploadedFile = (filePath) => {
-    try {
-        const buffer = Buffer.alloc(12);
-        const fd = fs.openSync(filePath, 'r');
-        fs.readSync(fd, buffer, 0, 12, 0);
-        fs.closeSync(fd);
-
-        const detectedType = validateMagicBytes(buffer);
-
-        if (!detectedType) {
-            // Delete invalid file
-            fs.unlinkSync(filePath);
-            return { valid: false, detectedType: null };
-        }
-
-        return { valid: true, detectedType };
-    } catch (error) {
-        console.error('File validation error:', error.message);
-        return { valid: false, detectedType: null };
-    }
-};
-
-/**
- * Multer instance for product images
- */
+/** Multer instance for product images */
 const uploadProductImages = multer({
-    storage: productStorage,
-    limits: {
-        fileSize: MAX_FILE_SIZE,
-        files: 5, // Max 5 images per upload
-    },
+    storage: memoryStorage,
+    limits: { fileSize: MAX_FILE_SIZE, files: 5 },
     fileFilter: imageFileFilter,
 });
 
+/** Multer instance for avatar upload */
+const uploadAvatar = multer({
+    storage: memoryStorage,
+    limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    fileFilter: imageFileFilter,
+});
+
+/** Multer instance for banner upload */
+const uploadBanner = multer({
+    storage: memoryStorage,
+    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    fileFilter: imageFileFilter,
+});
+
+// ---------------------------------------------------------------------------
+// Cloudinary helpers
+// ---------------------------------------------------------------------------
+
 /**
- * Delete a file from uploads directory
- * @param {string} filename - Name of file to delete
- * @returns {boolean} - Success status
+ * Upload a single buffer to Cloudinary.
+ * @param {Buffer} buffer   – File buffer from multer memoryStorage
+ * @param {string} folder   – Cloudinary folder, e.g. "aura/products"
+ * @returns {Promise<string>} – Secure URL of the uploaded image
  */
-const deleteFile = (filename) => {
+const uploadToCloudinary = (buffer, folder = 'aura/products') => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder,
+                resource_type: 'image',
+                transformation: [
+                    { quality: 'auto', fetch_format: 'auto' },
+                ],
+            },
+            (error, result) => {
+                if (error) return reject(error);
+                resolve(result.secure_url);
+            },
+        );
+        stream.end(buffer);
+    });
+};
+
+/**
+ * Validate buffer magic bytes, then upload to Cloudinary.
+ * @param {object} file   – multer file object (with .buffer)
+ * @param {string} folder – Cloudinary folder
+ * @returns {Promise<{valid: boolean, url: string|null}>}
+ */
+const validateAndUpload = async (file, folder = 'aura/products') => {
+    const detectedType = validateMagicBytes(file.buffer);
+    if (!detectedType) {
+        return { valid: false, url: null };
+    }
+    const url = await uploadToCloudinary(file.buffer, folder);
+    return { valid: true, url };
+};
+
+/**
+ * Process an array of multer file objects – validate & upload each one.
+ * @param {Array} files  – multer files
+ * @param {string} folder
+ * @returns {Promise<string[]>} – Array of Cloudinary URLs
+ */
+const processUploadedFiles = async (files, folder = 'aura/products') => {
+    if (!files || files.length === 0) return [];
+
+    const results = await Promise.all(
+        files.map(async (file) => {
+            const { valid, url } = await validateAndUpload(file, folder);
+            if (!valid) {
+                console.warn(`Rejected file (magic-bytes mismatch): ${file.originalname}`);
+                return null;
+            }
+            return url;
+        }),
+    );
+
+    return results.filter(Boolean);
+};
+
+/**
+ * Delete an image from Cloudinary by its public URL.
+ * Extracts the public_id from the URL automatically.
+ * @param {string} url – Full Cloudinary URL
+ * @returns {Promise<boolean>}
+ */
+const deleteFile = async (url) => {
     try {
-        const filePath = path.join(productImagesDir, filename);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            return true;
-        }
-        return false;
+        if (!url || !url.includes('cloudinary.com')) return false;
+
+        // Extract public_id from URL
+        // URL format: https://res.cloudinary.com/<cloud>/image/upload/v123/folder/filename.ext
+        const parts = url.split('/upload/');
+        if (parts.length < 2) return false;
+
+        // Remove version prefix (v1234/) and file extension
+        const afterUpload = parts[1].replace(/^v\d+\//, '');
+        const publicId = afterUpload.replace(/\.[^.]+$/, '');
+
+        const result = await cloudinary.uploader.destroy(publicId);
+        return result.result === 'ok';
     } catch (error) {
-        console.error('Failed to delete file:', error.message);
+        console.error('Failed to delete file from Cloudinary:', error.message);
         return false;
     }
 };
 
-/**
- * Get the public URL for an uploaded file
- * @param {string} filename - Name of the file
- * @returns {string} - Public URL
- */
-const getFileUrl = (filename) => {
-    return `/uploads/products/${filename}`;
-};
-
-/**
- * Process uploaded files and return URLs
- * @param {Array} files - Array of multer file objects
- * @returns {Array} - Array of file URLs
- */
-const processUploadedFiles = (files) => {
-    if (!files || files.length === 0) return [];
-    return files.map(file => getFileUrl(file.filename));
-};
-
-/**
- * Storage configuration for avatar images
- */
-const avatarStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, avatarDir);
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `avatar-${uuidv4()}${ext}`);
-    },
-});
-
-/**
- * Multer instance for avatar upload
- */
-const uploadAvatar = multer({
-    storage: avatarStorage,
-    limits: {
-        fileSize: 2 * 1024 * 1024, // 2MB
-        files: 1,
-    },
-    fileFilter: imageFileFilter,
-});
-
-/**
- * Storage configuration for banner images
- */
-const bannerStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, bannerDir);
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `banner-${uuidv4()}${ext}`);
-    },
-});
-
-/**
- * Multer instance for banner upload
- */
-const uploadBanner = multer({
-    storage: bannerStorage,
-    limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB for high-res banners
-        files: 1,
-    },
-    fileFilter: imageFileFilter,
-});
+// Keep for backward compatibility (old local paths)
+const getFileUrl = (filename) => `/uploads/products/${filename}`;
 
 module.exports = {
     uploadProductImages,
     uploadAvatar,
     uploadBanner,
-    validateUploadedFile,
+    validateMagicBytes,
+    validateAndUpload,
     deleteFile,
     getFileUrl,
     processUploadedFiles,
     ALLOWED_TYPES,
     MAX_FILE_SIZE,
-    MAGIC_BYTES,
 };

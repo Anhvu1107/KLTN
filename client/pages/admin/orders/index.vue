@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Orders list with status management
  */
 
+import { useDialog } from '~/composables/useDialog'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
@@ -12,6 +14,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
+const { alert: showAlert } = useDialog()
 const token = computed(() => authStore.token)
 
 const page = ref(1)
@@ -42,7 +45,7 @@ const updateStatus = async (orderId: string, newStatus: string) => {
     })
     await refresh()
   } catch (error: any) {
-    alert(error?.data?.message || t('notifications.updateError'))
+    showAlert({ title: t('notifications.error', 'Lỗi'), message: error?.data?.message || t('notifications.updateError'), type: 'danger' })
   }
 }
 
@@ -75,10 +78,10 @@ const statusLabel = (s: string) => {
 
 const paymentStatusLabel = (s: string) => {
   const map: Record<string, string> = {
-    PENDING: 'Chờ thanh toán',
-    PAID: 'Đã thanh toán',
-    FAILED: 'Thất bại',
-    REFUNDED: 'Đã hoàn tiền',
+    PENDING: t('orders.paymentPending'),
+    PAID: t('orders.paymentPaid'),
+    FAILED: t('orders.paymentFailed'),
+    REFUNDED: t('orders.paymentRefunded'),
   }
   return map[s] || s
 }
@@ -134,7 +137,7 @@ useSeoMeta({
     </div>
 
     <!-- Table -->
-    <div v-else class="bg-white rounded-sm shadow-card overflow-x-auto">
+    <div v-else class="card overflow-x-auto">
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>

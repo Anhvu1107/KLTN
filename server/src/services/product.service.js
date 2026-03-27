@@ -15,6 +15,7 @@ const getProducts = async (options = {}) => {
         page = 1,
         limit = 12,
         category,
+        subcategory,
         brand,
         minPrice,
         maxPrice,
@@ -30,6 +31,10 @@ const getProducts = async (options = {}) => {
 
     if (category) {
         productWhere.category = category;
+    }
+
+    if (subcategory) {
+        productWhere.subcategory = subcategory;
     }
 
     if (brand) {
@@ -211,11 +216,17 @@ const getRelatedProducts = async (productId, limit = 4) => {
             required: false,
         }],
         order: [
-            // Prioritize same category AND brand
-            [sequelize.literal(`CASE WHEN category = '${currentProduct.category}' AND brand = '${currentProduct.brand}' THEN 0 WHEN category = '${currentProduct.category}' THEN 1 ELSE 2 END`), 'ASC'],
+            // Prioritize same category AND brand (parameterized to prevent SQL injection)
+            [sequelize.literal(
+                `CASE WHEN "Product"."category" = $relCat AND "Product"."brand" = $relBrand THEN 0 WHEN "Product"."category" = $relCat THEN 1 ELSE 2 END`
+            ), 'ASC'],
             ['created_at', 'DESC'],
         ],
         limit,
+        bind: {
+            relCat: currentProduct.category,
+            relBrand: currentProduct.brand,
+        },
     });
 
     return products;

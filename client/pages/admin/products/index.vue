@@ -4,15 +4,16 @@
  * AURA ARCHIVE - Products management table
  */
 
-import { useI18n } from '#imports'
+import { useDialog } from '~/composables/useDialog'
 
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const config = useRuntimeConfig()
+const { confirm: showConfirm } = useDialog()
 
 // Get token
 const getToken = () => {
@@ -55,7 +56,8 @@ const fetchProducts = async () => {
 
 // Delete product
 const deleteProduct = async (id: number) => {
-  if (!confirm(t('admin.deleteConfirm'))) return
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác. Bạn có chắc chắn?'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  if (!ok) return
 
   try {
     const token = getToken()
@@ -88,6 +90,32 @@ const getStatusClass = (status: string) => {
 const getVariantStatus = (product: any) => {
   if (!product.variants || product.variants.length === 0) return 'N/A'
   return product.variants[0].status
+}
+
+const statusLabel = (status: string) => {
+  if (!status || status === 'N/A') return 'N/A'
+  const map: Record<string, string> = {
+    AVAILABLE: t('shop.available'),
+    RESERVED: t('shop.reserved'),
+    SOLD: t('shop.sold')
+  }
+  return map[status] || status
+}
+
+const categoryLabel = (category: string) => {
+  if (!category) return ''
+  const map: Record<string, string> = {
+    'Tops': t('categories.tops'),
+    'Pants': t('categories.pants'),
+    'Outerwear': t('categories.outerwear'),
+    'Shoes': t('categories.shoes'),
+    'Bags': t('categories.bags'),
+    'Accessories': t('categories.accessories'),
+    'Dresses': t('categories.dresses'),
+    'Jewelry': t('categories.jewelry', 'Trang sức'),
+    'Watches': t('categories.watches', 'Đồng hồ')
+  }
+  return map[category] || category
 }
 
 // Search with debounce
@@ -138,7 +166,7 @@ useSeoMeta({
     </div>
 
     <!-- Table -->
-    <div v-else class="bg-white rounded-sm shadow-card overflow-hidden">
+    <div v-else class="card overflow-hidden">
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
@@ -158,7 +186,7 @@ useSeoMeta({
                 <p class="text-body-sm font-medium text-aura-black">{{ product.name }}</p>
               </div>
             </td>
-            <td class="py-4 px-6 text-body-sm text-neutral-600">{{ product.category }}</td>
+            <td class="py-4 px-6 text-body-sm text-neutral-600">{{ categoryLabel(product.category) }}</td>
             <td class="py-4 px-6">
               <div>
                 <span v-if="product.sale_price" class="text-body-sm text-accent-burgundy font-medium">
@@ -175,7 +203,7 @@ useSeoMeta({
                 :class="getStatusClass(getVariantStatus(product))"
                 class="px-2 py-1 text-caption rounded-sm"
               >
-                {{ getVariantStatus(product) }}
+                {{ statusLabel(getVariantStatus(product)) }}
               </span>
             </td>
             <td class="py-4 px-6">

@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Manage discount codes
  */
 
+import { useDialog } from '~/composables/useDialog'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
@@ -12,6 +14,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
+const { confirm: showConfirm } = useDialog()
 
 // State
 const coupons = ref<any[]>([])
@@ -114,7 +117,18 @@ const submitForm = async () => {
     showModal.value = false
     await fetchCoupons()
   } catch (error: any) {
-    formError.value = error.data?.message || 'Failed to save coupon'
+    const msg = error.data?.message || ''
+    // Map backend error messages to i18n keys
+    const errorMap: Record<string, string> = {
+      'Coupon code already exists': t('admin.coupons.codeExists'),
+      'Invalid coupon code': t('admin.coupons.invalidCode'),
+      'This coupon has expired': t('admin.coupons.couponExpired'),
+      'This coupon is no longer active': t('admin.coupons.couponInactive'),
+      'This coupon has reached its usage limit': t('admin.coupons.usageLimitReached'),
+      'You have already used this coupon': t('admin.coupons.alreadyUsed'),
+      'This coupon is not yet valid': t('admin.coupons.couponNotYetValid'),
+    }
+    formError.value = errorMap[msg] || (msg.includes('Minimum order') ? t('admin.coupons.minOrderRequired') : '') || msg || t('admin.coupons.saveFailed')
   } finally {
     isSubmitting.value = false
   }
@@ -122,7 +136,8 @@ const submitForm = async () => {
 
 // Delete coupon
 const deleteCoupon = async (id: string) => {
-  if (!confirm(t('admin.deleteConfirm'))) return
+  const ok = await showConfirm({ title: t('admin.deleteConfirm'), message: t('admin.deleteConfirmDesc', 'Hành động này không thể hoàn tác. Bạn có chắc chắn?'), type: 'danger', confirmText: t('common.delete'), icon: 'trash' })
+  if (!ok) return
 
   try {
     const token = getToken()
@@ -168,7 +183,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
     </div>
 
     <!-- Coupons Table -->
-    <div v-else class="bg-white rounded-sm border border-neutral-200 overflow-hidden">
+    <div v-else class="card overflow-hidden">
       <table class="w-full">
         <thead class="bg-neutral-50 border-b border-neutral-200">
           <tr>
@@ -188,7 +203,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
             <td class="px-4 py-3 text-body-sm">{{ coupon.name }}</td>
             <td class="px-4 py-3 text-body-sm">
               <span class="px-2 py-1 rounded text-caption" :class="coupon.type === 'PERCENTAGE' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">
-                {{ coupon.type === 'PERCENTAGE' ? 'Percent' : 'Fixed' }}
+                {{ coupon.type === 'PERCENTAGE' ? t('admin.coupons.percentage') : t('admin.coupons.fixedAmount') }}
               </span>
             </td>
             <td class="px-4 py-3 text-body-sm">

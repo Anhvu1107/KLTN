@@ -13,6 +13,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const http = require('http');
 
+
 const routes = require('./src/routes');
 const db = require('./src/models');
 const { errorHandler, notFound } = require('./src/middlewares/error.middleware');
@@ -30,8 +31,23 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
+const allowedOrigins = [
+    (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, ''),
+    ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : []),
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    if (allowedOrigins.some(allowed => origin === allowed || origin === allowed.replace(/\/$/, ''))) return true;
+    if (/\.vercel\.app$/.test(origin)) return true;
+    return false;
+};
+
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) return callback(null, true);
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -40,7 +56,7 @@ app.use(cors({
 // Rate limiting - relaxed in development
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit in dev
+    max: process.env.NODE_ENV === 'development' ? 1000 : 500, // Higher limit in dev
     message: {
         success: false,
         message: 'Too many requests, please try again later.',
@@ -52,7 +68,7 @@ app.use('/api/', limiter);
 // STRICT Rate limiting for auth endpoints - NEVER skipped (prevents brute force)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Only 10 attempts per 15 minutes
+    max: 30, // 30 attempts per 15 minutes
     message: {
         success: false,
         message: 'Too many authentication attempts. Please try again later.',
@@ -88,6 +104,19 @@ if (process.env.NODE_ENV === 'development') {
 // ===========================================
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ===========================================
+// HEALTH CHECK (for cron-job.org ping)
+// ===========================================
+
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'AURA ARCHIVE Server is running',
+        ai_status: 'integrated',
+        timestamp: new Date().toISOString(),
+    });
+});
 
 // ===========================================
 // API ROUTES
@@ -142,6 +171,84 @@ const startServer = async () => {
             await db.syncDatabase({ alter: true });
         }
 
+        // Production: sync tables (create if not exist)
+        if (process.env.NODE_ENV === 'production') {
+            await db.syncDatabase({ alter: true });
+            logger.info('Database synced for production');
+
+            // Auto-seed if database is empty (no users found)
+            try {
+                const userCount = await db.User.count();
+                if (userCount === 0) {
+                    logger.info('Empty database detected — auto-seeding admin user...');
+                    const bcrypt = require('bcryptjs');
+                    const salt = await bcrypt.genSalt(12);
+
+                    // Create admin
+                    await db.User.create({
+                        email: 'admin@aura.com',
+                        password_hash: await bcrypt.hash('admin123', salt),
+                        first_name: 'Admin',
+                        last_name: 'User',
+                        role: 'ADMIN',
+                        is_active: true,
+                    });
+
+                    // Create demo customer
+                    await db.User.create({
+                        email: 'customer@aura.com',
+                        password_hash: await bcrypt.hash('123456', salt),
+                        first_name: 'Demo',
+                        last_name: 'Customer',
+                        role: 'CUSTOMER',
+                        is_active: true,
+                    });
+
+                    // Create system prompts
+                    await db.SystemPrompt.bulkCreate([
+                        {
+                            key: 'STYLIST_PERSONA',
+                            name: 'AI Stylist Persona',
+                            content: 'You are AURA, a sophisticated fashion stylist for AURA ARCHIVE, a luxury consignment platform.',
+                            description: 'Main persona for the AI Stylist chatbot.',
+                            is_active: true,
+                            version: 1,
+                        },
+                        {
+                            key: 'GREETING_MESSAGE',
+                            name: 'Greeting Message',
+                            content: 'Chào mừng bạn đến AURA ARCHIVE! Mình là AURA, stylist thời trang AI. Mình có thể giúp gì cho bạn?',
+                            description: 'Initial greeting message.',
+                            is_active: true,
+                            version: 1,
+                        },
+                        {
+                            key: 'CHAT_APPEARANCE',
+                            name: 'Chat Appearance',
+                            content: JSON.stringify({
+                                chatName: 'AURA Stylist',
+                                chatDescription: 'Trợ lý thời trang của bạn',
+                                avatarUrl: '',
+                                headerBgColor: '#1a1a1a',
+                                headerTextColor: '#ffffff',
+                                botBgColor: '#f5f5f5',
+                                botTextColor: '#262626',
+                                userBgColor: '#1a1a1a',
+                                userTextColor: '#ffffff',
+                            }),
+                            description: 'Chat widget appearance.',
+                            is_active: true,
+                            version: 1,
+                        },
+                    ]);
+
+                    logger.info('✅ Auto-seed complete: admin@aura.com / admin123');
+                }
+            } catch (seedErr) {
+                logger.warn('Auto-seed failed (non-fatal):', seedErr.message);
+            }
+        }
+
         // Auto-seed default settings (creates missing settings, won't overwrite existing)
         try {
             const siteSettingsService = require('./src/services/site-settings.service');
@@ -153,7 +260,11 @@ const startServer = async () => {
 
         // Create HTTP server and attach Socket.io
         const httpServer = http.createServer(app);
-        initSocket(httpServer);
+        const io = initSocket(httpServer);
+
+        // Store references for graceful shutdown
+        app.set('server', httpServer);
+        app.set('io', io);
 
         // Start server
         httpServer.listen(PORT, () => {
@@ -191,5 +302,47 @@ process.on('uncaughtException', (err) => {
         process.exit(1);
     }, 1000);
 });
+
+// Graceful shutdown — close Socket.io, HTTP server, and DB pool
+const gracefulShutdown = (signal) => {
+    logger.info(`${signal} received. Starting graceful shutdown...`);
+
+    // Stop accepting new connections
+    const server = app.get('server');
+    const io = app.get('io');
+
+    // Close Socket.io connections first
+    if (io) {
+        io.close(() => {
+            logger.info('[Socket] All connections closed');
+        });
+    }
+
+    // Close HTTP server
+    if (server) {
+        server.close(async () => {
+            logger.info('[Server] HTTP server closed');
+            // Close database pool
+            try {
+                await db.sequelize.close();
+                logger.info('[DB] Connection pool closed');
+            } catch (err) {
+                logger.error('[DB] Error closing pool:', err.message);
+            }
+            process.exit(0);
+        });
+    } else {
+        process.exit(0);
+    }
+
+    // Force exit after 10s if graceful shutdown hangs
+    setTimeout(() => {
+        logger.error('Graceful shutdown timed out. Forcing exit.');
+        process.exit(1);
+    }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = app;

@@ -53,6 +53,7 @@ router.patch('/variants/:id/status', variantController.updateStatus);
 router.get('/users', adminController.getUsers);
 router.get('/users/:id', adminController.getUserDetail);
 router.patch('/users/:id/status', adminController.updateUserStatus);
+router.delete('/users/:id', adminController.deleteUser);
 
 // Reviews management
 router.get('/reviews', reviewController.getAllReviews);
@@ -130,6 +131,8 @@ const catchAsync = require('../../utils/catchAsync');
 router.get('/chats', catchAsync(async (req, res) => {
     // Auto-sync sessions from logs on first visit
     await chatAdminService.syncSessionsFromLogs();
+    // Auto-archive old sessions (30+ days inactive)
+    await chatAdminService.autoArchiveOldSessions();
 
     const { page, limit, search, filter } = req.query;
     const result = await chatAdminService.getSessions({
@@ -185,6 +188,21 @@ router.post('/chats/:sessionId/message', catchAsync(async (req, res) => {
     res.json({ success: true, data: { message } });
 }));
 
+router.patch('/chats/:sessionId/close', catchAsync(async (req, res) => {
+    const session = await chatAdminService.closeSession(req.params.sessionId);
+    res.json({ success: true, data: { session } });
+}));
+
+router.patch('/chats/:sessionId/reopen', catchAsync(async (req, res) => {
+    const session = await chatAdminService.reopenSession(req.params.sessionId);
+    res.json({ success: true, data: { session } });
+}));
+
+router.delete('/chats/:sessionId', catchAsync(async (req, res) => {
+    await chatAdminService.deleteSession(req.params.sessionId);
+    res.json({ success: true, message: 'Deleted chat session successfully' });
+}));
+
 // Notifications
 const notificationController = require('../../controllers/notification.controller');
 router.get('/notifications', notificationController.getAdminNotifications);
@@ -196,13 +214,16 @@ router.patch('/notifications/:id/read', notificationController.markAdminAsRead);
 router.post('/upload/product-images', uploadProductImages.array('images', 5), adminController.uploadProductImages);
 
 // Avatar upload
-const { uploadAvatar, uploadBanner } = require('../../services/upload.service');
+const { uploadAvatar, uploadBanner, validateAndUpload } = require('../../services/upload.service');
 router.post('/upload/avatar', uploadAvatar.single('avatar'), catchAsync(async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-    res.json({ success: true, data: { url: avatarUrl } });
+    const { valid, url } = await validateAndUpload(req.file, 'aura/avatars');
+    if (!valid) {
+        return res.status(400).json({ success: false, message: 'Invalid image file' });
+    }
+    res.json({ success: true, data: { url } });
 }));
 
 // Banner image upload
@@ -210,8 +231,11 @@ router.post('/upload/banner', uploadBanner.single('banner'), catchAsync(async (r
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    const bannerUrl = `/uploads/banners/${req.file.filename}`;
-    res.json({ success: true, data: { url: bannerUrl } });
+    const { valid, url } = await validateAndUpload(req.file, 'aura/banners');
+    if (!valid) {
+        return res.status(400).json({ success: false, message: 'Invalid image file' });
+    }
+    res.json({ success: true, data: { url } });
 }));
 
 module.exports = router;

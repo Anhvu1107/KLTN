@@ -4,9 +4,27 @@
  * AURA ARCHIVE - Reusable sidebar for admin pages
  */
 
-import { useI18n } from '#imports'
 const { t } = useI18n()
 const route = useRoute()
+
+// Banner groups for sub-menu
+const bannerGroups = computed(() => [
+  { key: 'home', label: t('admin.banners.groups.home') },
+  { key: 'sale', label: t('admin.banners.groups.sale') },
+  { key: 'new_arrivals', label: t('admin.banners.groups.new_arrivals') },
+  { key: 'featured', label: t('admin.banners.groups.featured') },
+  { key: 'about', label: t('admin.banners.groups.about') },
+  { key: 'general', label: t('admin.banners.groups.general') },
+])
+
+const bannerMenuOpen = ref(false)
+
+// Auto-expand when on banners page
+watchEffect(() => {
+  if (route.path.startsWith('/admin/banners')) {
+    bannerMenuOpen.value = true
+  }
+})
 
 const menuItems = computed(() => [
   { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'chart' },
@@ -15,21 +33,21 @@ const menuItems = computed(() => [
   { path: '/admin/users', label: t('admin.users'), icon: 'users' },
   { path: '/admin/coupons', label: t('admin.coupons.title'), icon: 'tag' },
   { path: '/admin/reviews', label: t('admin.reviews.title'), icon: 'star' },
-  { path: '/admin/banners', label: t('admin.banners.title'), icon: 'image' },
+  { path: '/admin/banners', label: t('admin.banners.title'), icon: 'image', hasSubmenu: true },
   { path: '/admin/blogs', label: t('admin.blogs.title'), icon: 'document' },
   { path: '/admin/popups', label: t('admin.popups.title'), icon: 'popup' },
   { path: '/admin/abandoned-carts', label: t('admin.abandonedCarts.title'), icon: 'cart-abandon' },
   { path: '/admin/settings', label: t('admin.settings.title'), icon: 'cog' },
   { path: '/admin/settings/payments', label: t('admin.paymentSettings.title'), icon: 'credit-card' },
   { path: '/admin/ai-config', label: t('admin.aiConfig.title'), icon: 'robot' },
-  { path: '/admin/chats', label: 'Quản lý Chat AI', icon: 'chat' },
+  { path: '/admin/chats', label: t('admin.chatManagement.title'), icon: 'chat' },
 ])
 
 const isActive = (path: string) => route.path === path
 </script>
 
 <template>
-  <aside class="w-64 bg-aura-black text-aura-white flex flex-col h-screen fixed top-0 left-0">
+  <aside class="w-64 bg-aura-black text-aura-white flex flex-col h-screen fixed top-0 left-0 z-50">
     <!-- Logo -->
     <div class="p-6 border-b border-neutral-800">
       <NuxtLink to="/admin/dashboard" class="block">
@@ -48,7 +66,38 @@ const isActive = (path: string) => route.path === path
     <nav class="flex-1 px-3 py-2 overflow-y-auto sidebar-nav">
       <ul class="space-y-1">
         <li v-for="item in menuItems" :key="item.path">
+          <!-- Banner item with submenu -->
+          <template v-if="item.hasSubmenu">
+            <button
+              @click="bannerMenuOpen = !bannerMenuOpen"
+              class="w-full flex items-center justify-between px-3 py-2 rounded-sm transition-colors"
+              :class="isActive(item.path) ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'"
+            >
+              <span class="flex items-center gap-3">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="text-body-sm">{{ item.label }}</span>
+              </span>
+              <svg class="w-4 h-4 transition-transform" :class="bannerMenuOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul v-show="bannerMenuOpen" class="ml-8 mt-1 space-y-0.5">
+              <li v-for="group in bannerGroups" :key="group.key">
+                <NuxtLink
+                  :to="`/admin/banners?group=${group.key}`"
+                  class="block px-3 py-1.5 text-xs rounded-sm transition-colors"
+                  :class="route.query.group === group.key || (!route.query.group && group.key === 'home') ? 'text-white bg-neutral-800' : 'text-neutral-500 hover:text-white hover:bg-neutral-800/30'"
+                >
+                  {{ group.label }}
+                </NuxtLink>
+              </li>
+            </ul>
+          </template>
+          <!-- Regular items -->
           <NuxtLink
+            v-else
             :to="item.path"
             class="flex items-center gap-3 px-3 py-2 rounded-sm transition-colors"
             :class="isActive(item.path) ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'"
@@ -105,12 +154,12 @@ const isActive = (path: string) => route.path === path
 
     <!-- Footer -->
     <div class="p-4 border-t border-neutral-800">
-      <NuxtLink to="/" class="flex items-center gap-2 text-neutral-400 hover:text-white text-body-sm">
+      <a href="/" class="flex items-center gap-2 text-neutral-400 hover:text-white text-body-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
         {{ t('nav.backToStore') }}
-      </NuxtLink>
+      </a>
     </div>
   </aside>
 </template>

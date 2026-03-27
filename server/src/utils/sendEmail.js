@@ -5,12 +5,12 @@
 
 const nodemailer = require('nodemailer');
 
-// Create reusable transporter
+// Create SMTP transporter (fallback for local dev)
 const createTransporter = () => {
     return nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT, 10) || 587,
-        secure: false, // true for 465, false for other ports
+        secure: false,
         auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASSWORD,
@@ -19,31 +19,125 @@ const createTransporter = () => {
 };
 
 /**
- * Send an email
- * @param {Object} options - Email options
- * @param {string} options.to - Recipient email
- * @param {string} options.subject - Email subject
- * @param {string} options.text - Plain text content
- * @param {string} options.html - HTML content
- * @returns {Promise<Object>} - Nodemailer response
+ * Send email via SendGrid / Brevo API (production) or SMTP (local dev)
  */
 const sendEmail = async ({ to, subject, text, html }) => {
-    const transporter = createTransporter();
+    const senderEmail = process.env.SMTP_USER || 'noreply@auraarchive.com';
+    const senderName = 'AURA ARCHIVE';
 
-    const mailOptions = {
-        from: process.env.EMAIL_FROM || 'AURA ARCHIVE <noreply@auraarchive.com>',
-        to,
-        subject,
-        text,
-        html,
-    };
+    // Priority 0: Resend API (best for cloud/production)
+    if (process.env.RESEND_API_KEY) {
+        try {
+            const resendFrom = process.env.RESEND_FROM || 'AURA ARCHIVE <onboarding@resend.dev>';
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from: resendFrom,
+                    to: [to],
+                    subject,
+                    html,
+                    text,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error(`✗ Resend error for ${to}:`, data);
+                console.warn('⚠ Resend failed, trying other providers...');
+            } else {
+                console.log(`✓ Email sent via Resend to ${to}: ${data.id}`);
+                return { success: true, messageId: data.id };
+            }
+        } catch (error) {
+            console.error(`✗ Resend failed for ${to}:`, error.message);
+            console.warn('⚠ Falling back to other providers...');
+        }
+    }
+
+    // Priority 1: SendGrid API
+    if (process.env.SENDGRID_API_KEY) {
+        try {
+            const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    personalizations: [{ to: [{ email: to }] }],
+                    from: { email: senderEmail, name: senderName },
+                    subject,
+                    content: [
+                        { type: 'text/plain', value: text || subject },
+                        { type: 'text/html', value: html },
+                    ],
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                console.error(`✗ SendGrid error for ${to}:`, response.status, errData);
+                throw new Error(errData?.errors?.[0]?.message || `SendGrid ${response.status}`);
+            }
+
+            console.log(`✓ Email sent via SendGrid to ${to}`);
+            return { success: true, messageId: response.headers.get('x-message-id') };
+        } catch (error) {
+            console.error(`✗ SendGrid failed for ${to}:`, error.message);
+            throw error;
+        }
+    }
+
+    // Priority 2: Brevo API
+    if (process.env.BREVO_API_KEY) {
+        try {
+            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': process.env.BREVO_API_KEY,
+                    'content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sender: { name: senderName, email: senderEmail },
+                    to: [{ email: to }],
+                    subject,
+                    htmlContent: html,
+                    textContent: text,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error(`✗ Brevo error for ${to}:`, data);
+                // Fall through to SMTP instead of throwing
+                console.warn('⚠ Brevo failed, falling back to SMTP...');
+            } else {
+                console.log(`✓ Email sent via Brevo to ${to}: ${data.messageId}`);
+                return { success: true, messageId: data.messageId };
+            }
+        } catch (error) {
+            console.error(`✗ Brevo failed for ${to}:`, error.message);
+            console.warn('⚠ Falling back to SMTP...');
+        }
+    }
+
+    // Fallback: SMTP (local development)
+    const transporter = createTransporter();
+    const from = process.env.EMAIL_FROM || `${senderName} <${senderEmail}>`;
 
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✓ Email sent to ${to}: ${info.messageId}`);
+        const info = await transporter.sendMail({ from, to, subject, text, html });
+        console.log(`✓ Email sent via SMTP to ${to}: ${info.messageId}`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error(`✗ Failed to send email to ${to}:`, error.message);
+        console.error(`✗ SMTP failed for ${to}:`, error.message, error.code);
         throw error;
     }
 };

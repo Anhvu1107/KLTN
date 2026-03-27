@@ -32,7 +32,7 @@ const updateProfile = async (userId, data) => {
         throw new AppError('User not found', 404);
     }
 
-    const allowedFields = ['first_name', 'last_name', 'phone', 'address'];
+    const allowedFields = ['first_name', 'last_name', 'phone', 'address', 'city', 'district', 'ward'];
     const updateData = {};
 
     allowedFields.forEach(field => {

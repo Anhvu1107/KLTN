@@ -10,20 +10,33 @@ const env = process.env.NODE_ENV || 'development';
 const dbConfig = config[env];
 
 // Initialize Sequelize
-const sequelize = new Sequelize(
-    dbConfig.database,
-    dbConfig.username,
-    dbConfig.password,
-    {
-        host: dbConfig.host,
-        port: dbConfig.port,
+let sequelize;
+
+if (dbConfig.use_env_variable) {
+    // Use DATABASE_URL (Render, Railway, Heroku, etc.)
+    sequelize = new Sequelize(process.env[dbConfig.use_env_variable], {
         dialect: dbConfig.dialect,
         logging: dbConfig.logging,
         define: dbConfig.define,
         pool: dbConfig.pool,
         dialectOptions: dbConfig.dialectOptions,
-    }
-);
+    });
+} else {
+    sequelize = new Sequelize(
+        dbConfig.database,
+        dbConfig.username,
+        dbConfig.password,
+        {
+            host: dbConfig.host,
+            port: dbConfig.port,
+            dialect: dbConfig.dialect,
+            logging: dbConfig.logging,
+            define: dbConfig.define,
+            pool: dbConfig.pool,
+            dialectOptions: dbConfig.dialectOptions,
+        }
+    );
+}
 
 // Initialize models
 const db = {};

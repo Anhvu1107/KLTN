@@ -43,6 +43,9 @@ const isPageLoading = inject<Ref<boolean>>('isPageLoading', ref(false))
 
     <!-- Compare Bar -->
     <CompareBar />
+
+    <!-- Global Dialog (for alerts and confirms) -->
+    <GlobalDialog />
   </div>
 </template>
 

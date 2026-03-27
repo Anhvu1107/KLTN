@@ -180,7 +180,7 @@ const companyLinks = computed(() => [
         
         <!-- Copyright -->
         <p class="text-caption text-neutral-500">
-          {{ t('footer.copyright') }}
+          {{ t('footer.copyright', { year: new Date().getFullYear() }) }}
         </p>
         
         <!-- Legal Links -->

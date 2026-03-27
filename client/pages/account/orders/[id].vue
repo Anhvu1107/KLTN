@@ -4,7 +4,6 @@
  * AURA ARCHIVE - View individual order details
  */
 
-import { useI18n } from '#imports'
 
 definePageMeta({
   middleware: ['auth'],
@@ -13,7 +12,9 @@ definePageMeta({
 const { t } = useI18n()
 const route = useRoute()
 const config = useRuntimeConfig()
+const { confirm: showConfirm } = useDialog()
 const { getAuthHeaders } = useAuthToken()
+const { getImageUrl } = useImageUrl()
 
 const orderId = route.params.id as string
 
@@ -58,6 +59,22 @@ const getPaymentStatusClass = (status: string) => {
   if (status === 'PENDING') return 'bg-yellow-100 text-yellow-800'
   if (status === 'FAILED') return 'bg-red-100 text-red-800'
   return 'bg-gray-100 text-gray-800'
+}
+
+const getOrderStatus = (status: string) => {
+  if (!status) return ''
+  return t(`orders.${status.toLowerCase()}`)
+}
+
+const getPaymentStatus = (status: string) => {
+  if (!status) return ''
+  const keyMap: Record<string, string> = {
+    PENDING: 'paymentPending',
+    PAID: 'paymentPaid',
+    FAILED: 'paymentFailed',
+    REFUNDED: 'paymentRefunded'
+  }
+  return t(`orders.${keyMap[status] || status.toLowerCase()}`)
 }
 
 const paymentMethodLabel = (method: string) => {
@@ -127,7 +144,7 @@ const vietQrUrl = computed(() => {
   const bank = primaryBank.value
   const bankCode = getBankCode(bank.bankName)
   const amount = Math.round((order.value.total_amount || 0) * 23000) // Convert USD to VND approx
-  const description = `DH ${order.value.id?.slice(0, 8)}`
+  const description = `DH ${order.value.order_number || order.value.id?.slice(0, 8)}`
   return `https://img.vietqr.io/image/${bankCode}-${bank.accountNumber}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(description)}&accountName=${encodeURIComponent(bank.accountHolder)}`
 })
 
@@ -161,7 +178,8 @@ const isCancelling = ref(false)
 const cancelError = ref('')
 
 const cancelOrder = async () => {
-  if (!confirm(t('orders.confirmCancel') || 'Are you sure you want to cancel this order?')) return
+  const isConfirmed = await showConfirm(t('orders.confirmCancel') || 'Bạn có chắc muốn hủy đơn hàng này?')
+  if (!isConfirmed) return
 
   isCancelling.value = true
   cancelError.value = ''
@@ -215,15 +233,15 @@ useSeoMeta({
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <p class="text-caption text-neutral-500 uppercase mb-1">{{ t('orders.orderId') || 'Order ID' }}</p>
-              <p class="text-body font-medium text-aura-black font-mono">#{{ order.id?.slice(0, 8) }}...</p>
+              <p class="text-body font-medium text-aura-black font-mono">#{{ order.order_number || order.id?.slice(0, 8) + '...' }}</p>
               <p class="text-body-sm text-neutral-500 mt-1">{{ formatDate(order.created_at) }}</p>
             </div>
             <div class="flex items-center gap-3">
               <span :class="getStatusClass(order.status)" class="px-3 py-1.5 text-caption font-medium rounded-sm">
-                {{ order.status }}
+                {{ getOrderStatus(order.status) }}
               </span>
               <span :class="getPaymentStatusClass(order.payment_status)" class="px-3 py-1.5 text-caption font-medium rounded-sm">
-                {{ order.payment_status }}
+                {{ getPaymentStatus(order.payment_status) }}
               </span>
             </div>
           </div>
@@ -272,7 +290,7 @@ useSeoMeta({
               </div>
               <div class="flex justify-between py-1.5">
                 <span class="text-neutral-500">{{ t('orders.transferContent') || 'Nội dung CK' }}</span>
-                <span class="font-medium text-aura-black font-mono">DH {{ order.id?.slice(0, 8) }}</span>
+                <span class="font-medium text-aura-black font-mono">DH {{ order.order_number || order.id?.slice(0, 8) }}</span>
               </div>
             </div>
 
@@ -295,7 +313,7 @@ useSeoMeta({
               <div class="w-20 h-20 bg-neutral-100 rounded-sm flex-shrink-0 overflow-hidden">
                 <img
                   v-if="item.variant?.product?.images?.length"
-                  :src="item.variant.product.images[0]"
+                  :src="getImageUrl(item.variant.product.images[0])"
                   :alt="item.product_name"
                   class="w-full h-full object-cover"
                 />

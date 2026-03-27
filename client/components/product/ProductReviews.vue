@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Display product reviews and ratings
  */
 
-import { useI18n } from '#imports'
 
 const { t } = useI18n()
 

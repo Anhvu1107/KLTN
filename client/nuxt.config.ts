@@ -1,7 +1,20 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
-  devtools: { enabled: true },
+  devtools: { enabled: false },
+
+  features: {
+    devLogs: false,
+  },
+
+  experimental: {
+    // Nitro route rules are only used for server-side proxying here.
+    // Disabling the client app manifest avoids dev-only #app-manifest resolution errors.
+    appManifest: false,
+    // Reduce dev-only plugin noise on Windows.
+    browserDevtoolsTiming: false,
+    chromeDevtoolsProjectSettings: false,
+  },
 
   // Modules
   modules: [
@@ -63,6 +76,13 @@ export default defineNuxtConfig({
     },
   },
 
+  defaults: {
+    nuxtLink: {
+      // Disable automatic link prefetch in dev to avoid spurious router warnings.
+      prefetch: false,
+    },
+  },
+
   // Tailwind CSS
   tailwindcss: {
     cssPath: '~/assets/css/tailwind.css',
@@ -79,8 +99,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiUrl: process.env.NUXT_PUBLIC_API_URL || '/api/v1',
+      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:5000',
       imageBaseUrl: process.env.NUXT_PUBLIC_IMAGE_BASE_URL || '',
-      aiServiceUrl: process.env.NUXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8001',
     },
   },
 
@@ -110,6 +130,15 @@ export default defineNuxtConfig({
   nitro: {
     // Route rules for proxying API and uploads requests to backend server
     // Works in both dev and production
+    devProxy: {
+      // Forward same-origin Socket.IO requests during dev so stale browser tabs
+      // or admin chat pages never hit the Nuxt router at /socket.io.
+      '/socket.io': {
+        target: (process.env.NUXT_PROXY_API_URL || 'http://localhost:5000') + '/socket.io',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
     routeRules: {
       '/api/**': {
         proxy: (process.env.NUXT_PROXY_API_URL || 'http://localhost:5000') + '/api/**',

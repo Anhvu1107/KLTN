@@ -1,7 +1,19 @@
 /**
  * Banner Model
- * AURA ARCHIVE - Homepage banner management
+ * AURA ARCHIVE - Homepage banner management with section-based categorization
  */
+
+const BANNER_SECTIONS = [
+    'hero',
+    'collection_women',
+    'collection_men',
+    'homepage_categories',
+    'about',
+    'page_sale',
+    'page_new_arrivals',
+    'page_featured',
+    'general',
+];
 
 module.exports = (sequelize, DataTypes) => {
     const Banner = sequelize.define('Banner', {
@@ -30,10 +42,16 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING(100),
             defaultValue: 'Shop Now',
         },
+        section: {
+            type: DataTypes.STRING(50),
+            defaultValue: 'general',
+            allowNull: false,
+            comment: 'Where this banner appears: hero, collection_women, collection_men, category_bags, category_outerwear, category_accessories, about, general',
+        },
         position: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
-            comment: 'Display order',
+            comment: 'Display order within same section',
         },
         is_active: {
             type: DataTypes.BOOLEAN,
@@ -54,8 +72,11 @@ module.exports = (sequelize, DataTypes) => {
         indexes: [
             { fields: ['is_active'] },
             { fields: ['position'] },
+            { fields: ['section'] },
         ],
     });
 
     return Banner;
 };
+
+module.exports.BANNER_SECTIONS = BANNER_SECTIONS;

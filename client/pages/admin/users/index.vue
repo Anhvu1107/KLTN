@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Customer list and management
  */
 
+import { useDialog } from '~/composables/useDialog'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
@@ -12,6 +14,7 @@ definePageMeta({
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
+const { alert: showAlert, confirm: showConfirm } = useDialog()
 const token = computed(() => authStore.token)
 
 const page = ref(1)
@@ -52,14 +55,34 @@ const toggleStatus = async (userId: string, currentStatus: boolean) => {
     })
     await refresh()
   } catch (error: any) {
-    alert(error?.data?.message || t('notifications.updateError'))
+    showAlert({ title: t('notifications.error', 'Lỗi'), message: error?.data?.message || t('notifications.updateError'), type: 'danger' })
+  }
+}
+
+// Delete user
+const deleteUser = async (userId: string, userName: string) => {
+  const confirmed = await showConfirm({
+    title: t('admin.deleteUser', 'Xóa người dùng'),
+    message: t('admin.confirmDeleteUser', `Bạn có chắc muốn xóa "${userName}"? Hành động này không thể hoàn tác.`),
+    type: 'danger',
+  })
+  if (!confirmed) return
+  try {
+    await $fetch(`${config.public.apiUrl}/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token.value}` },
+    })
+    await refresh()
+  } catch (error: any) {
+    showAlert({ title: t('notifications.error', 'L\u1ed7i'), message: error?.data?.message || t('notifications.deleteError', 'Kh\u00f4ng th\u1ec3 x\u00f3a ng\u01b0\u1eddi d\u00f9ng'), type: 'danger' })
   }
 }
 
 const { locale } = useI18n()
 const formatDate = (date: string) => {
+  if (!date) return t('common.unknown')
   const d = new Date(date)
-  if (isNaN(d.getTime())) return '—'
+  if (isNaN(d.getTime())) return t('common.unknown')
   return d.toLocaleDateString(locale.value === 'vi' ? 'vi-VN' : 'en-US', {
     month: 'short',
     day: 'numeric',
@@ -113,7 +136,7 @@ useSeoMeta({
     </div>
 
     <!-- Table -->
-    <div v-else class="bg-white rounded-sm shadow-card overflow-x-auto">
+    <div v-else class="card overflow-x-auto">
       <table class="w-full">
         <thead class="bg-neutral-50">
           <tr>
@@ -139,7 +162,7 @@ useSeoMeta({
                 class="px-2 py-1 text-caption rounded-sm"
                 :class="user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'"
               >
-                {{ user.role }}
+                {{ user.role === 'ADMIN' ? t('admin.adminRole') : t('admin.customer') }}
               </span>
             </td>
             <td class="py-4 px-4">
@@ -168,6 +191,13 @@ useSeoMeta({
                   :class="user.is_active ? 'bg-red-100 hover:bg-red-200 text-red-800' : 'bg-green-100 hover:bg-green-200 text-green-800'"
                 >
                   {{ user.is_active ? t('admin.deactivate') : t('admin.activate') }}
+                </button>
+                <button
+                  v-if="user.role !== 'ADMIN'"
+                  @click="deleteUser(user.id, `${user.first_name || ''} ${user.last_name || ''}`)"
+                  class="text-caption px-2 py-1 rounded-sm bg-red-50 hover:bg-red-200 text-red-600"
+                >
+                  {{ t('common.delete') }}
                 </button>
               </div>
             </td>

@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Company story, mission, and values
  */
 
-import { useI18n } from '#imports'
 
 const { t } = useI18n()
 const config = useRuntimeConfig()
@@ -13,12 +12,18 @@ const config = useRuntimeConfig()
 const { data: bannersData } = await useFetch<{
   success: boolean
   data: { banners: any[] }
-}>(`${config.public.apiUrl}/banners`)
+}>(`${config.public.apiUrl}/banners?section=about`)
 
-// Get about banner (position = 1)
+// Get about banner by section
 const aboutBanner = computed(() => {
   const banners = bannersData.value?.data?.banners || []
-  return banners.find((b: any) => b.position === 1) || null
+  return banners[0] || null
+})
+
+const aboutBannerImage = computed(() => {
+  const url = aboutBanner.value?.image_url
+  if (!url) return ''
+  return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
 })
 
 useSeoMeta({
@@ -67,8 +72,8 @@ const values = computed(() => [
           <!-- Image from Banner -->
           <div class="aspect-[4/5] bg-neutral-100 rounded-sm overflow-hidden">
             <img 
-              v-if="aboutBanner?.image_url"
-              :src="aboutBanner.image_url"
+              v-if="aboutBannerImage"
+              :src="aboutBannerImage"
               :alt="aboutBanner.title || t('about.story')"
               class="w-full h-full object-cover"
             />
@@ -153,10 +158,7 @@ const values = computed(() => [
           {{ t('about.teamDesc') }}
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <NuxtLink to="/shop" class="btn-primary">
-            {{ t('home.viewAll') }}
-          </NuxtLink>
-          <NuxtLink to="/contact" class="btn-secondary">
+          <NuxtLink to="/contact" class="btn-primary">
             {{ t('common.contact') }}
           </NuxtLink>
         </div>

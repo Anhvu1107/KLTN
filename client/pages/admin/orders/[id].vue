@@ -4,7 +4,6 @@
  * AURA ARCHIVE - Full order view with status management
  */
 
-import { useI18n } from '#imports'
 
 definePageMeta({
   layout: 'admin',
@@ -61,7 +60,10 @@ const updateStatus = async (newStatus: string) => {
 const { formatPrice } = useCurrency()
 
 const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -96,21 +98,21 @@ const statusLabel = (s: string) => {
 
 const paymentStatusLabel = (s: string) => {
   const map: Record<string, string> = {
-    PENDING: 'Chờ thanh toán',
-    PAID: 'Đã thanh toán',
-    FAILED: 'Thất bại',
-    REFUNDED: 'Đã hoàn tiền',
+    PENDING: t('orders.paymentPending'),
+    PAID: t('orders.paymentPaid'),
+    FAILED: t('orders.paymentFailed'),
+    REFUNDED: t('orders.paymentRefunded'),
   }
   return map[s] || s
 }
 
 const paymentMethodLabel = (s: string) => {
   const map: Record<string, string> = {
-    COD: 'Thanh toán khi nhận hàng',
-    BANK_TRANSFER: 'Chuyển khoản ngân hàng',
-    CREDIT_CARD: 'Thẻ tín dụng',
-    MOMO: 'MoMo',
-    VNPAY: 'VNPay',
+    COD: t('checkout.cod'),
+    BANK_TRANSFER: t('checkout.bankTransfer'),
+    CREDIT_CARD: t('checkout.creditCard'),
+    MOMO: t('checkout.momo'),
+    VNPAY: t('checkout.vnpay'),
     PAYPAL: 'PayPal',
   }
   return map[s] || s
@@ -152,7 +154,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
         <div class="bg-white rounded-sm border border-neutral-200 p-6">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <h2 class="font-medium text-lg">Order #{{ order.order_number || order.id.slice(0, 8).toUpperCase() }}</h2>
+              <h2 class="font-medium text-lg">{{ t('orders.order', 'Order') }} #{{ order.order_number || order.id.slice(0, 8).toUpperCase() }}</h2>
               <p class="text-body-sm text-neutral-500">{{ formatDate(order.created_at) }}</p>
             </div>
             <span :class="getStatusClass(order.status)" class="px-3 py-1 rounded text-body-sm">
@@ -180,21 +182,25 @@ useSeoMeta({ title: 'Order Detail | Admin' })
           <div class="space-y-4">
             <div v-for="item in order.items" :key="item.id" class="flex items-center gap-4 p-4 bg-neutral-50 rounded">
               <img 
-                v-if="item.product?.images?.[0]"
-                :src="getImageUrl(item.product.images[0])"
-                :alt="item.product.name"
+                v-if="item.variant?.product?.images?.[0]"
+                :src="getImageUrl(item.variant.product.images[0])"
+                :alt="item.product_name"
                 class="w-16 h-16 object-cover rounded"
               />
-              <div class="w-16 h-16 bg-neutral-200 rounded" v-else />
+              <div class="w-16 h-16 bg-neutral-200 rounded shrink-0 flex items-center justify-center text-neutral-400" v-else>
+                <span class="text-xs">{{ t('common.noImage', 'No image') }}</span>
+              </div>
               <div class="flex-1">
-                <p class="font-medium">{{ item.product?.name }}</p>
+                <p class="text-caption text-neutral-500 uppercase">{{ item.product_brand || '' }}</p>
+                <p class="font-medium">{{ item.product_name }}</p>
                 <p class="text-body-sm text-neutral-500">
-                  Size: {{ item.variant?.size }} | Màu: {{ item.variant?.color }}
+                  Size: {{ item.variant_size || item.variant?.size }} | {{ t('shop.filters.color') }}: {{ item.variant_color || item.variant?.color }}
                 </p>
                 <p class="text-caption text-neutral-400">SKU: {{ item.variant?.sku || 'N/A' }}</p>
               </div>
               <div class="text-right">
                 <p class="font-medium">{{ formatPrice(item.price) }}</p>
+                <p class="text-caption text-neutral-500">x{{ item.quantity }}</p>
               </div>
             </div>
           </div>
@@ -213,7 +219,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
 
         <!-- Shipping -->
         <div class="bg-white rounded-sm border border-neutral-200 p-6">
-          <h3 class="font-medium mb-4">{{ t('checkout.shippingAddress') }}</h3>
+          <h3 class="font-medium mb-4">{{ t('checkout.shippingInfo') }}</h3>
           <p class="font-medium">{{ order.shipping_address?.full_name }}</p>
           <p class="text-body-sm text-neutral-500">{{ order.shipping_address?.phone }}</p>
           <p class="text-body-sm text-neutral-500">{{ order.shipping_address?.address }}</p>
@@ -227,27 +233,27 @@ useSeoMeta({ title: 'Order Detail | Admin' })
           <h3 class="font-medium mb-4">{{ t('checkout.paymentMethod') }}</h3>
           <div class="space-y-2 text-body-sm">
             <div class="flex justify-between">
-              <span class="text-neutral-500">Phương thức:</span>
+              <span class="text-neutral-500">{{ t('orders.paymentMethod') }}:</span>
               <span>{{ paymentMethodLabel(order.payment_method) }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-neutral-500">Trạng thái:</span>
+              <span class="text-neutral-500">{{ t('orders.status') }}:</span>
               <span>{{ paymentStatusLabel(order.payment_status) }}</span>
             </div>
             <div class="flex justify-between pt-2 border-t">
-              <span class="text-neutral-500">Tạm tính:</span>
+              <span class="text-neutral-500">{{ t('cart.subtotal') }}:</span>
               <span>{{ formatPrice(order.subtotal) }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-neutral-500">Phí vận chuyển:</span>
+              <span class="text-neutral-500">{{ t('cart.shipping') }}:</span>
               <span>{{ formatPrice(order.shipping_fee || 0) }}</span>
             </div>
             <div v-if="order.discount_amount" class="flex justify-between text-green-600">
-              <span>Giảm giá:</span>
+              <span>{{ t('cart.discount') }}:</span>
               <span>-{{ formatPrice(order.discount_amount) }}</span>
             </div>
             <div class="flex justify-between font-medium text-lg pt-2 border-t">
-              <span>Tổng cộng:</span>
+              <span>{{ t('cart.total') }}:</span>
               <span>{{ formatPrice(order.total_amount) }}</span>
             </div>
           </div>
