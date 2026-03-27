@@ -15,6 +15,7 @@ const getProducts = async (options = {}) => {
         page = 1,
         limit = 12,
         category,
+        subcategory,
         brand,
         minPrice,
         maxPrice,
@@ -30,6 +31,10 @@ const getProducts = async (options = {}) => {
 
     if (category) {
         productWhere.category = category;
+    }
+
+    if (subcategory) {
+        productWhere.subcategory = subcategory;
     }
 
     if (brand) {
