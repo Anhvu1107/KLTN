@@ -28,16 +28,102 @@ let mediaStream: MediaStream | null = null
 let playbackContext: AudioContext | null = null
 let audioQueue: ArrayBuffer[] = []
 let isPlaying = false
+let playbackSource: AudioBufferSourceNode | null = null
+let micSourceNode: MediaStreamAudioSourceNode | null = null
+let micProcessorNode: ScriptProcessorNode | null = null
 
 // Waveform animation
 const audioLevel = ref(0)
 let analyserNode: AnalyserNode | null = null
 let animationFrame: number | null = null
 
+const stopCurrentPlayback = () => {
+  if (!playbackSource) return
+
+  playbackSource.onended = null
+
+  try {
+    playbackSource.stop()
+  } catch {
+    // Ignore stop errors when playback already ended.
+  }
+
+  try {
+    playbackSource.disconnect()
+  } catch {
+    // Ignore disconnect errors during teardown.
+  }
+
+  playbackSource = null
+}
+
+const teardownVoiceSession = ({ emitClose = false } = {}) => {
+  const activeSocket = websocket
+  websocket = null
+
+  if (activeSocket && activeSocket.readyState !== WebSocket.CLOSED) {
+    activeSocket.onopen = null
+    activeSocket.onmessage = null
+    activeSocket.onerror = null
+    activeSocket.onclose = null
+
+    try {
+      activeSocket.close(1000, 'client closed')
+    } catch {
+      // Ignore close errors during teardown.
+    }
+  }
+
+  if (micProcessorNode) {
+    micProcessorNode.onaudioprocess = null
+    micProcessorNode.disconnect()
+    micProcessorNode = null
+  }
+
+  if (micSourceNode) {
+    micSourceNode.disconnect()
+    micSourceNode = null
+  }
+
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(t => t.stop())
+    mediaStream = null
+  }
+
+  stopCurrentPlayback()
+
+  if (audioContext) {
+    audioContext.close()
+    audioContext = null
+  }
+
+  if (playbackContext) {
+    playbackContext.close()
+    playbackContext = null
+  }
+
+  if (animationFrame) {
+    cancelAnimationFrame(animationFrame)
+    animationFrame = null
+  }
+
+  analyserNode = null
+  audioQueue = []
+  isPlaying = false
+  audioLevel.value = 0
+  suggestedProducts.value = []
+  state.value = 'idle'
+
+  if (emitClose) {
+    emit('close')
+  }
+}
+
 /**
  * Start voice session
  */
 const startVoiceSession = async () => {
+  teardownVoiceSession()
   state.value = 'connecting'
   errorMessage.value = ''
   transcript.value = ''
@@ -59,9 +145,11 @@ const startVoiceSession = async () => {
 
     // 2. Connect to Gemini Live API via WebSocket (direct API key)
     const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`
-    websocket = new WebSocket(wsUrl)
+    const ws = new WebSocket(wsUrl)
+    websocket = ws
 
-    websocket.onopen = async () => {
+    ws.onopen = async () => {
+      if (websocket !== ws) return
       console.log('[Voice] WebSocket connected')
 
       // 3. Send full setup config
@@ -88,12 +176,14 @@ const startVoiceSession = async () => {
         },
       }
 
-      websocket!.send(JSON.stringify(setupMessage))
+      ws.send(JSON.stringify(setupMessage))
       console.log('[Voice] Setup sent with model:', model)
       // Mic capture starts after setupComplete (see onmessage handler)
     }
 
-    websocket.onmessage = async (event) => {
+    ws.onmessage = async (event) => {
+      if (websocket !== ws) return
+
       try {
         const data = typeof event.data === 'string'
           ? JSON.parse(event.data)
@@ -151,25 +241,36 @@ const startVoiceSession = async () => {
       }
     }
 
-    websocket.onerror = (error) => {
+    ws.onerror = (error) => {
+      if (websocket !== ws) return
       console.error('[Voice] WebSocket error:', error)
+      teardownVoiceSession()
       state.value = 'error'
       errorMessage.value = 'Lỗi kết nối với AI voice'
     }
 
-    websocket.onclose = (event) => {
+    ws.onclose = (event) => {
+      if (websocket !== ws) return
+
       console.log('[Voice] WebSocket closed:', event.code, event.reason)
-      if (state.value !== 'idle' && state.value !== 'error') {
-        if (event.code !== 1000 && event.reason) {
-          state.value = 'error'
-          errorMessage.value = event.reason.substring(0, 80)
-        } else {
-          state.value = 'idle'
-        }
+
+      const shouldShowError =
+        state.value !== 'idle'
+        && state.value !== 'error'
+        && event.code !== 1000
+
+      teardownVoiceSession()
+
+      if (shouldShowError) {
+        errorMessage.value = event.reason
+          ? event.reason.substring(0, 80)
+          : 'Voice connection closed unexpectedly'
+        state.value = 'error'
       }
     }
   } catch (error: any) {
     console.error('[Voice] Start error:', error)
+    teardownVoiceSession()
     state.value = 'error'
     errorMessage.value = error.message || 'Không thể bắt đầu cuộc gọi'
   }
@@ -255,19 +356,20 @@ const startMicCapture = async () => {
   })
 
   audioContext = new AudioContext({ sampleRate: 16000 })
-  const source = audioContext.createMediaStreamSource(mediaStream)
+  await audioContext.resume().catch(() => {})
+  micSourceNode = audioContext.createMediaStreamSource(mediaStream)
 
   // Setup analyser for waveform visualization
   analyserNode = audioContext.createAnalyser()
   analyserNode.fftSize = 256
-  source.connect(analyserNode)
+  micSourceNode.connect(analyserNode)
   startWaveformAnimation()
 
   // Use ScriptProcessor for PCM capture (wider browser support than AudioWorklet)
   const bufferSize = 4096
-  const scriptNode = audioContext.createScriptProcessor(bufferSize, 1, 1)
+  micProcessorNode = audioContext.createScriptProcessor(bufferSize, 1, 1)
 
-  scriptNode.onaudioprocess = (e) => {
+  micProcessorNode.onaudioprocess = (e) => {
     if (state.value !== 'listening' && state.value !== 'speaking') return
     if (!websocket || websocket.readyState !== WebSocket.OPEN) return
 
@@ -293,8 +395,8 @@ const startMicCapture = async () => {
     websocket.send(JSON.stringify(audioMessage))
   }
 
-  source.connect(scriptNode)
-  scriptNode.connect(audioContext.destination)
+  micSourceNode.connect(micProcessorNode)
+  micProcessorNode.connect(audioContext.destination)
 }
 
 /**
@@ -321,19 +423,28 @@ const playNext = async () => {
       playbackContext = new AudioContext({ sampleRate: 24000 })
     }
 
+    await playbackContext.resume().catch(() => {})
+
     // Gemini returns PCM 24kHz audio
     const float32 = pcm16ToFloat32(buffer)
     const audioBuffer2 = playbackContext.createBuffer(1, float32.length, 24000)
     audioBuffer2.getChannelData(0).set(float32)
 
     const source = playbackContext.createBufferSource()
+    playbackSource = source
     source.buffer = audioBuffer2
     source.connect(playbackContext.destination)
-    source.onended = () => playNext()
+    source.onended = () => {
+      if (playbackSource === source) {
+        playbackSource = null
+      }
+      playNext()
+    }
     source.start()
   } catch (err) {
     console.error('[Voice] Playback error:', err)
     isPlaying = false
+    stopCurrentPlayback()
     playNext()
   }
 }
@@ -341,6 +452,7 @@ const playNext = async () => {
 const clearAudioQueue = () => {
   audioQueue = []
   isPlaying = false
+  stopCurrentPlayback()
 }
 
 /**
@@ -362,41 +474,7 @@ const startWaveformAnimation = () => {
  * Stop voice session
  */
 const stopVoiceSession = () => {
-  // Close WebSocket
-  if (websocket) {
-    websocket.close()
-    websocket = null
-  }
-
-  // Stop mic
-  if (mediaStream) {
-    mediaStream.getTracks().forEach(t => t.stop())
-    mediaStream = null
-  }
-
-  // Close audio contexts
-  if (audioContext) {
-    audioContext.close()
-    audioContext = null
-  }
-
-  if (playbackContext) {
-    playbackContext.close()
-    playbackContext = null
-  }
-
-  // Stop animation
-  if (animationFrame) {
-    cancelAnimationFrame(animationFrame)
-    animationFrame = null
-  }
-
-  analyserNode = null
-  clearAudioQueue()
-  suggestedProducts.value = []
-
-  state.value = 'idle'
-  emit('close')
+  teardownVoiceSession({ emitClose: true })
 }
 
 /**
@@ -443,7 +521,7 @@ const stateLabel = computed(() => {
 
 // Cleanup on unmount
 onUnmounted(() => {
-  stopVoiceSession()
+  teardownVoiceSession()
 })
 
 // Auto-start when mounted
