@@ -32,7 +32,7 @@ router.get('/history/:sessionId', chatController.getChatHistory);
 router.get('/appearance', chatController.getAppearance);
 
 // Voice endpoints
-router.get('/voice-token', voiceController.getVoiceToken);
+router.get('/voice-token', chatLimiter, voiceController.getVoiceToken);
 router.post('/voice-tool-call', chatLimiter, voiceController.handleToolCall);
 
 module.exports = router;
