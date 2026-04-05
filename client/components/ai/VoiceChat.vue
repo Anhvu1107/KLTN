@@ -274,11 +274,25 @@ const startVoiceSession = async () => {
           ? JSON.parse(event.data)
           : JSON.parse(await event.data.text?.() || event.data)
 
-        // Handle setup complete — NOW start mic capture
+        // Handle setup complete — NOW start mic capture + AI greets first
         if (data.setupComplete) {
           console.log('[Voice] Setup complete — starting mic capture')
           await startMicCapture()
           state.value = 'listening'
+
+          // AI speaks first — send a hidden greeting trigger
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              clientContent: {
+                turns: [{
+                  role: 'user',
+                  parts: [{ text: 'Xin chào, mình vừa ghé thăm shop.' }],
+                }],
+                turnComplete: true,
+              },
+            }))
+            console.log('[Voice] Sent auto-greeting trigger')
+          }
           return
         }
 
