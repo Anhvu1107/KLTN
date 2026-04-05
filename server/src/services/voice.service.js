@@ -4,7 +4,7 @@
  * Handles session config and backend tool execution.
  */
 
-const { SystemPrompt } = require('../models');
+const { SystemPrompt, ChatLog } = require('../models');
 const productSearch = require('./ai/product-search');
 const sessionMemory = require('./ai/session-memory');
 const logger = require('../utils/logger');
@@ -442,10 +442,10 @@ const getVoiceConfig = async (sessionId = null) => {
 };
 
 /**
- * Sync voice conversation transcript to shared session memory.
+ * Sync voice conversation transcript to shared session memory + database.
  * Called by frontend after each voice turn so text chat has full context.
  */
-const syncVoiceTranscript = (sessionId, userText, aiText) => {
+const syncVoiceTranscript = async (sessionId, userText, aiText) => {
     if (!sessionId) return;
 
     if (userText && userText.trim()) {
@@ -454,6 +454,17 @@ const syncVoiceTranscript = (sessionId, userText, aiText) => {
             content: userText.trim(),
             source: 'voice',
         });
+
+        try {
+            await ChatLog.create({
+                session_id: sessionId,
+                role: 'USER',
+                content: userText.trim(),
+                metadata: { source: 'voice' },
+            });
+        } catch (err) {
+            logger.error('[Voice] Failed to save user transcript to DB:', err.message);
+        }
     }
 
     if (aiText && aiText.trim()) {
@@ -462,6 +473,17 @@ const syncVoiceTranscript = (sessionId, userText, aiText) => {
             content: aiText.trim(),
             source: 'voice',
         });
+
+        try {
+            await ChatLog.create({
+                session_id: sessionId,
+                role: 'ASSISTANT',
+                content: aiText.trim(),
+                metadata: { source: 'voice' },
+            });
+        } catch (err) {
+            logger.error('[Voice] Failed to save AI transcript to DB:', err.message);
+        }
     }
 };
 

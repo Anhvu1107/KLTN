@@ -61,7 +61,7 @@ const syncTranscript = catchAsync(async (req, res) => {
         });
     }
 
-    voiceService.syncVoiceTranscript(sessionId, userText || '', aiText || '');
+    await voiceService.syncVoiceTranscript(sessionId, userText || '', aiText || '');
 
     res.status(200).json({ success: true });
 });
