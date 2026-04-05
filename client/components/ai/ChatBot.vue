@@ -7,6 +7,10 @@
 const config = useRuntimeConfig()
 const { t } = useI18n()
 const router = useRouter()
+const cartStore = useCartStore()
+const authStore = useAuthStore()
+const { getImageUrl } = useImageUrl()
+const { success: notifySuccess, warning: notifyWarning } = useNotification()
 import { useSocket } from '~/composables/useSocket'
 
 const emit = defineEmits<{
@@ -366,15 +370,75 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 
 // Handle clicks on internal links in chat messages
-const handleChatClick = (e: MouseEvent) => {
+const handleChatClick = async (e: MouseEvent) => {
   const target = e.target as HTMLElement
   if (target.tagName === 'A') {
     const href = target.getAttribute('href')
-    if (href && href.startsWith('/')) {
-      e.preventDefault()
-      emit('close')
-      router.push(href)
+    if (!href || !href.startsWith('/')) return
+
+    e.preventDefault()
+
+    // Handle add-to-cart links
+    if (href.startsWith('/add-to-cart/')) {
+      const slug = href.replace('/add-to-cart/', '')
+      if (!slug) return
+
+      if (!authStore.isAuthenticated) {
+        emit('close')
+        router.push(`/auth/login?redirect=/shop/${slug}`)
+        return
+      }
+
+      try {
+        const res = await $fetch<{ success: boolean; data: { product: any } }>(
+          `${config.public.apiUrl}/products/${slug}`
+        )
+        const product = res.data?.product
+        if (!product) {
+          notifyWarning('Không tìm thấy sản phẩm.')
+          return
+        }
+
+        const variants = (Array.isArray(product.variants) ? product.variants : [])
+          .filter((v: any) => v?.status === 'AVAILABLE')
+
+        if (!variants.length) {
+          notifyWarning('Sản phẩm hiện không còn hàng.')
+          return
+        }
+
+        const variant = variants.find((v: any) => !cartStore.isInCart(v.id)) || null
+        if (!variant) {
+          notifyWarning('Sản phẩm đã có trong giỏ hàng.')
+          return
+        }
+
+        let image = ''
+        try {
+          const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
+          if (Array.isArray(imgs) && imgs.length) image = getImageUrl(imgs[0]) || imgs[0] || ''
+        } catch {}
+
+        cartStore.addToCart({
+          id: variant.id,
+          productId: product.id,
+          productName: product.name,
+          productBrand: product.brand,
+          productImage: image,
+          variantSize: variant.size || '',
+          variantColor: variant.color || '',
+          price: parseFloat(product.sale_price || product.base_price || 0),
+        })
+        notifySuccess(`Đã thêm ${product.name} vào giỏ hàng!`)
+      } catch {
+        notifyWarning('Không thể thêm sản phẩm vào giỏ.')
+      }
+      return
     }
+
+    // Normal internal links — navigate
+    emit('close')
+    router.push(href)
   }
 }
 
