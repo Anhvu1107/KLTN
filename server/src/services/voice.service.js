@@ -7,6 +7,7 @@
 const { SystemPrompt, ChatLog } = require('../models');
 const productSearch = require('./ai/product-search');
 const sessionMemory = require('./ai/session-memory');
+const kb = require('./ai/knowledge-base');
 const logger = require('../utils/logger');
 
 const PROMPT_CACHE_TTL = 60 * 1000;
@@ -281,6 +282,54 @@ const getToolDeclarations = () => {
                 },
             },
         },
+        {
+            name: 'get_brand_info',
+            description: 'Lấy thông tin chi tiết về một thương hiệu: nguồn gốc, phong cách, size guide, khoảng giá.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    brand: { type: 'string', description: 'Tên thương hiệu cần tra cứu.' },
+                },
+                required: ['brand'],
+            },
+        },
+        {
+            name: 'get_style_advice',
+            description: 'Lấy lời khuyên về phong cách thời trang: techwear, avant-garde, minimalist, streetwear.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    style: { type: 'string', description: 'Phong cách cần tư vấn.' },
+                },
+                required: ['style'],
+            },
+        },
+        {
+            name: 'suggest_size',
+            description: 'Gợi ý size dựa trên chiều cao và cân nặng của khách hàng.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    height_cm: { type: 'number', description: 'Chiều cao (cm).' },
+                    weight_kg: { type: 'number', description: 'Cân nặng (kg).' },
+                },
+            },
+        },
+        {
+            name: 'get_policy',
+            description: 'Lấy thông tin chính sách cửa hàng: vận chuyển (shipping), đổi trả (return), ký gửi (consignment), xác thực (authenticity), thanh toán (payment).',
+            parameters: {
+                type: 'object',
+                properties: {
+                    topic: {
+                        type: 'string',
+                        enum: ['shipping', 'return', 'consignment', 'authenticity', 'payment'],
+                        description: 'Chủ đề chính sách cần tra cứu.',
+                    },
+                },
+                required: ['topic'],
+            },
+        },
     ];
 };
 
@@ -407,6 +456,40 @@ const executeToolCall = async (toolName, args = {}, sessionId = null) => {
                 })),
                 price_range: summary.price_range || {},
             };
+        }
+
+        case 'get_brand_info': {
+            const brandInfo = kb.getBrandInfo(args.brand || '');
+            if (!brandInfo) {
+                return { found: false, message: `Không tìm thấy thông tin về thương hiệu "${args.brand}".` };
+            }
+            return { found: true, brand: brandInfo };
+        }
+
+        case 'get_style_advice': {
+            const advice = kb.getStyleAdvice(args.style || '');
+            if (!advice) {
+                return { found: false, message: `Không có thông tin về phong cách "${args.style}".` };
+            }
+            return { found: true, style: advice };
+        }
+
+        case 'suggest_size': {
+            const suggestion = kb.suggestSize(args.height_cm || null, args.weight_kg || null);
+            if (sessionId) {
+                const session = sessionMemory.ensureSession(sessionId);
+                if (args.height_cm) session.context.height_cm = args.height_cm;
+                if (args.weight_kg) session.context.weight_kg = args.weight_kg;
+            }
+            return { suggestion };
+        }
+
+        case 'get_policy': {
+            const policy = kb.STORE_POLICIES[args.topic] || null;
+            if (!policy) {
+                return { found: false, message: `Không tìm thấy chính sách "${args.topic}".` };
+            }
+            return { found: true, policy };
         }
 
         default:

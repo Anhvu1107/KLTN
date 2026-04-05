@@ -436,6 +436,55 @@ const handleChatClick = async (e: MouseEvent) => {
       return
     }
 
+    // Handle save-to-wishlist links
+    if (href.startsWith('/save-wishlist/')) {
+      const slug = href.replace('/save-wishlist/', '')
+      if (!slug) return
+
+      if (!authStore.isAuthenticated) {
+        emit('close')
+        router.push(`/auth/login?redirect=/shop/${slug}`)
+        return
+      }
+
+      try {
+        const token = localStorage.getItem('token')
+        const res = await $fetch<{ success: boolean; data: { product: any } }>(
+          `${config.public.apiUrl}/products/${slug}`
+        )
+        const product = res.data?.product
+        if (!product) {
+          notifyWarning('Không tìm thấy sản phẩm.')
+          return
+        }
+
+        await $fetch(`${config.public.apiUrl}/wishlist`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: { productId: product.id },
+        })
+        notifySuccess(`Đã lưu ${product.name} vào wishlist!`)
+      } catch {
+        notifyWarning('Không thể lưu sản phẩm vào wishlist.')
+      }
+      return
+    }
+
+    // Handle open-cart link
+    if (href === '/open-cart') {
+      emit('close')
+      router.push('/cart')
+      return
+    }
+
+    // Handle checkout link
+    if (href === '/checkout') {
+      emit('close')
+      const target = authStore.isAuthenticated ? '/checkout' : '/auth/login?redirect=/checkout'
+      router.push(target)
+      return
+    }
+
     // Normal internal links — navigate
     emit('close')
     router.push(href)
