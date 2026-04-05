@@ -47,17 +47,11 @@ function buildSessionSnapshot(sessionId) {
     if (parts.length) {
         snapshot.push(`Khách đã chia sẻ: ${parts.join(' | ')}`);
     }
-    if (sales.stage) {
-        snapshot.push(`Giai đoạn bán hàng hiện tại: ${sales.stage}`);
-    }
-    if (sales.next_action) {
-        snapshot.push(`Bước tiếp theo nên làm: ${sales.next_action}`);
-    }
     if (sales.last_recommended_slugs?.length) {
         snapshot.push(`Sản phẩm vừa gợi ý gần đây: ${sales.last_recommended_slugs.join(', ')}`);
     }
 
-    return snapshot.length ? `\nNGỮ CẢNH PHIÊN HIỆN TẠI:\n- ${snapshot.join('\n- ')}` : '';
+    return snapshot.length ? `\nTHÔNG TIN KHÁCH HÀNG:\n- ${snapshot.join('\n- ')}` : '';
 }
 
 async function getPersonaForVoice() {
@@ -89,6 +83,8 @@ async function getPersonaForVoice() {
 const buildVoiceSystemPrompt = async (sessionId = null) => {
     const persona = await getPersonaForVoice();
     const sessionSnapshot = buildSessionSnapshot(sessionId);
+
+    const antiThinking = `BẮT BUỘC: Bạn PHẢI nói TRỰC TIẾP với khách hàng bằng tiếng Việt. KHÔNG BAO GIỜ được viết suy nghĩ nội bộ, giải thích quy trình, hay meta-commentary. Mọi output phải là lời nói tự nhiên dành cho khách. Ví dụ SAI: "Initiating the dialogue, I will greet...". Ví dụ ĐÚNG: "Chào bạn! Mình là AURA nè!".`;
 
     const basePrompt = persona || `Bạn là AURA — nhân viên tư vấn thời trang tại AURA ARCHIVE, shop đồ hiệu secondhand chính hãng.
 
@@ -155,7 +151,7 @@ TUYỆT ĐỐI CẤM — OUTPUT FORMAT:
 - Ví dụ SAI: "**Initiating** I will greet the customer using mình and bạn..."
 - Ví dụ ĐÚNG: "Chào bạn! Mình là AURA, rất vui được gặp bạn!"`;
 
-    return `${basePrompt}\n${conversationGuidance}\n${toolInstructions}${sessionSnapshot}`;
+    return `${antiThinking}\n\n${basePrompt}\n${conversationGuidance}\n${toolInstructions}${sessionSnapshot}`;
 };
 
 /**
