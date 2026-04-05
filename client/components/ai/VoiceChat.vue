@@ -73,6 +73,7 @@ let playbackAnalyserNode: AnalyserNode | null = null
 let animationFrame: number | null = null
 let lipSyncFrame: number | null = null
 let lastSalesCueAt = 0
+let listeningCooldown: ReturnType<typeof setTimeout> | null = null
 
 const resetStreamingResponseTracking = ({ clearDedup = true } = {}) => {
   if (clearDedup) {
@@ -86,9 +87,18 @@ const resetStreamingResponseTracking = ({ clearDedup = true } = {}) => {
 const resumeListeningIfPlaybackFinished = () => {
   if (!shouldResumeListeningAfterPlayback) return
   if (isPlaying || audioQueue.length > 0 || playbackSource) return
+  if (pendingAudioChunks.length > 0) return
 
   shouldResumeListeningAfterPlayback = false
-  state.value = 'listening'
+
+  // Cooldown to prevent echo from being picked up by mic
+  if (listeningCooldown) clearTimeout(listeningCooldown)
+  listeningCooldown = setTimeout(() => {
+    listeningCooldown = null
+    if (state.value === 'speaking' || state.value === 'processing') {
+      state.value = 'listening'
+    }
+  }, 600)
 }
 
 const getOrCreateSessionId = () => {
@@ -195,6 +205,10 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
   suggestedProducts.value = []
   state.value = 'idle'
   resetStreamingResponseTracking()
+  if (listeningCooldown) {
+    clearTimeout(listeningCooldown)
+    listeningCooldown = null
+  }
 
   if (emitClose) {
     emit('close')
