@@ -34,5 +34,6 @@ router.get('/appearance', chatController.getAppearance);
 // Voice endpoints
 router.get('/voice-token', chatLimiter, voiceController.getVoiceToken);
 router.post('/voice-tool-call', chatLimiter, voiceController.handleToolCall);
+router.post('/voice-sync', chatLimiter, voiceController.syncTranscript);
 
 module.exports = router;

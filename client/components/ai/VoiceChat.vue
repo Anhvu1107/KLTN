@@ -353,6 +353,18 @@ const startVoiceSession = async () => {
             resetStreamingResponseTracking({ clearDedup: false })
             shouldResumeListeningAfterPlayback = true
             resumeListeningIfPlaybackFinished()
+
+            // Sync transcript to backend session memory (fire-and-forget)
+            if (sessionId.value && (transcript.value || aiTranscript.value)) {
+              $fetch(`${config.public.apiUrl}/chat/voice-sync`, {
+                method: 'POST',
+                body: {
+                  sessionId: sessionId.value,
+                  userText: transcript.value,
+                  aiText: aiTranscript.value,
+                },
+              }).catch(() => {})
+            }
           }
 
           // Handle interrupted (barge-in)

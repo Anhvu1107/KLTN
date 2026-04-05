@@ -47,7 +47,27 @@ const handleToolCall = catchAsync(async (req, res) => {
     });
 });
 
+/**
+ * POST /api/v1/chat/voice-sync
+ * Sync voice transcript to shared session memory
+ */
+const syncTranscript = catchAsync(async (req, res) => {
+    const { sessionId, userText, aiText } = req.body;
+
+    if (!sessionId) {
+        return res.status(400).json({
+            success: false,
+            message: 'sessionId is required',
+        });
+    }
+
+    voiceService.syncVoiceTranscript(sessionId, userText || '', aiText || '');
+
+    res.status(200).json({ success: true });
+});
+
 module.exports = {
     getVoiceToken,
     handleToolCall,
+    syncTranscript,
 };

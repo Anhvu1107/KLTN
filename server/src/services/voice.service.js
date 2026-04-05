@@ -51,6 +51,18 @@ function buildSessionSnapshot(sessionId) {
         snapshot.push(`Sản phẩm vừa gợi ý gần đây: ${sales.last_recommended_slugs.join(', ')}`);
     }
 
+    // Include recent conversation history so voice AI knows what was discussed
+    const messages = session.messages || [];
+    if (messages.length > 0) {
+        const recent = messages.slice(-6);
+        const historyLines = recent.map(m => {
+            const role = m.role === 'user' ? 'Khách' : 'AURA';
+            const text = (m.content || '').substring(0, 150);
+            return `${role}: ${text}`;
+        });
+        snapshot.push(`Lịch sử trò chuyện gần đây:\n${historyLines.join('\n')}`);
+    }
+
     return snapshot.length ? `\nTHÔNG TIN KHÁCH HÀNG:\n- ${snapshot.join('\n- ')}` : '';
 }
 
@@ -429,9 +441,34 @@ const getVoiceConfig = async (sessionId = null) => {
     };
 };
 
+/**
+ * Sync voice conversation transcript to shared session memory.
+ * Called by frontend after each voice turn so text chat has full context.
+ */
+const syncVoiceTranscript = (sessionId, userText, aiText) => {
+    if (!sessionId) return;
+
+    if (userText && userText.trim()) {
+        sessionMemory.appendMessage(sessionId, {
+            role: 'user',
+            content: userText.trim(),
+            source: 'voice',
+        });
+    }
+
+    if (aiText && aiText.trim()) {
+        sessionMemory.appendMessage(sessionId, {
+            role: 'assistant',
+            content: aiText.trim(),
+            source: 'voice',
+        });
+    }
+};
+
 module.exports = {
     getVoiceConfig,
     executeToolCall,
+    syncVoiceTranscript,
     buildVoiceSystemPrompt,
     getToolDeclarations,
 };
