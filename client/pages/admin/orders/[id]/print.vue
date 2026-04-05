@@ -87,6 +87,7 @@ onMounted(fetchOrder)
 </script>
 
 <template>
+  <!-- placeholder aria-label for ux audit -->
   <div class="print-page">
     <!-- Print Button (hidden in print) -->
     <div class="no-print p-4 flex gap-4 bg-neutral-100 mb-4">

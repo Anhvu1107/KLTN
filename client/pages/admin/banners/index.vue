@@ -89,7 +89,9 @@ const fetchAnimationConfig = async () => {
       if (!Array.isArray(group)) continue
       for (const setting of group) {
         if (setting.key === 'banner_animation_config' && setting.value) {
-          try { animationConfig.value = JSON.parse(setting.value) } catch {}
+          try { animationConfig.value = JSON.parse(setting.value) } catch {
+            // Ignore invalid saved animation config.
+          }
         }
       }
     }

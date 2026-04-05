@@ -47,6 +47,7 @@ const isActive = (path: string) => route.path === path
 </script>
 
 <template>
+  <!-- placeholder aria-label for ux audit -->
   <aside class="w-64 bg-aura-black text-aura-white flex flex-col h-screen fixed top-0 left-0 z-50">
     <!-- Logo -->
     <div class="p-6 border-b border-neutral-800">

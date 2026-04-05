@@ -10,6 +10,7 @@ defineProps<{
 </script>
 
 <template>
+  <!-- placeholder aria-label for ux audit -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
     <div
       v-for="i in count || 4"

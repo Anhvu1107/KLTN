@@ -6,10 +6,88 @@
 const { Banner } = require('../models');
 const { Op } = require('sequelize');
 
+let bannerSchemaPromise = null;
+
+const getBannerSchema = async () => {
+    if (!bannerSchemaPromise) {
+        bannerSchemaPromise = Banner.sequelize.getQueryInterface()
+            .describeTable(Banner.getTableName())
+            .then((columns) => {
+                const attributes = Object.entries(Banner.rawAttributes)
+                    .filter(([attributeName, attribute]) => {
+                        const columnName = attribute.field || attribute.fieldName || attributeName;
+                        return Boolean(columns[columnName]);
+                    })
+                    .map(([attributeName]) => attributeName);
+
+                const writableFields = attributes.filter((attributeName) => !['id', 'createdAt', 'updatedAt'].includes(attributeName));
+
+                return {
+                    attributes,
+                    hasPosition: Boolean(columns.position),
+                    hasSection: Boolean(columns.section),
+                    writableFields,
+                };
+            })
+            .catch((error) => {
+                bannerSchemaPromise = null;
+                throw error;
+            });
+    }
+
+    return bannerSchemaPromise;
+};
+
+const normalizeBanner = (banner, schema) => {
+    const plainBanner = banner?.get ? banner.get({ plain: true }) : banner;
+
+    if (!plainBanner) {
+        return plainBanner;
+    }
+
+    return {
+        ...plainBanner,
+        position: schema.hasPosition ? plainBanner.position ?? 0 : 0,
+        section: schema.hasSection ? plainBanner.section ?? 'general' : 'general',
+    };
+};
+
+const sanitizeBannerData = (data, schema) => {
+    return Object.fromEntries(
+        Object.entries(data).filter(([key, value]) => schema.writableFields.includes(key) && value !== undefined)
+    );
+};
+
+const buildBannerOrder = (schema, { includeCreatedAt = false } = {}) => {
+    const order = [];
+
+    if (schema.hasSection) {
+        order.push(['section', 'ASC']);
+    }
+
+    if (schema.hasPosition) {
+        order.push(['position', 'ASC']);
+    }
+
+    if (includeCreatedAt) {
+        order.push(['createdAt', 'DESC']);
+    }
+
+    return order;
+};
+
+const findBannerById = async (id, schema) => {
+    return Banner.findOne({
+        where: { id },
+        attributes: schema.attributes,
+    });
+};
+
 /**
  * Get active banners, optionally filtered by section
  */
 const getActiveBanners = async (section = null) => {
+    const schema = await getBannerSchema();
     const now = new Date();
 
     const where = {
@@ -26,62 +104,91 @@ const getActiveBanners = async (section = null) => {
         ],
     };
 
-    if (section) {
+    if (section && schema.hasSection) {
         where.section = section;
     }
 
     const banners = await Banner.findAll({
+        attributes: schema.attributes,
         where,
-        order: [['section', 'ASC'], ['position', 'ASC']],
+        order: buildBannerOrder(schema),
     });
 
-    return banners;
+    return banners.map((banner) => normalizeBanner(banner, schema));
 };
 
 /**
  * Get all banners (admin)
  */
 const getAllBanners = async () => {
+    const schema = await getBannerSchema();
     const banners = await Banner.findAll({
-        order: [['section', 'ASC'], ['position', 'ASC'], ['created_at', 'DESC']],
+        attributes: schema.attributes,
+        order: buildBannerOrder(schema, { includeCreatedAt: true }),
     });
-    return banners;
+    return banners.map((banner) => normalizeBanner(banner, schema));
 };
 
 /**
  * Get banner by ID
  */
 const getBannerById = async (id) => {
-    const banner = await Banner.findByPk(id);
+    const schema = await getBannerSchema();
+    const banner = await findBannerById(id, schema);
+
     if (!banner) {
         throw new Error('Banner not found');
     }
-    return banner;
+
+    return normalizeBanner(banner, schema);
 };
 
 /**
  * Create banner
  */
 const createBanner = async (data) => {
-    const banner = await Banner.create(data);
-    return banner;
+    const schema = await getBannerSchema();
+    const sanitizedData = sanitizeBannerData(data, schema);
+
+    const banner = await Banner.create(sanitizedData, {
+        fields: schema.writableFields,
+    });
+
+    return getBannerById(banner.id);
 };
 
 /**
  * Update banner
  */
 const updateBanner = async (id, data) => {
-    const banner = await getBannerById(id);
-    await banner.update(data);
-    return banner;
+    const schema = await getBannerSchema();
+    const banner = await findBannerById(id, schema);
+
+    if (!banner) {
+        throw new Error('Banner not found');
+    }
+
+    const sanitizedData = sanitizeBannerData(data, schema);
+
+    await banner.update(sanitizedData, {
+        fields: Object.keys(sanitizedData),
+    });
+
+    return getBannerById(id);
 };
 
 /**
  * Delete banner
  */
 const deleteBanner = async (id) => {
-    const banner = await getBannerById(id);
-    await banner.destroy();
+    const deletedCount = await Banner.destroy({
+        where: { id },
+    });
+
+    if (!deletedCount) {
+        throw new Error('Banner not found');
+    }
+
     return { message: 'Banner deleted' };
 };
 

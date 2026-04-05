@@ -111,7 +111,9 @@ const loadData = async () => {
         // Sync name/desc to promptData
         promptData.value.aiName = parsed.chatName || promptData.value.aiName
         promptData.value.roleDesc = parsed.chatDescription || promptData.value.roleDesc
-      } catch {}
+      } catch {
+        // Ignore malformed appearance config and fall back to defaults.
+      }
     }
   } catch (error) {
     console.error('Failed to load AI config:', error)

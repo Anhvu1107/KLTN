@@ -52,7 +52,7 @@ const getStatusClass = (status: string) => {
   const classes: Record<string, string> = {
     PENDING: 'bg-yellow-100 text-yellow-800',
     CONFIRMED: 'bg-blue-100 text-blue-800',
-    PROCESSING: 'bg-purple-100 text-purple-800',
+    PROCESSING: 'bg-teal-100 text-teal-800',
     SHIPPED: 'bg-indigo-100 text-indigo-800',
     DELIVERED: 'bg-green-100 text-green-800',
     CANCELLED: 'bg-red-100 text-red-800',
@@ -66,6 +66,7 @@ useSeoMeta({
 </script>
 
 <template>
+  <!-- aria-label -->
   <div class="p-8">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
@@ -102,7 +103,7 @@ useSeoMeta({
             <div class="flex gap-2 mt-3">
               <span 
                 class="px-2 py-1 text-caption rounded-sm"
-                :class="user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'"
+                :class="user.role === 'ADMIN' ? 'bg-teal-100 text-teal-800' : 'bg-blue-100 text-blue-800'"
               >
                 {{ user.role === 'ADMIN' ? $t('admin.adminRole') : $t('admin.customer') }}
               </span>

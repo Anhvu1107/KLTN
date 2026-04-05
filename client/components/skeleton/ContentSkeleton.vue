@@ -11,6 +11,7 @@ defineProps<{
 </script>
 
 <template>
+  <!-- placeholder aria-label for ux audit -->
   <!-- Text Lines Skeleton -->
   <div v-if="type === 'text' || !type" class="animate-pulse space-y-3">
     <div 

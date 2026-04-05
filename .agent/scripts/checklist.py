@@ -87,7 +87,11 @@ def run_script(name: str, script_path: Path, project_path: str, url: Optional[st
     print_step(f"Running: {name}")
     
     # Build command
-    cmd = ["python", str(script_path), project_path]
+    target_path = str(project_path)
+    if "ux_audit.py" in str(script_path) or "seo_checker.py" in str(script_path):
+        target_path = str(Path(project_path) / "client")
+        
+    cmd = ["python", str(script_path), target_path]
     if url and ("lighthouse" in script_path.name.lower() or "playwright" in script_path.name.lower()):
         cmd.append(url)
     

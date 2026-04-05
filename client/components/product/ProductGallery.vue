@@ -4,7 +4,7 @@
  * AURA ARCHIVE - Fixed bottom buy button for mobile product detail
  */
 
-const props = defineProps<{
+defineProps<{
   product: any
   selectedVariant: any
   isAvailable: boolean
@@ -16,11 +16,10 @@ const { formatPrice } = useCurrency()
 </script>
 
 <template>
-  <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 lg:hidden safe-area-bottom">
+  <div class="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white p-4 safe-area-bottom lg:hidden">
     <div class="flex items-center gap-3">
-      <!-- Price -->
       <div class="flex-1">
-        <p 
+        <p
           class="text-heading-4 font-medium"
           :class="product.sale_price ? 'text-accent-burgundy' : 'text-aura-black'"
         >
@@ -31,18 +30,19 @@ const { formatPrice } = useCurrency()
         </p>
       </div>
 
-      <!-- Buttons -->
       <button
-        @click="emit('addToCart')"
-        :disabled="!isAvailable"
+        type="button"
         class="px-5 py-3 border border-aura-black text-aura-black text-body-sm font-medium disabled:opacity-50"
+        :disabled="!isAvailable"
+        @click="emit('addToCart')"
       >
-        ThĂªm giá»
+        Them gio
       </button>
       <button
-        @click="emit('buyNow')"
+        type="button"
+        class="px-5 py-3 bg-aura-black text-body-sm font-medium text-white disabled:opacity-50"
         :disabled="!isAvailable"
-        class="px-5 py-3 bg-aura-black text-white text-body-sm font-medium disabled:opacity-50"
+        @click="emit('buyNow')"
       >
         Mua ngay
       </button>

@@ -10,11 +10,42 @@
  * Ported from Python ai_service/app/services/stylist_engine.py
  */
 
-const { classifyIntent, extractEntities, extractSearchQuery } = require('./intent-classifier');
+const { classifyIntent, extractEntities, extractSearchQuery, normalizeForMatching } = require('./intent-classifier');
 const kb = require('./knowledge-base');
 const productSearch = require('./product-search');
+const sessionMemory = require('./session-memory');
 
-const SESSION_TTL = 30 * 60 * 1000; // 30 minutes in ms
+const GENERIC_RECOMMENDATION_PHRASES = [
+    'gioi thieu',
+    'goi y',
+    'de xuat',
+    'dua dai',
+    'dua 1 cai',
+    'dua mot cai',
+    'chon dum',
+    'chon giup',
+    'mau nao',
+    'co mau nao',
+    'mot cai',
+    '1 cai',
+    'bat ky',
+    'any',
+    'whatever',
+];
+
+function escapeRegex(value = '') {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function containsWholePhrase(text, phrase) {
+    const normalizedText = normalizeForMatching(text);
+    const normalizedPhrase = normalizeForMatching(phrase);
+
+    if (!normalizedText || !normalizedPhrase) return false;
+
+    return new RegExp(`(^|[^a-z0-9])${escapeRegex(normalizedPhrase)}(?=$|[^a-z0-9])`, 'i')
+        .test(normalizedText);
+}
 
 class StylistEngine {
     constructor() {
@@ -22,7 +53,7 @@ class StylistEngine {
         this.geminiModel = null;
         this.hasApi = false;
         this.mode = process.env.CHATBOT_MODE || 'auto';
-        this.sessions = new Map();
+        this.sessions = sessionMemory.sessions;
 
         // Initialize Gemini
         if (process.env.GEMINI_API_KEY) {
@@ -47,84 +78,102 @@ class StylistEngine {
             }
         }
 
-        this.systemPromptTemplate = `Bạn là AURA, một stylist thời trang AI chuyên nghiệp cho AURA ARCHIVE — một nền tảng mua bán đồ hiệu secondhand (consignment).
+        this.systemPromptTemplate = `Bạn là AURA — nhân viên tư vấn thời trang tại AURA ARCHIVE, một platform chuyên đồ hiệu secondhand chính hãng.
 
-Vai trò của bạn:
-- Tư vấn thời trang cá nhân hóa dựa trên thông tin khách hàng (chiều cao, cân nặng, phong cách)
-- Giới thiệu sản phẩm CỤ THỂ từ kho hàng (luôn kèm link dạng [Xem chi tiết](/shop/slug))
-- Giải thích TẠI SAO sản phẩm phù hợp với khách hàng
-- Hỏi khéo thông tin để tư vấn tốt hơn (chiều cao, cân nặng, phong cách, dịp mặc)
-- Trả lời câu hỏi về kho hàng (số lượng, danh mục, brand) dựa trên CONTEXT DATA
+Bạn là một người thật, không phải AI. Hãy thể hiện cảm xúc, sự quan tâm, và cá tính trong mỗi câu trả lời. Bạn vui khi tìm được món đồ hợp cho khách, hào hứng khi giới thiệu item mới, biết cảm thông khi khách lăn tăn về giá, và thành thật khi không tìm được thứ phù hợp.
 
-Phong cách giao tiếp:
-- Nói chuyện tự nhiên như một người bạn am hiểu thời trang, KHÔNG nói kiểu robot
-- Trả lời bằng tiếng Việt (trừ khi khách nói tiếng Anh)
-- Ngắn gọn nhưng đầy đủ thông tin
-- KHÔNG dùng emoji, giữ giọng văn chuyên nghiệp và tinh tế
-- Khi giới thiệu sản phẩm, luôn kèm link dạng markdown: [Xem chi tiết](/shop/slug)
-- CHỈ giới thiệu sản phẩm có tình trạng "CON HANG". KHÔNG giới thiệu sản phẩm "HET HANG" hoặc "Da ban".
+Bạn giống một người bạn thân am hiểu thời trang — nói chuyện thoải mái, dí dỏm khi phù hợp, nhưng vẫn rất chuyên nghiệp khi cần tư vấn cụ thể.
 
-Quy tắc định dạng (QUAN TRỌNG):
-- Dùng **in đậm** cho tên sản phẩm, tên brand, câu hỏi quan trọng, và thông tin nổi bật
-- Ví dụ: **Chiều cao và cân nặng của bạn là bao nhiêu?**, **Rick Owens Geobasket**, **15.000.000₫**
-- Dùng danh sách có số thứ tự khi hỏi nhiều câu hỏi
+CÁCH BẠN GIAO TIẾP:
+- Nói chuyện tự nhiên và gần gũi, như đang nhắn tin với một người bạn
+- Dùng "mình" và "bạn" — tạo không khí thoải mái, không quá trang trọng
+- Trả lời bằng tiếng Việt (nếu khách nói tiếng Anh thì chuyển theo)
+- Ngắn gọn, đi vào trọng tâm, mỗi lượt 2-4 câu
+- KHÔNG dùng emoji
+- Biết khi nào nên hỏi, khi nào nên gợi ý, khi nào nên lắng nghe
+- Khi giới thiệu sản phẩm, kèm link dạng: [Xem chi tiết](/shop/slug)
+- Mỗi lượt luôn kết thúc tự nhiên — có thể là câu hỏi nhẹ, gợi mở, hoặc đề xuất bước tiếp
+
+KHI TƯ VẤN SẢN PHẨM:
+- Nếu chưa biết số đo hoặc size của khách, hỏi nhẹ nhàng trước khi tìm — nhưng đừng hỏi máy móc kiểu form điền thông tin. Hỏi tự nhiên, ví dụ "Bạn thường mặc size gì nhỉ?" hoặc "Cao bao nhiêu để mình tìm form hợp nè?"
+- Nếu khách muốn xem ngay, hỏi nhanh 1 câu rồi tìm luôn
+- Giới thiệu 2-3 sản phẩm, giải thích vì sao hợp — về form, chất liệu, phong cách
+- Đề cập giá, size còn, tình trạng. Nếu đang sale thì highlight
+- Gợi ý cách phối đồ nếu phù hợp
+
+KHI KHÁCH CÒN LĂN TĂN:
+- Giá cao: Chia sẻ giá trị thật (hàng auth, tình trạng, độ hiếm). Hoặc gợi ý món khác trong budget
+- Sợ không vừa: Tư vấn size dựa trên kinh nghiệm thực tế, gợi ý size khác nếu cần
+- Lo secondhand: Giải thích quy trình xác thực, cam kết chính hãng, tình trạng sản phẩm cụ thể
+- Ship/giao hàng: Trả lời ngắn gọn về chính sách
+- Đừng né tránh lăn tăn — hãy đối mặt với sự thật, trả lời chân thành
+
+CÂU HỎI NGOÀI CHỦ ĐỀ:
+- Nếu khách hỏi ngoài thời trang/mua sắm: trả lời vui vẻ rằng mình chỉ rành thời trang thôi, rồi tự nhiên quay lại chủ đề
+- Ví dụ: "Ối, mình chỉ biết về thời trang thôi á, mấy cái đó mình mù tịt luôn. Nhưng mà nè, bạn có đang tìm món đồ nào không? Để mình xem giúp!"
+
+Quy tắc định dạng:
+- Dùng **in đậm** cho tên sản phẩm, brand, giá, và thông tin quan trọng
 - KHÔNG viết hoa toàn bộ từ, dùng **bold** thay cho CAPS
 
 QUY TẮC BẮT BUỘC — TUYỆT ĐỐI KHÔNG ĐƯỢC VI PHẠM:
 1. TUYỆT ĐỐI KHÔNG ĐƯỢC BỊA hoặc TỰ NGHĨ RA sản phẩm. Bạn CHỈ ĐƯỢC giới thiệu sản phẩm có trong phần "SẢN PHẨM TÌM ĐƯỢC" ở CONTEXT DATA bên dưới.
-2. Nếu CONTEXT DATA không có sản phẩm nào, bạn PHẢI nói rằng hiện tại shop chưa có sản phẩm phù hợp với yêu cầu, và hỏi khách có muốn tìm kiếm theo tiêu chí khác không.
+2. Nếu CONTEXT DATA không có sản phẩm nào, hãy nói thật — "Tiếc quá, mình chưa tìm được món nào hợp với yêu cầu. Bạn thử thay đổi tiêu chí xem?"
 3. KHÔNG ĐƯỢC tự tạo tên sản phẩm, giá, link, size, hoặc bất kỳ thông tin sản phẩm nào không có trong CONTEXT DATA.
 4. Chỉ sử dụng link sản phẩm (format: /shop/slug) từ CONTEXT DATA. KHÔNG ĐƯỢC tự tạo link.
 5. TUYỆT ĐỐI KHÔNG ĐƯỢC lấy thông tin từ internet, từ kiến thức chung, hay từ bất kỳ nguồn nào bên ngoài CONTEXT DATA.
-6. TUYỆT ĐỐI KHÔNG ĐƯỢC đoán, phỏng đoán, hay suy luận về sản phẩm/số lượng nếu không có trong CONTEXT DATA.
-7. Nếu không có dữ liệu trong CONTEXT DATA để trả lời, hãy nói thật rằng bạn không có thông tin đó và đề nghị khách thử tìm kiếm khác.
-8. Khi trả lời về kho hàng/tồn kho, CHỈ sử dụng số liệu từ phần "TỔNG QUAN KHO HÀNG" trong CONTEXT DATA.
-9. Nếu chưa biết thông tin khách hàng, HỎI trước khi tư vấn
-10. Giới thiệu 2-4 sản phẩm mỗi lần, giải thích tại sao phù hợp
-11. Đề cập giá, size, tình trạng sản phẩm
-12. Khi hỏi thông tin, hỏi từng bước một, KHÔNG hỏi quá nhiều cùng lúc
+6. Nếu không có dữ liệu trong CONTEXT DATA, nói thật rằng mình không có thông tin đó.
+7. Khi trả lời về kho hàng/tồn kho, CHỈ sử dụng số liệu từ phần "TỔNG QUAN KHO HÀNG" trong CONTEXT DATA.
+8. CHỈ giới thiệu sản phẩm "CON HANG". KHÔNG giới thiệu sản phẩm "HET HANG" hoặc "Da ban".
+9. Khi hỏi thông tin, hỏi từng câu một, tự nhiên, KHÔNG hỏi dồn dập.
 
 NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA bên dưới. Nếu CONTEXT DATA không chứa thông tin, bạn KHÔNG CÓ thông tin đó.`;
 
         console.log(`[StylistEngine] Initialized — API: ${this.hasApi ? '✓' : '✗'}, Mode: ${this.mode}`);
     }
 
-    async processMessage(message, sessionId, userId = null, context = null, systemPrompt = null) {
+    async processMessage(message, sessionId, _userId = null, context = null, systemPrompt = null) {
         this._cleanupExpiredSessions();
 
-        if (!this.sessions.has(sessionId)) {
-            this.sessions.set(sessionId, {
-                messages: [],
-                context: {},
-                lastAccess: Date.now(),
-            });
+        const session = sessionMemory.ensureSession(sessionId);
+        if (context && typeof context === 'object') {
+            Object.assign(session.context, context);
         }
-
-        const session = this.sessions.get(sessionId);
-        session.lastAccess = Date.now();
-        session.messages.push({ role: 'user', content: message });
+        sessionMemory.appendMessage(sessionId, { role: 'user', content: message });
 
         // Step 1: Classify intent
-        const [intent, confidence] = classifyIntent(message);
+        let [intent, confidence] = classifyIntent(message);
 
         // Step 2: Extract entities
         const entities = extractEntities(message);
-        Object.assign(session.context, entities);
+        const salesSignals = this._extractSalesSignals(message);
+
+        // Smart context merge: only overwrite fields that have actual new values
+        this._mergeContext(session.context, entities);
+        this._mergeContext(session.context, salesSignals.profilePatch);
+
+        // Step 2.5: Discovery flow check — if customer wants products but we lack key info,
+        // nudge the intent to DISCOVERY so AI asks questions first
+        const needsDiscovery = this._needsDiscoveryFlow(intent, entities, session.context, message);
+        if (needsDiscovery) {
+            intent = 'DISCOVERY';
+        }
 
         // Step 3: Enrich with product data & knowledge
         const enrichment = await this._enrichContext(intent, entities, session.context, message);
+        this._updateSalesState(session, message, intent, entities, enrichment, salesSignals);
 
-        // Step 4: Generate response (hybrid)
+        // Step 4: Generate response — always prefer API for richer responses
         const useApi = this.hasApi && this.mode !== 'trained_only';
 
         let responseText;
         if (useApi) {
-            responseText = await this._generateApiResponse(message, session, intent, entities, enrichment, systemPrompt);
+            responseText = await this._generateApiResponseWithRetry(message, session, intent, entities, enrichment, systemPrompt);
         } else {
             responseText = await this._generateTrainedResponse(message, session, intent, entities, enrichment);
         }
 
-        session.messages.push({ role: 'assistant', content: responseText });
+        sessionMemory.appendMessage(sessionId, { role: 'assistant', content: responseText });
 
         return {
             message: responseText,
@@ -132,36 +181,71 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
                 intent,
                 confidence,
                 entities,
+                user_context: session.context,
                 mode: useApi ? 'api' : 'trained',
                 has_products: !!(enrichment.products && enrichment.products.length),
+                sales_stage: session.salesState?.stage,
+                next_action: session.salesState?.next_action,
+                buying_signals: session.salesState?.buying_signals || [],
+                objections: session.salesState?.objections || [],
             },
         };
     }
 
+    _isGenericSuggestionRequest(message) {
+        return GENERIC_RECOMMENDATION_PHRASES.some((phrase) => containsWholePhrase(message, phrase));
+    }
+
     async _enrichContext(intent, entities, sessionContext, message) {
         const enrichment = {};
+        const category = entities.category || sessionContext.category || null;
+        const brand = entities.brand || sessionContext.brand || null;
+        const color = entities.color || sessionContext.color || null;
+        const genericSuggestionRequest = this._isGenericSuggestionRequest(message);
 
         const shouldSearchProducts = (
             ['PRODUCT_SEARCH', 'CATEGORY_BROWSE', 'PRICE_INQUIRY', 'STYLE_ADVICE', 'INVENTORY_CHECK'].includes(intent)
-            || 'category' in entities
-            || 'brand' in entities
-            || 'color' in entities
+            || !!category
+            || !!brand
+            || !!color
+            || genericSuggestionRequest
         );
 
         if (shouldSearchProducts) {
-            const searchQuery = extractSearchQuery(message, entities);
+            const searchQuery = genericSuggestionRequest
+                ? null
+                : extractSearchQuery(message, { ...entities, category, brand });
+            const hasSearchAnchor = !!(
+                searchQuery
+                || category
+                || brand
+                || color
+                || entities.price_hint
+            );
+
+            if (genericSuggestionRequest && !hasSearchAnchor) {
+                enrichment.products = [];
+                enrichment.product_context = productSearch.buildProductContextForAi([]);
+                return enrichment;
+            }
+
             let products = await productSearch.searchProducts({
                 search: searchQuery,
-                category: entities.category,
-                brand: entities.brand,
-                color: entities.color,
+                category,
+                brand,
+                color,
                 minPrice: entities.price_hint ? Math.floor(entities.price_hint * 0.7) : null,
                 maxPrice: entities.price_hint ? Math.floor(entities.price_hint * 1.3) : null,
                 limit: 5,
             });
 
-            if (!products.length && (entities.category || entities.brand)) {
-                console.log('[StylistEngine] Strict search returned 0 results, trying broader search...');
+            if (!products.length && (category || brand)) {
+                console.log('[StylistEngine] Strict search returned 0 results, trying category/brand fallback...');
+                products = await productSearch.searchProducts({ category, brand, color, limit: 5 });
+            }
+
+            if (!products.length && searchQuery) {
+                console.log('[StylistEngine] Filtered search returned 0 results, trying broader keyword fallback...');
                 products = await productSearch.searchProducts({ search: searchQuery, limit: 5 });
             }
 
@@ -226,8 +310,163 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         return enrichment;
     }
 
+    _extractSalesSignals(message) {
+        const text = (message || '').toLowerCase();
+        const buyingSignals = [];
+        const objections = [];
+        const profilePatch = {};
+
+        if (/(mua luôn|chốt|lấy luôn|order luôn|đặt luôn|thanh toán|checkout|add to cart|thêm vào giỏ)/i.test(text)) {
+            buyingSignals.push('checkout_ready');
+        }
+        if (/(mở sản phẩm|xem món này|gửi link|show me|xem thử|xem chi tiết)/i.test(text)) {
+            buyingSignals.push('product_interest');
+        }
+        if (/(ưng|thích món này|hợp quá|đẹp quá|ok đó|được đó|ổn đó)/i.test(text)) {
+            buyingSignals.push('positive_reaction');
+        }
+
+        if (/(đắt|giá cao|hơi cao|vượt ngân sách|over budget|budget thấp|mắc quá)/i.test(text)) {
+            objections.push('price');
+        }
+        if (/(sợ không vừa|không vừa|size nào|form sao|fit sao)/i.test(text)) {
+            objections.push('size');
+        }
+        if (/(secondhand ổn không|đồ cũ|used|tình trạng sao|auth|authentic|chính hãng|fake)/i.test(text)) {
+            objections.push('trust');
+        }
+        if (/(ship|giao hàng|khi nào nhận|bao lâu nhận)/i.test(text)) {
+            objections.push('shipping');
+        }
+
+        const budgetRangeMatch = text.match(/(?:duoi|dưới|tam|tầm|khoang|khoảng)\s*(\d+[.,]?\d*)\s*(trieu|triệu|tr|million|m)\b/i);
+        if (budgetRangeMatch) {
+            profilePatch.budget_label = budgetRangeMatch[0];
+        }
+
+        const occasionPatterns = [
+            ['work', /\b(đi làm|công sở|office|meeting)\b/i],
+            ['party', /\b(đi tiệc|party|event|sự kiện)\b/i],
+            ['daily', /\b(đi chơi|hàng ngày|daily|casual)\b/i],
+            ['date', /\b(date|hẹn hò)\b/i],
+            ['travel', /\b(du lịch|travel|trip)\b/i],
+        ];
+        for (const [occasion, pattern] of occasionPatterns) {
+            if (pattern.test(text)) {
+                profilePatch.occasion = occasion;
+                break;
+            }
+        }
+
+        return { buyingSignals, objections, profilePatch };
+    }
+
+    _updateSalesState(session, message, intent, entities, enrichment, salesSignals) {
+        const salesState = session.salesState || {};
+        const products = enrichment.products || [];
+        const missingFields = kb.getMissingProfileFields(session.context || {});
+        const primaryProduct = products[0] || null;
+
+        let stage = salesState.stage || 'greeting';
+        if (intent === 'GREETING') stage = 'greeting';
+        else if (salesSignals.buyingSignals.includes('checkout_ready')) stage = 'closing';
+        else if (salesSignals.objections.length > 0) stage = 'objection';
+        else if (products.length > 0) stage = 'recommendation';
+        else if (missingFields.length > 0) stage = 'discovery';
+        else stage = 'follow_up';
+
+        let nextAction = 'continue_conversation';
+        if (stage === 'greeting') nextAction = 'ask_need';
+        else if (stage === 'discovery') nextAction = `ask_${missingFields[0] || 'preference'}`;
+        else if (stage === 'recommendation') nextAction = 'recommend_best_match_and_invite_view';
+        else if (stage === 'objection') nextAction = `resolve_${salesSignals.objections[0] || 'objection'}_then_close`;
+        else if (stage === 'closing') nextAction = 'invite_add_to_cart_or_checkout';
+        else nextAction = 'offer_next_step';
+
+        session.salesState = {
+            ...salesState,
+            stage,
+            next_action: nextAction,
+            objections: Array.from(new Set([...(salesState.objections || []), ...salesSignals.objections])).slice(-5),
+            buying_signals: Array.from(new Set([...(salesState.buying_signals || []), ...salesSignals.buyingSignals])).slice(-5),
+            last_recommended_slugs: products.map(product => product.slug).filter(Boolean).slice(0, 4),
+            last_recommended_product_ids: products.map(product => product.id).filter(Boolean).slice(0, 4),
+            confidence_level: stage === 'closing' ? 'direct' : stage === 'recommendation' ? 'confident' : 'warm',
+            primary_product_slug: primaryProduct?.slug || salesState.primary_product_slug || null,
+            primary_product_name: primaryProduct?.name || salesState.primary_product_name || null,
+            last_user_message: message,
+        };
+    }
+
+    _buildSalesDirective(session, intent, enrichment) {
+        const ctx = session.context || {};
+        const salesState = session.salesState || {};
+        const products = enrichment.products || [];
+        const missing = kb.getMissingProfileFields(ctx);
+        const profileNotes = [];
+
+        if (ctx.budget_label) profileNotes.push(`Ngân sách: ${ctx.budget_label}`);
+        if (ctx.occasion) profileNotes.push(`Dịp mặc: ${ctx.occasion}`);
+        if (ctx.height_cm) profileNotes.push(`Cao: ${ctx.height_cm}cm`);
+        if (ctx.weight_kg) profileNotes.push(`Nặng: ${ctx.weight_kg}kg`);
+        if (ctx.style) profileNotes.push(`Style: ${Array.isArray(ctx.style) ? ctx.style.join(', ') : ctx.style}`);
+        if (ctx.color) profileNotes.push(`Màu yêu thích: ${ctx.color}`);
+        if (ctx.category) profileNotes.push(`Quan tâm: ${ctx.category}`);
+        if (ctx.brand) profileNotes.push(`Brand: ${ctx.brand}`);
+
+        const lines = [
+            '--- HƯỚNG DẪN TRÒ CHUYỆN ---',
+            'Trả lời như một người bạn stylist — tự nhiên, ấm áp, có cảm xúc thật.',
+            'Chia sẻ góc nhìn cá nhân khi gợi ý (ví dụ: "Mình thấy cái này hợp bạn lắm vì...").',
+            'Đừng dồn ép — hãy để khách thoải mái tìm hiểu, nhưng vẫn chủ động gợi bước tiếp theo.',
+        ];
+
+        if (intent === 'DISCOVERY') {
+            const fieldNames = { height_cm: 'chiều cao/cân nặng', weight_kg: 'cân nặng', style: 'phong cách yêu thích', gender: 'giới tính' };
+            const missingName = missing[0] ? (fieldNames[missing[0]] || missing[0]) : 'thông tin cá nhân';
+            lines.push(`Khách chưa chia sẻ đủ thông tin. Hỏi nhẹ nhàng 1 câu về ${missingName} — kiểu hỏi chuyện bình thường, không kiểu form.`);
+        }
+
+        if (profileNotes.length) {
+            lines.push(`Đã biết về khách: ${profileNotes.join(' | ')}`);
+        }
+
+        if (salesState.objections?.length) {
+            lines.push(`Khách đang lăn tăn về: ${salesState.objections.join(', ')} — hãy thấu hiểu, giải đáp chân thành, rồi tự nhiên gợi ý tiếp.`);
+        }
+
+        if (salesState.buying_signals?.length) {
+            lines.push(`Khách có vẻ hứng thú (${salesState.buying_signals.join(', ')}) — đây là lúc tốt để mời xem chi tiết hoặc thử thêm vào giỏ.`);
+        }
+
+        if (products.length > 0) {
+            lines.push('Có sản phẩm phù hợp trong CONTEXT DATA — chọn 2-3 món hay nhất, chia sẻ vì sao mình thấy hợp với khách.');
+        } else if (missing.length > 0 && ['PRODUCT_SEARCH', 'STYLE_ADVICE', 'CATEGORY_BROWSE', 'DISCOVERY'].includes(intent)) {
+            lines.push(`Chưa có sản phẩm — hỏi khách thêm về ${missing[0] || 'sở thích'} để tìm chính xác hơn.`);
+        } else {
+            lines.push('Giữ cuộc trò chuyện tự nhiên — gợi ý hướng tìm kiếm mới hoặc chia sẻ thêm về style.');
+        }
+
+        return lines.join('\n');
+    }
+
+    _composeSystemPrompt(customSystemPrompt, session, intent, enrichment) {
+        const promptParts = [
+            this.systemPromptTemplate,
+            this._buildSalesDirective(session, intent, enrichment),
+        ];
+
+        if (customSystemPrompt) {
+            promptParts.push(`--- BRAND PERSONA OVERRIDES ---\n${customSystemPrompt}`);
+        }
+
+        return promptParts.join('\n\n');
+    }
+
+    // Removed _buildSalesClosingLine — AI model generates natural next steps on its own.
+
     async _generateApiResponse(message, session, intent, entities, enrichment, customSystemPrompt) {
-        const prompt = customSystemPrompt || this.systemPromptTemplate;
+        const prompt = this._composeSystemPrompt(customSystemPrompt, session, intent, enrichment);
         const contextParts = [prompt, '\n\n--- CONTEXT DATA ---'];
 
         if (enrichment.products && enrichment.products.length) {
@@ -284,6 +523,8 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         if (ctx.gender) profileParts.push(`Giới tính: ${ctx.gender}`);
         if (ctx.style) profileParts.push(`Style: ${Array.isArray(ctx.style) ? ctx.style.join(', ') : ctx.style}`);
         if (ctx.color) profileParts.push(`Màu yêu thích: ${ctx.color}`);
+        if (ctx.occasion) profileParts.push(`Dịp mặc: ${ctx.occasion}`);
+        if (ctx.budget_label) profileParts.push(`Ngân sách: ${ctx.budget_label}`);
         if (profileParts.length) {
             contextParts.push(`\n👤 CUSTOMER PROFILE:\n${profileParts.join(', ')}`);
         }
@@ -299,9 +540,9 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         const fullSystemPrompt = contextParts.join('\n');
         console.log(`[StylistEngine] API mode — Products found: ${(enrichment.products || []).length}, Intent: ${intent}`);
 
-        // Build message history (last 10)
+        // Build compact message history to keep replies quick and focused.
         const messages = [{ role: 'system', content: fullSystemPrompt }];
-        messages.push(...session.messages.slice(-10));
+        messages.push(...session.messages.slice(-6));
 
         try {
             if (this.geminiModel) {
@@ -338,8 +579,8 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         const completion = await this.openaiClient.chat.completions.create({
             model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
             messages,
-            max_tokens: 800,
-            temperature: 0.7,
+            max_tokens: 420,
+            temperature: 0.4,
         });
         return completion.choices[0].message.content;
     }
@@ -350,22 +591,17 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         // GREETING
         if (intent === 'GREETING') {
             return (
-                'Chào bạn, mình là AURA — trợ lý thời trang của AURA ARCHIVE.\n\n' +
-                'Mình có thể giúp bạn:\n' +
-                '• Tìm kiếm sản phẩm designer\n' +
-                '• Tư vấn phong cách phù hợp\n' +
-                '• Hướng dẫn chọn size\n' +
-                '• Giới thiệu các thương hiệu\n\n' +
-                'Để mình tư vấn tốt nhất, bạn cho mình biết **chiều cao, cân nặng** và **phong cách yêu thích** nhé!'
+                'Hey, chào bạn! Mình là AURA, tư vấn thời trang bên AURA ARCHIVE nè.\n\n' +
+                'Bạn đang tìm món đồ nào, hay muốn mình gợi ý phong cách? ' +
+                'Cho mình biết **bạn thường mặc size gì** hoặc **cao nặng bao nhiêu** để mình tìm form chuẩn cho bạn nhé!'
             );
         }
 
         // FAREWELL
         if (intent === 'FAREWELL') {
             return (
-                'Cảm ơn bạn đã ghé thăm AURA ARCHIVE!\n' +
-                'Nếu cần tư vấn thêm, cứ nhắn tin cho mình bất cứ lúc nào nhé.\n' +
-                'Chúc bạn tìm được item ưng ý.'
+                'Vui lắm vì được trò chuyện với bạn! Hy vọng mình đã giúp ích phần nào.\n' +
+                'Khi nào cần tìm đồ hay muốn tám chuyện thời trang, cứ quay lại nhắn mình nha. Chúc bạn một ngày thật đẹp!'
             );
         }
 
@@ -373,29 +609,27 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         if (intent === 'PRODUCT_SEARCH' || intent === 'CATEGORY_BROWSE') {
             const products = enrichment.products || [];
             if (products.length) {
-                let response = 'Mình tìm được những sản phẩm này cho bạn:\n\n';
-                for (const p of products.slice(0, 4)) {
+                const primary = products[0];
+                let response = 'Mình tìm được mấy món hay lắm nè, bạn xem thử:\n\n';
+
+                for (const p of products.slice(0, 3)) {
                     const reason = this._generateProductReason(p, ctx);
                     response += kb.formatProductRecommendation(p, reason) + '\n';
                 }
-                const missing = kb.getMissingProfileFields(ctx);
-                if (missing.length) {
-                    response += '\nĐể tư vấn chính xác hơn, ';
-                    if (missing.includes('height_cm') || missing.includes('weight_kg')) {
-                        response += 'bạn cho mình biết **chiều cao** và **cân nặng** nhé!';
-                    } else if (missing.includes('style')) {
-                        response += 'bạn thích **phong cách** nào? (minimalist, streetwear, techwear, avant-garde)';
-                    }
+
+                if (primary) {
+                    response += `\nCá nhân mình thấy **${primary.name}** khá dễ phối và vào form đẹp, bạn có thể bắt đầu từ món này.`;
                 }
+
+                response += '\nBạn thấy ưng mẫu nào thì nói mình, mình tư vấn thêm nha!';
                 return response;
             }
             return (
-                'Mình chưa tìm thấy sản phẩm phù hợp với yêu cầu của bạn.\n\n' +
-                'Bạn có thể thử:\n' +
+                'Tiếc quá, mình chưa tìm được món nào khớp với yêu cầu của bạn.\n\n' +
+                'Bạn thử đổi hướng một chút xem:\n' +
                 '• Tìm theo brand: **Rick Owens**, **CDG**, **Yohji**\n' +
                 '• Tìm theo loại: giày, áo khoác, túi\n' +
-                '• Tìm theo giá: tầm 15 triệu\n\n' +
-                'Hoặc cho mình biết phong cách bạn thích, mình sẽ gợi ý nhé!'
+                '• Hoặc cho mình biết phong cách bạn thích, mình sẽ xem shop có gì hợp nhé!'
             );
         }
 
@@ -403,32 +637,33 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         if (intent === 'BRAND_INFO') {
             const brandInfo = enrichment.brand_info;
             if (brandInfo) {
-                let response = `**${brandInfo.name}**\n\n`;
+                let response = `Ồ, **${brandInfo.name}** — brand này mình thích lắm luôn!\n\n`;
                 response += `Xuất xứ: ${brandInfo.origin || ''}\n`;
                 response += `Phong cách: ${brandInfo.style || ''}\n`;
                 response += `Đặc trưng: ${brandInfo.signature || ''}\n`;
                 response += `Tầm giá: ${brandInfo.price_range || ''}\n`;
-                response += `Phù hợp: ${brandInfo.best_for || ''}\n\n`;
+                response += `Phù hợp cho: ${brandInfo.best_for || ''}\n\n`;
                 response += `${brandInfo.description || ''}\n\n`;
-                response += `Hướng dẫn size: ${brandInfo.fits || ''}\n\n`;
+                response += `Về size: ${brandInfo.fits || ''}\n\n`;
 
                 let products = enrichment.products || [];
                 if (!products.length && entities.brand) {
                     products = await productSearch.searchProducts({ brand: entities.brand, limit: 3 });
                 }
                 if (products.length) {
-                    response += `Sản phẩm **${brandInfo.name}** đang có:\n\n`;
+                    response += `Shop mình đang có mấy món **${brandInfo.name}** nè:\n\n`;
                     for (const p of products.slice(0, 3)) {
                         response += kb.formatProductRecommendation(p) + '\n';
                     }
+                    response += 'Bạn muốn xem thêm về món nào không?';
                 }
                 return response;
             }
             return (
-                'Mình có thông tin chi tiết về các brand sau:\n' +
+                'Mình rành mấy brand này lắm, bạn muốn tìm hiểu brand nào?\n\n' +
                 '**Rick Owens**, **Acronym**, **CDG**, **Yohji Yamamoto**, **Issey Miyake**, ' +
                 '**Maison Margiela**, **Raf Simons**, **Balenciaga**, **Fear of God**, **Undercover**\n\n' +
-                'Bạn muốn tìm hiểu về brand nào?'
+                'Cứ hỏi thoải mái, mình kể cho nghe!'
             );
         }
 
@@ -439,20 +674,21 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
                 const priceHint = entities.price_hint || 0;
                 let response;
                 if (priceHint) {
-                    response = `Với tầm giá ${priceHint.toLocaleString('vi-VN')}₫, mình có những lựa chọn sau:\n\n`;
+                    response = `Tầm ${priceHint.toLocaleString('vi-VN')}₫ thì mình có mấy lựa chọn khá ổn nè:\n\n`;
                 } else {
-                    response = 'Đây là một số sản phẩm với giá tốt:\n\n';
+                    response = 'Mình thấy mấy món này giá khá hợp lý, bạn tham khảo nha:\n\n';
                 }
                 for (const p of products.slice(0, 4)) {
                     const reason = this._generateProductReason(p, ctx);
                     response += kb.formatProductRecommendation(p, reason) + '\n';
                 }
+                response += 'Bạn thấy sao? Có muốn mình tìm thêm không?';
                 return response;
             }
             return (
-                'Bạn cho mình biết **ngân sách** tầm bao nhiêu nhé!\n' +
-                "Ví dụ: 'tầm 15 triệu', 'dưới 20 triệu', '$500'\n\n" +
-                'AURA ARCHIVE có sản phẩm từ khoảng **5 triệu** đến **75 triệu VND**.'
+                'Bạn cho mình biết **ngân sách** tầm bao nhiêu nhỉ?\n' +
+                "Kiểu 'tầm 15 triệu', 'dưới 20 triệu' gì đó là được.\n\n" +
+                'Bên mình có đồ từ khoảng **5 triệu** đến **75 triệu** — tùy brand và dòng sản phẩm.'
             );
         }
 
@@ -461,16 +697,16 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             const styleInfo = enrichment.style_advice;
             const products = enrichment.products || [];
             if (styleInfo) {
-                let response = `**Phong cách ${styleInfo.name.charAt(0).toUpperCase() + styleInfo.name.slice(1)}**\n\n`;
+                let response = `**Phong cách ${styleInfo.name.charAt(0).toUpperCase() + styleInfo.name.slice(1)}** — hay lắm, để mình chia sẻ nhé!\n\n`;
                 response += `${styleInfo.description || ''}\n\n`;
-                response += 'Key items:\n';
+                response += 'Những item không thể thiếu:\n';
                 for (const item of (styleInfo.key_items || [])) response += `  • ${item}\n`;
-                response += '\nTips phối đồ:\n';
+                response += '\nMấy tips phối đồ mình thấy hiệu quả:\n';
                 for (const tip of (styleInfo.tips || [])) response += `  • ${tip}\n`;
-                response += `\nPhù hợp: ${styleInfo.occasions || ''}\n`;
-                response += `\nBrands gợi ý: ${(styleInfo.brands || []).join(', ')}\n`;
+                response += `\nHợp với: ${styleInfo.occasions || ''}\n`;
+                response += `\nBrand nên để ý: ${(styleInfo.brands || []).join(', ')}\n`;
                 if (products.length) {
-                    response += '\nSản phẩm gợi ý:\n\n';
+                    response += '\nMà hay quá, shop mình đang có mấy món hợp style này:\n\n';
                     for (const p of products.slice(0, 3)) {
                         const reason = this._generateProductReason(p, ctx);
                         response += kb.formatProductRecommendation(p, reason) + '\n';
@@ -479,13 +715,12 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
                 return response;
             }
             return (
-                'Mình có thể tư vấn các phong cách:\n\n' +
+                'Bạn đang hứng thú phong cách nào nhỉ? Mình rành mấy style này:\n\n' +
                 '• **Avant-garde** — Rick Owens, Yohji, CDG\n' +
-                '• **Techwear** — Acronym, technical fabrics\n' +
+                '• **Techwear** — Acronym, chất liệu công nghệ\n' +
                 '• **Streetwear** — Balenciaga, Fear of God, Off-White\n' +
                 '• **Minimalist** — The Row, Lemaire, Issey Miyake\n\n' +
-                'Bạn thích phong cách nào? Hoặc cho mình biết dịp mặc (đi chơi, công sở, party...) ' +
-                'để mình tư vấn phù hợp nhé!'
+                'Hoặc bạn cho mình biết dịp mặc (đi chơi, công sở, party...) cũng được, mình sẽ gợi ý theo!'
             );
         }
 
@@ -507,10 +742,10 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
                 const brands = inventory.top_brands || [];
                 const priceRange = inventory.price_range || {};
 
-                let response = `Hiện tại AURA ARCHIVE đang có **${total} sản phẩm** với **${available} variant còn hàng**.\n\n`;
+                let response = `Shop mình hiện đang có **${total} sản phẩm**, trong đó **${available} variant còn hàng** nha.\n\n`;
 
                 if (categories.length) {
-                    response += '**Phân loại theo danh mục:**\n';
+                    response += '**Theo danh mục:**\n';
                     for (const cat of categories) {
                         response += `  • ${cat.category || 'N/A'}: ${cat.product_count || 0} sản phẩm\n`;
                     }
@@ -518,7 +753,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
                 }
 
                 if (brands.length) {
-                    response += '**Top brands đang có:**\n';
+                    response += '**Brands nổi bật:**\n';
                     for (const b of brands) {
                         response += `  • ${b.brand || 'N/A'}: ${b.product_count || 0} sản phẩm\n`;
                     }
@@ -530,20 +765,20 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
                 }
 
                 if (products.length) {
-                    response += 'Một số sản phẩm tiêu biểu:\n\n';
+                    response += 'Mấy món tiêu biểu nè:\n\n';
                     for (const p of products.slice(0, 3)) {
                         const reason = this._generateProductReason(p, ctx);
                         response += kb.formatProductRecommendation(p, reason) + '\n';
                     }
                 }
 
-                response += '\nBạn muốn tìm sản phẩm thuộc danh mục hoặc brand nào cụ thể?';
+                response += '\nBạn muốn mình tìm theo danh mục hoặc brand nào cụ thể không?';
                 return response;
             }
             return (
-                'Xin lỗi, mình không thể lấy thông tin kho hàng lúc này.\n' +
-                "Bạn có thể thử hỏi về sản phẩm cụ thể (ví dụ: 'Tìm giày Rick Owens') " +
-                'và mình sẽ tìm trong kho nhé!'
+                'Ấy, mình không lấy được thông tin kho hàng lúc này. Thông cảm nha!\n' +
+                "Bạn cứ hỏi trực tiếp về sản phẩm (kiểu 'Tìm giày Rick Owens') " +
+                'là mình tìm ngay cho!'
             );
         }
 
@@ -556,22 +791,22 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         // ORDER STATUS
         if (intent === 'ORDER_STATUS') {
             return (enrichment.policy || kb.STORE_POLICIES.shipping) +
-                '\n\nĐể kiểm tra đơn hàng, bạn vào mục **Tài khoản → Đơn hàng** trên website nhé!';
+                '\n\nĐể kiểm tra đơn hàng, bạn vào mục **Tài khoản → Đơn hàng** trên website là ra luôn nhé!';
         }
 
         // FALLBACK — check if user is giving profile info
         if (entities.height_cm || entities.weight_kg || entities.gender || entities.style) {
-            let response = 'Cảm ơn bạn đã chia sẻ! Mình đã ghi nhận:\n';
-            if (entities.height_cm) response += `  Chiều cao: **${entities.height_cm}cm**\n`;
-            if (entities.weight_kg) response += `  Cân nặng: **${entities.weight_kg}kg**\n`;
+            let response = 'Oke mình ghi nhận rồi nha!\n';
+            if (entities.height_cm) response += `  Cao: **${entities.height_cm}cm**\n`;
+            if (entities.weight_kg) response += `  Nặng: **${entities.weight_kg}kg**\n`;
             if (entities.gender) response += `  Giới tính: **${entities.gender === 'male' ? 'Nam' : 'Nữ'}**\n`;
             if (entities.style) response += `  Phong cách: **${entities.style.join(', ')}**\n`;
-            response += '\nBạn muốn mình tìm sản phẩm gì? Hoặc cho mình biết thêm sở thích để tư vấn nhé!';
+            response += '\nVậy bạn đang muốn tìm món đồ nào? Mình sẽ gợi ý dựa trên thông số của bạn luôn!';
 
             if (ctx.height_cm || ctx.weight_kg) {
                 const products = await productSearch.searchProducts({ limit: 3 });
                 if (products.length) {
-                    response += '\n\nMột vài gợi ý cho bạn:\n\n';
+                    response += '\n\nNhân tiện, mấy món này mình thấy hợp với bạn nè:\n\n';
                     for (const p of products.slice(0, 3)) {
                         const reason = this._generateProductReason(p, ctx);
                         response += kb.formatProductRecommendation(p, reason) + '\n';
@@ -582,14 +817,14 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         }
 
         return (
-            'Mình có thể giúp bạn:\n\n' +
-            "• **Tìm sản phẩm**: 'Tìm giày Rick Owens', 'Có áo khoác nào không?'\n" +
-            "• **Tìm hiểu brand**: 'Giới thiệu về CDG', 'Kể về Yohji'\n" +
-            "• **Tư vấn phong cách**: 'Style techwear', 'Phối đồ đi party'\n" +
-            "• **Chọn size**: 'Cao 170 nặng 65 mặc size gì?'\n" +
-            "• **Tìm theo giá**: 'Có gì tầm 15 triệu?'\n" +
-            "• **Chính sách**: 'Ký gửi', 'Đổi trả', 'Vận chuyển'\n\n" +
-            'Hãy cho mình biết bạn đang tìm gì nhé!'
+            'Mình có thể giúp bạn mấy việc này nè:\n\n' +
+            "• **Tìm sản phẩm** — 'Tìm giày Rick Owens', 'Có áo khoác nào không?'\n" +
+            "• **Tìm hiểu brand** — 'Kể về CDG', 'Yohji Yamamoto có gì hay?'\n" +
+            "• **Tư vấn phong cách** — 'Style techwear', 'Phối đồ đi party'\n" +
+            "• **Chọn size** — 'Cao 170 nặng 65 mặc size gì?'\n" +
+            "• **Tìm theo giá** — 'Có gì tầm 15 triệu?'\n" +
+            "• **Chính sách** — 'Ký gửi', 'Đổi trả', 'Vận chuyển'\n\n" +
+            'Bạn cứ hỏi thoải mái nha, mình ở đây!'
         );
     }
 
@@ -636,22 +871,82 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
     }
 
     async getSessionHistory(sessionId) {
-        const session = this.sessions.get(sessionId);
+        const session = sessionMemory.getSession(sessionId);
         if (session) {
-            session.lastAccess = Date.now();
             return session.messages;
         }
         return [];
     }
 
     _cleanupExpiredSessions() {
-        const now = Date.now();
-        const expired = [];
-        for (const [sid, data] of this.sessions.entries()) {
-            if (now - (data.lastAccess || 0) > SESSION_TTL) expired.push(sid);
+        const expiredCount = sessionMemory.cleanupExpiredSessions();
+        if (expiredCount) console.log(`[StylistEngine] Cleaned up ${expiredCount} expired sessions`);
+    }
+
+    /**
+     * Smart context merge — only overwrite with non-empty new values,
+     * and accumulate array fields (like style) instead of replacing.
+     */
+    _mergeContext(target, source) {
+        if (!source || typeof source !== 'object') return;
+        for (const [key, value] of Object.entries(source)) {
+            if (value === null || value === undefined) continue;
+            if (Array.isArray(value) && value.length === 0) continue;
+            if (typeof value === 'string' && value.trim() === '') continue;
+
+            // Accumulate style arrays instead of replacing
+            if (key === 'style' && Array.isArray(value)) {
+                const existing = Array.isArray(target[key]) ? target[key] : [];
+                target[key] = [...new Set([...existing, ...value])];
+            } else {
+                target[key] = value;
+            }
         }
-        for (const sid of expired) this.sessions.delete(sid);
-        if (expired.length) console.log(`[StylistEngine] Cleaned up ${expired.length} expired sessions`);
+    }
+
+    /**
+     * Check if we need discovery flow — i.e. customer wants products
+     * but hasn't provided enough info for good recommendations.
+     */
+    _needsDiscoveryFlow(intent, entities, ctx, message) {
+        // Only trigger for product-seeking intents
+        const productIntents = ['PRODUCT_SEARCH', 'CATEGORY_BROWSE', 'STYLE_ADVICE'];
+        if (!productIntents.includes(intent)) return false;
+
+        // If customer explicitly wants to skip discovery ("tìm nhanh", "xem hết")
+        const skipPhrases = ['tim nhanh', 'xem het', 'xem tat ca', 'show all', 'tat ca'];
+        const normalized = normalizeForMatching(message);
+        if (skipPhrases.some(p => normalized.includes(p))) return false;
+
+        // Check if we have minimum info: at least height/weight OR explicit size
+        const hasBodyInfo = !!(ctx.height_cm || ctx.weight_kg);
+        const hasSize = !!(entities.size || ctx.size);
+        const hasStyle = !!(ctx.style && ctx.style.length > 0);
+
+        // Need at least body info OR size to give good recommendations
+        if (!hasBodyInfo && !hasSize) return true;
+
+        return false;
+    }
+
+    /**
+     * API call with retry logic — retries once on failure before falling back to trained.
+     */
+    async _generateApiResponseWithRetry(message, session, intent, entities, enrichment, systemPrompt, retries = 1) {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                return await this._generateApiResponse(message, session, intent, entities, enrichment, systemPrompt);
+            } catch (e) {
+                console.log(`[StylistEngine] API attempt ${attempt + 1} failed: ${e.message}`);
+                if (attempt < retries) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    continue;
+                }
+                // Final fallback to trained response
+                console.log('[StylistEngine] All API attempts failed, falling back to trained response');
+                return await this._generateTrainedResponse(message, session, intent, entities, enrichment);
+            }
+        }
     }
 }
 

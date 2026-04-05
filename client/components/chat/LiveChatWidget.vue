@@ -22,7 +22,9 @@ const loadContactLinks = async () => {
     const settings = res.data?.settings || res.data || {}
     if (settings.zalo_link) zaloLink.value = settings.zalo_link
     if (settings.messenger_link) messengerLink.value = settings.messenger_link
-  } catch {}
+  } catch {
+    // Keep widget available even when settings are temporarily unavailable.
+  }
 }
 
 onMounted(loadContactLinks)
@@ -67,7 +69,7 @@ const openMessenger = () => {
           @click="openMessenger"
           class="flex items-center gap-3 px-4 py-3 bg-white border-2 border-neutral-300 shadow-elevated rounded-full hover:shadow-lg hover:border-blue-400 transition-all"
         >
-          <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-teal-600 rounded-full flex items-center justify-center">
             <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.08.36-.09.53-.05.91.25 1.87.38 2.9.38 5.64 0 10-4.13 10-9.7S17.64 2 12 2zm6.53 7.48l-3.2 5.08c-.51.81-1.59 1.03-2.38.49l-2.55-1.91a.6.6 0 00-.72 0l-3.45 2.62c-.46.35-1.06-.18-.75-.67l3.2-5.08c.51-.81 1.59-1.03 2.38-.49l2.55 1.91c.22.17.53.17.72 0l3.45-2.62c.46-.35 1.06.18.75.67z"/>
             </svg>

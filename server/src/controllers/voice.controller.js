@@ -12,7 +12,7 @@ const catchAsync = require('../utils/catchAsync');
  * Client uses this to connect directly to Gemini Live API via WebSocket
  */
 const getVoiceToken = catchAsync(async (req, res) => {
-    const config = await voiceService.getVoiceConfig();
+    const config = await voiceService.getVoiceConfig(req.query.sessionId || null);
 
     res.status(200).json({
         success: true,
@@ -30,7 +30,7 @@ const getVoiceToken = catchAsync(async (req, res) => {
  * Execute a tool call from the frontend during a voice session
  */
 const handleToolCall = catchAsync(async (req, res) => {
-    const { toolName, args } = req.body;
+    const { toolName, args, sessionId } = req.body;
 
     if (!toolName) {
         return res.status(400).json({
@@ -39,7 +39,7 @@ const handleToolCall = catchAsync(async (req, res) => {
         });
     }
 
-    const result = await voiceService.executeToolCall(toolName, args || {});
+    const result = await voiceService.executeToolCall(toolName, args || {}, sessionId || null);
 
     res.status(200).json({
         success: true,

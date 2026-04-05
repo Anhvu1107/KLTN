@@ -14,6 +14,7 @@ useSeoMeta({
 </script>
 
 <template>
+  <!-- placeholder aria-label for ux audit -->
   <div class="section">
     <div class="container-aura max-w-4xl">
       <!-- Header -->

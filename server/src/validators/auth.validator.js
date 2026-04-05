@@ -13,7 +13,7 @@ const COMMON_PASSWORDS = [
 ];
 
 // Password regex: at least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&~#^()_+=\-\[\]{}|\\:";'<>,.?/])[A-Za-z\d@$!%*?&~#^()_+=\-\[\]{}|\\:";'<>,.?/]{8,}$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[[@$!%*?&~#^()_+=\-\]{}|\\:";'<>,.?/])[A-Za-z\d[@$!%*?&~#^()_+=\-\]{}|\\:";'<>,.?/]{8,}$/;
 
 const registerValidator = [
     body('email')

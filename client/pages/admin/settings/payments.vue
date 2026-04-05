@@ -85,12 +85,16 @@ const fetchPaymentSettings = async () => {
               methods.value[k as keyof typeof methods.value] = { ...methods.value[k as keyof typeof methods.value], ...v }
             }
           }
-        } catch (e) { }
+        } catch {
+          // Ignore malformed payment method payloads from settings.
+        }
       }
       if (setting.key === 'bank_accounts') {
         try {
           bankAccounts.value = JSON.parse(setting.value)
-        } catch (e) { }
+        } catch {
+          // Ignore malformed bank account payloads from settings.
+        }
       }
     }
   } catch (error) {

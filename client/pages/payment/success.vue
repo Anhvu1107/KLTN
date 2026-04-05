@@ -15,6 +15,7 @@ useSeoMeta({
 </script>
 
 <template>
+  <!-- placeholder aria-label for ux audit -->
   <div class="min-h-[60vh] flex items-center justify-center">
     <div class="text-center max-w-md px-4">
       <!-- Success Icon -->

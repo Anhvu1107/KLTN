@@ -6,26 +6,13 @@
  * Luxury UX: Fast, elegant loading experience
  */
 
-import { defineAsyncComponent } from 'vue'
+import AdminLayout from '~/layouts/admin.vue'
+import AuthLayout from '~/layouts/auth.vue'
+import DefaultLayout from '~/layouts/default.vue'
 
 // Use Nuxt's built-in useLoadingIndicator
 const { isLoading } = useLoadingIndicator()
 const route = useRoute()
-
-const layoutMap = {
-  admin: defineAsyncComponent({
-    loader: () => import('~/layouts/admin.vue'),
-    suspensible: false,
-  }),
-  auth: defineAsyncComponent({
-    loader: () => import('~/layouts/auth.vue'),
-    suspensible: false,
-  }),
-  default: defineAsyncComponent({
-    loader: () => import('~/layouts/default.vue'),
-    suspensible: false,
-  }),
-} as const
 
 // Create reactive loading state
 const isPageLoading = ref(false)
@@ -77,14 +64,30 @@ watch(isLoading, (loading) => {
 // Provide loading state to layouts
 provide('isPageLoading', isPageLoading)
 
+const layoutMap = {
+  admin: AdminLayout,
+  auth: AuthLayout,
+  default: DefaultLayout,
+} as const
+
 const activeLayout = computed(() => {
-  const layoutName = typeof route?.meta?.layout === 'string' ? route.meta.layout : 'default'
-  return layoutMap[layoutName as keyof typeof layoutMap] || layoutMap.default
+  const layoutName = route.meta.layout
+
+  if (layoutName === false) {
+    return null
+  }
+
+  if (typeof layoutName === 'string' && layoutName in layoutMap) {
+    return layoutMap[layoutName as keyof typeof layoutMap]
+  }
+
+  return DefaultLayout
 })
 </script>
 
 <template>
-  <component :is="activeLayout">
+  <NuxtPage v-if="!activeLayout" />
+  <component :is="activeLayout" v-else>
     <NuxtPage />
   </component>
   <!-- Zalo/Messenger Widget (bottom-left) -->

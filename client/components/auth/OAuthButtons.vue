@@ -10,7 +10,7 @@ const emit = defineEmits(['success', 'error'])
 // Google Sign In
 const handleGoogleLogin = async () => {
   try {
-    // @ts-ignore
+    // @ts-expect-error Google SDK is injected globally at runtime.
     const google = window.google
     if (!google) {
       console.error('Google SDK not loaded')
@@ -45,7 +45,7 @@ const handleGoogleLogin = async () => {
 // Facebook Sign In
 const handleFacebookLogin = async () => {
   try {
-    // @ts-ignore
+    // @ts-expect-error Facebook SDK is injected globally at runtime.
     const FB = window.FB
     if (!FB) {
       console.error('Facebook SDK not loaded')

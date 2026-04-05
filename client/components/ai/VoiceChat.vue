@@ -3,14 +3,21 @@
  * VoiceChat Component
  * AURA ARCHIVE - Real-time voice conversation with AI stylist
  * Uses Gemini Live API via WebSocket with direct API key
+ * Integrated with Live2D model for visual feedback
  */
 
 const config = useRuntimeConfig()
-const { t } = useI18n()
+const router = useRouter()
+const cartStore = useCartStore()
+const authStore = useAuthStore()
+const { getImageUrl } = useImageUrl()
+const { success: notifySuccess, info: notifyInfo, warning: notifyWarning } = useNotification()
 
 const emit = defineEmits<{
   close: []
 }>()
+
+const STORAGE_KEY = 'aura_chat_session_id'
 
 // Connection states
 type VoiceState = 'idle' | 'connecting' | 'listening' | 'processing' | 'speaking' | 'error'
@@ -20,6 +27,26 @@ const errorMessage = ref('')
 const transcript = ref('')
 const aiTranscript = ref('')
 const suggestedProducts = ref<any[]>([])
+const sessionId = ref('')
+
+// Live2D Model
+const live2dCanvas = ref<HTMLCanvasElement | null>(null)
+const {
+  isModelReady,
+  isLoading: isModelLoading,
+  setLipSync,
+  setMood,
+  playGesture,
+  playRandomMotion,
+  playIdle,
+  playGreeting,
+  playNod,
+  playThinking,
+  playHappy,
+  playGoodbye,
+  handlePointerMove: onLive2DPointerMove,
+  handleTap: onLive2DTap,
+} = useLive2D(live2dCanvas)
 
 // Audio refs
 let websocket: WebSocket | null = null
@@ -31,11 +58,55 @@ let isPlaying = false
 let playbackSource: AudioBufferSourceNode | null = null
 let micSourceNode: MediaStreamAudioSourceNode | null = null
 let micProcessorNode: ScriptProcessorNode | null = null
+let currentTurnAudioIndex = 0
+let currentTurnTextParts = new Set<string>()
+let isStreamingAiResponse = false
+let shouldResumeListeningAfterPlayback = false
+let pendingAudioChunks: ArrayBuffer[] = []
+let audioFlushTimer: ReturnType<typeof setTimeout> | null = null
+const AUDIO_BATCH_MS = 80 // batch small chunks for smoother playback
 
-// Waveform animation
+// Waveform animation + LipSync
 const audioLevel = ref(0)
 let analyserNode: AnalyserNode | null = null
+let playbackAnalyserNode: AnalyserNode | null = null
 let animationFrame: number | null = null
+let lipSyncFrame: number | null = null
+let lastSalesCueAt = 0
+
+const resetStreamingResponseTracking = ({ clearDedup = true } = {}) => {
+  if (clearDedup) {
+    currentTurnAudioIndex = 0
+    currentTurnTextParts = new Set()
+  }
+  isStreamingAiResponse = false
+  shouldResumeListeningAfterPlayback = false
+}
+
+const resumeListeningIfPlaybackFinished = () => {
+  if (!shouldResumeListeningAfterPlayback) return
+  if (isPlaying || audioQueue.length > 0 || playbackSource) return
+
+  shouldResumeListeningAfterPlayback = false
+  state.value = 'listening'
+}
+
+const getOrCreateSessionId = () => {
+  if (!import.meta.client) return ''
+
+  const existing = localStorage.getItem(STORAGE_KEY)
+  if (existing) return existing
+
+  const freshId = crypto.randomUUID()
+  localStorage.setItem(STORAGE_KEY, freshId)
+  return freshId
+}
+
+const sessionQuery = computed(() =>
+  sessionId.value
+    ? `?${new URLSearchParams({ sessionId: sessionId.value }).toString()}`
+    : ''
+)
 
 const stopCurrentPlayback = () => {
   if (!playbackSource) return
@@ -72,6 +143,16 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
     } catch {
       // Ignore close errors during teardown.
     }
+  }
+
+  if (playbackAnalyserNode) {
+    playbackAnalyserNode.disconnect()
+    playbackAnalyserNode = null
+  }
+
+  if (lipSyncFrame) {
+    cancelAnimationFrame(lipSyncFrame)
+    lipSyncFrame = null
   }
 
   if (micProcessorNode) {
@@ -113,6 +194,7 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
   audioLevel.value = 0
   suggestedProducts.value = []
   state.value = 'idle'
+  resetStreamingResponseTracking()
 
   if (emitClose) {
     emit('close')
@@ -123,6 +205,10 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
  * Start voice session
  */
 const startVoiceSession = async () => {
+  if (!sessionId.value) {
+    sessionId.value = getOrCreateSessionId()
+  }
+
   teardownVoiceSession()
   state.value = 'connecting'
   errorMessage.value = ''
@@ -135,7 +221,7 @@ const startVoiceSession = async () => {
     const configRes = await $fetch<{
       success: boolean
       data: { apiKey: string; model: string; systemPrompt: string; tools: any[] }
-    }>(`${config.public.apiUrl}/chat/voice-token`)
+    }>(`${config.public.apiUrl}/chat/voice-token${sessionQuery.value}`)
 
     if (!configRes.success || !configRes.data?.apiKey) {
       throw new Error('Failed to get voice config')
@@ -158,7 +244,7 @@ const startVoiceSession = async () => {
           model: `models/${model}`,
           generationConfig: {
             responseModalities: ['AUDIO'],
-            temperature: 0.3,
+            temperature: 0.2,
             speechConfig: {
               voiceConfig: {
                 prebuiltVoiceConfig: {
@@ -178,7 +264,6 @@ const startVoiceSession = async () => {
 
       ws.send(JSON.stringify(setupMessage))
       console.log('[Voice] Setup sent with model:', model)
-      // Mic capture starts after setupComplete (see onmessage handler)
     }
 
     ws.onmessage = async (event) => {
@@ -208,31 +293,59 @@ const startVoiceSession = async () => {
         // Handle server content (audio response)
         if (data.serverContent) {
           const parts = data.serverContent.modelTurn?.parts || []
+          const hasResponseParts = parts.some((part: any) =>
+            !!part.text || part.inlineData?.mimeType?.startsWith('audio/')
+          )
+
+          if (hasResponseParts && !isStreamingAiResponse) {
+            // New model turn starting — reset dedup counters
+            resetStreamingResponseTracking({ clearDedup: true })
+            isStreamingAiResponse = true
+            aiTranscript.value = ''
+          }
+
+          if (hasResponseParts) {
+            state.value = 'speaking'
+          }
 
           for (const part of parts) {
-            // Audio response
+            // Audio response — use sequential index to avoid replaying
             if (part.inlineData?.mimeType?.startsWith('audio/')) {
+              currentTurnAudioIndex++
               state.value = 'speaking'
               const audioBytes = base64ToArrayBuffer(part.inlineData.data)
-              enqueueAudio(audioBytes)
+              scheduleAudioChunk(audioBytes)
             }
 
             // Text transcript of AI response
             if (part.text) {
-              aiTranscript.value = part.text
+              const nextText = part.text.trim()
+              if (!nextText) continue
+              if (currentTurnTextParts.has(nextText)) continue
+
+              currentTurnTextParts.add(nextText)
+              if (!aiTranscript.value || nextText.length >= aiTranscript.value.length) {
+                aiTranscript.value = nextText
+              }
             }
           }
 
           // Check if response is complete
           if (data.serverContent.turnComplete) {
             console.log('[Voice] Turn complete')
-            state.value = 'listening'
+            // Flush any remaining batched audio
+            flushPendingAudio()
+            // Do NOT clear dedup here — just mark turn as done
+            resetStreamingResponseTracking({ clearDedup: false })
+            shouldResumeListeningAfterPlayback = true
+            resumeListeningIfPlaybackFinished()
           }
 
           // Handle interrupted (barge-in)
           if (data.serverContent.interrupted) {
             console.log('[Voice] Interrupted by user')
             clearAudioQueue()
+            resetStreamingResponseTracking({ clearDedup: true })
             state.value = 'listening'
           }
         }
@@ -276,6 +389,124 @@ const startVoiceSession = async () => {
   }
 }
 
+const openSalesRoute = async (path: string) => {
+  try {
+    await router.push(path)
+  } catch {
+    if (import.meta.client) {
+      window.location.href = path
+    }
+  }
+}
+
+const fetchProductBySlug = async (slug: string) => {
+  const response = await $fetch<{ success: boolean; data: { product: any } }>(
+    `${config.public.apiUrl}/products/${slug}`
+  )
+
+  if (!response.success || !response.data?.product) {
+    throw new Error('Product not found')
+  }
+
+  return response.data.product
+}
+
+const getPrimaryProductImage = (product: any) => {
+  try {
+    const images = typeof product?.images === 'string'
+      ? JSON.parse(product.images)
+      : product?.images
+
+    if (Array.isArray(images) && images.length > 0) {
+      return getImageUrl(images[0]) || images[0] || ''
+    }
+  } catch {
+    // Fall through to empty image.
+  }
+
+  return ''
+}
+
+const getAvailableVariants = (product: any) =>
+  (Array.isArray(product?.variants) ? product.variants : []).filter((variant: any) => variant?.status === 'AVAILABLE')
+
+const addProductToCartBySlug = async (slug: string, quantity = 1) => {
+  if (!authStore.isAuthenticated) {
+    openSalesRoute(`/auth/login?redirect=/shop/${slug}`)
+    return { success: false, message: 'Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.' }
+  }
+
+  const product = await fetchProductBySlug(slug)
+  const availableVariants = getAvailableVariants(product)
+
+  if (!availableVariants.length) {
+    return { success: false, message: 'Sản phẩm hiện không còn hàng.' }
+  }
+
+  const variantsToAdd = availableVariants
+    .filter((variant: any) => !cartStore.isInCart(variant.id))
+    .slice(0, Math.max(1, quantity))
+
+  if (!variantsToAdd.length) {
+    return { success: false, message: 'Sản phẩm này đã có trong giỏ hoặc không còn thêm được nữa.' }
+  }
+
+  let addedCount = 0
+  for (const variant of variantsToAdd) {
+    const added = cartStore.addToCart({
+      id: variant.id,
+      productId: product.id,
+      productName: product.name,
+      productBrand: product.brand,
+      productImage: getPrimaryProductImage(product),
+      variantSize: variant.size || '',
+      variantColor: variant.color || '',
+      price: parseFloat(product.sale_price || product.base_price || 0),
+    })
+
+    if (added) {
+      addedCount++
+    }
+  }
+
+  if (!addedCount) {
+    return { success: false, message: 'Không thể thêm sản phẩm vào giỏ.' }
+  }
+
+  return {
+    success: true,
+    message: `Đã thêm ${addedCount} sản phẩm vào giỏ hàng.`,
+    product,
+    addedCount,
+  }
+}
+
+const saveProductToWishlistBySlug = async (slug: string) => {
+  if (!authStore.isAuthenticated) {
+    openSalesRoute(`/auth/login?redirect=/shop/${slug}`)
+    return { success: false, message: 'Bạn cần đăng nhập để lưu wishlist.' }
+  }
+
+  const product = await fetchProductBySlug(slug)
+  const token = localStorage.getItem('token')
+  if (!token) {
+    openSalesRoute(`/auth/login?redirect=/shop/${slug}`)
+    return { success: false, message: 'Bạn cần đăng nhập để lưu wishlist.' }
+  }
+
+  await $fetch(`${config.public.apiUrl}/wishlist`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: { productId: product.id },
+  })
+
+  return {
+    success: true,
+    message: 'Đã lưu sản phẩm vào wishlist.',
+    product,
+  }
+}
+
 /**
  * Handle tool calls from Gemini
  */
@@ -283,11 +514,12 @@ const handleToolCall = async (toolCall: any) => {
   const calls = toolCall.functionCalls || []
   const responses: any[] = []
 
+  console.log('[Voice] Tool calls received:', calls.map((c: any) => ({ name: c.name, args: c.args })))
+
   for (const call of calls) {
     try {
-      // Handle navigation locally (no backend needed)
       if (call.name === 'navigate_to_product' && call.args?.slug) {
-        window.open(`/shop/${call.args.slug}`, '_blank')
+        await openSalesRoute(`/shop/${call.args.slug}`)
         responses.push({
           id: call.id,
           name: call.name,
@@ -296,7 +528,118 @@ const handleToolCall = async (toolCall: any) => {
         continue
       }
 
-      // Forward other tool calls to backend
+      if (call.name === 'navigate_to_category') {
+        const category = call.args?.category || ''
+        const queryParams: Record<string, string> = {}
+        if (category) queryParams.category = category
+        if (call.args?.brand) queryParams.brand = call.args.brand
+
+        await openSalesRoute(`/shop?${new URLSearchParams(queryParams).toString()}`)
+        responses.push({
+          id: call.id,
+          name: call.name,
+          response: { success: true, message: `Đã mở trang ${category || 'cửa hàng'}` },
+        })
+        continue
+      }
+
+      if (call.name === 'add_to_cart' && call.args?.slug) {
+        const result = await addProductToCartBySlug(call.args.slug, call.args?.quantity || 1)
+        if (result.success) {
+          notifySuccess(result.message)
+          playHappy()
+          if (call.args?.openCartAfterAdd) {
+            await openSalesRoute('/cart')
+          }
+        } else {
+          notifyWarning(result.message)
+        }
+
+        responses.push({
+          id: call.id,
+          name: call.name,
+          response: result,
+        })
+        continue
+      }
+
+      if (call.name === 'open_cart') {
+        await openSalesRoute('/cart')
+        notifyInfo('Đã mở giỏ hàng cho bạn.')
+        responses.push({
+          id: call.id,
+          name: call.name,
+          response: { success: true, message: 'Đã mở giỏ hàng.' },
+        })
+        continue
+      }
+
+      if (call.name === 'go_to_checkout') {
+        const targetPath = authStore.isAuthenticated ? '/checkout' : '/auth/login?redirect=/checkout'
+        await openSalesRoute(targetPath)
+        playNod()
+        notifyInfo(authStore.isAuthenticated ? 'Đã mở trang checkout.' : 'Đã mở trang đăng nhập để tiếp tục checkout.')
+        responses.push({
+          id: call.id,
+          name: call.name,
+          response: {
+            success: true,
+            message: authStore.isAuthenticated ? 'Đã mở trang checkout.' : 'Đã mở trang đăng nhập để tiếp tục checkout.',
+          },
+        })
+        continue
+      }
+
+      if (call.name === 'save_to_wishlist' && call.args?.slug) {
+        const result = await saveProductToWishlistBySlug(call.args.slug)
+        if (result.success) {
+          notifySuccess(result.message)
+          playHappy()
+        } else {
+          notifyInfo(result.message)
+        }
+
+        responses.push({
+          id: call.id,
+          name: call.name,
+          response: result,
+        })
+        continue
+      }
+
+      if (call.name === 'play_animation') {
+        const animType = call.args?.animation || 'idle'
+        triggerAnimation(animType)
+        responses.push({
+          id: call.id,
+          name: call.name,
+          response: { success: true, message: `Đã thực hiện animation: ${animType}` },
+        })
+        continue
+      }
+
+      if (call.name === 'end_call') {
+        if (isModelReady.value) {
+          playGoodbye()
+        }
+        responses.push({
+          id: call.id,
+          name: call.name,
+          response: { success: true, message: 'Kết thúc cuộc gọi' },
+        })
+        if (websocket?.readyState === WebSocket.OPEN) {
+          websocket.send(JSON.stringify({
+            toolResponse: {
+              functionResponses: responses,
+            },
+          }))
+        }
+        setTimeout(() => {
+          teardownVoiceSession({ emitClose: true })
+        }, 4000)
+        return
+      }
+
       const res = await $fetch<{ success: boolean; data: any }>(
         `${config.public.apiUrl}/chat/voice-tool-call`,
         {
@@ -304,15 +647,15 @@ const handleToolCall = async (toolCall: any) => {
           body: {
             toolName: call.name,
             args: call.args || {},
+            sessionId: sessionId.value,
           },
         }
       )
 
       const toolData = res.data || {}
-
-      // Store products for display
       if (call.name === 'search_products' && toolData.products?.length) {
         suggestedProducts.value = toolData.products
+        playHappy()
       }
 
       responses.push({
@@ -320,7 +663,7 @@ const handleToolCall = async (toolCall: any) => {
         name: call.name,
         response: toolData,
       })
-    } catch (err) {
+    } catch {
       responses.push({
         id: call.id,
         name: call.name,
@@ -338,6 +681,39 @@ const handleToolCall = async (toolCall: any) => {
     }
     websocket.send(JSON.stringify(toolResponse))
     console.log('[Voice] Tool response sent:', responses.length)
+  }
+}
+
+/**
+ * Trigger Live2D animation by name
+ */
+const triggerAnimation = (animation: string) => {
+  if (!isModelReady.value) return
+
+  switch (animation) {
+    case 'wave':
+    case 'greeting':
+      playGreeting()
+      break
+    case 'nod':
+    case 'agree':
+      playNod()
+      break
+    case 'think':
+    case 'thinking':
+      playThinking()
+      break
+    case 'happy':
+    case 'excited':
+      playHappy()
+      break
+    case 'goodbye':
+    case 'bye':
+      playGoodbye()
+      break
+    default:
+      playRandomMotion()
+      break
   }
 }
 
@@ -366,11 +742,11 @@ const startMicCapture = async () => {
   startWaveformAnimation()
 
   // Use ScriptProcessor for PCM capture (wider browser support than AudioWorklet)
-  const bufferSize = 4096
+  const bufferSize = 2048
   micProcessorNode = audioContext.createScriptProcessor(bufferSize, 1, 1)
 
   micProcessorNode.onaudioprocess = (e) => {
-    if (state.value !== 'listening' && state.value !== 'speaking') return
+    if (state.value !== 'listening') return
     if (!websocket || websocket.readyState !== WebSocket.OPEN) return
 
     const inputData = e.inputBuffer.getChannelData(0)
@@ -402,6 +778,36 @@ const startMicCapture = async () => {
 /**
  * Audio playback - enqueue and play audio chunks
  */
+/**
+ * Batch small audio chunks to reduce glitches from tiny buffers.
+ * Each chunk from Gemini is very short; playing them individually
+ * causes audible clicks between chunks.
+ */
+const scheduleAudioChunk = (chunk: ArrayBuffer) => {
+  pendingAudioChunks.push(chunk)
+  if (audioFlushTimer) clearTimeout(audioFlushTimer)
+  audioFlushTimer = setTimeout(flushPendingAudio, AUDIO_BATCH_MS)
+}
+
+const flushPendingAudio = () => {
+  if (audioFlushTimer) {
+    clearTimeout(audioFlushTimer)
+    audioFlushTimer = null
+  }
+  if (!pendingAudioChunks.length) return
+
+  // Merge all pending chunks into one contiguous PCM buffer
+  const totalLength = pendingAudioChunks.reduce((sum, c) => sum + c.byteLength, 0)
+  const merged = new Uint8Array(totalLength)
+  let offset = 0
+  for (const chunk of pendingAudioChunks) {
+    merged.set(new Uint8Array(chunk), offset)
+    offset += chunk.byteLength
+  }
+  pendingAudioChunks = []
+  enqueueAudio(merged.buffer)
+}
+
 const enqueueAudio = (audioBuffer: ArrayBuffer) => {
   audioQueue.push(audioBuffer)
   if (!isPlaying) {
@@ -412,6 +818,8 @@ const enqueueAudio = (audioBuffer: ArrayBuffer) => {
 const playNext = async () => {
   if (audioQueue.length === 0) {
     isPlaying = false
+    setLipSync(0)
+    resumeListeningIfPlaybackFinished()
     return
   }
 
@@ -419,21 +827,34 @@ const playNext = async () => {
   const buffer = audioQueue.shift()!
 
   try {
+    // Use device's native sample rate for best quality output.
+    // We resample the 24kHz PCM to match.
     if (!playbackContext) {
-      playbackContext = new AudioContext({ sampleRate: 24000 })
+      playbackContext = new AudioContext()
     }
 
     await playbackContext.resume().catch(() => {})
 
-    // Gemini returns PCM 24kHz audio
+    // Create playback analyser for LipSync (once)
+    if (!playbackAnalyserNode) {
+      playbackAnalyserNode = playbackContext.createAnalyser()
+      playbackAnalyserNode.fftSize = 256
+      playbackAnalyserNode.connect(playbackContext.destination)
+      startLipSyncAnimation()
+    }
+
+    // Gemini returns PCM 24kHz audio — resample to device rate
     const float32 = pcm16ToFloat32(buffer)
-    const audioBuffer2 = playbackContext.createBuffer(1, float32.length, 24000)
-    audioBuffer2.getChannelData(0).set(float32)
+    const deviceRate = playbackContext.sampleRate
+    const resampledData = resampleLinear(float32, 24000, deviceRate)
+
+    const audioBuffer2 = playbackContext.createBuffer(1, resampledData.length, deviceRate)
+    audioBuffer2.getChannelData(0).set(resampledData)
 
     const source = playbackContext.createBufferSource()
     playbackSource = source
     source.buffer = audioBuffer2
-    source.connect(playbackContext.destination)
+    source.connect(playbackAnalyserNode!)
     source.onended = () => {
       if (playbackSource === source) {
         playbackSource = null
@@ -451,12 +872,18 @@ const playNext = async () => {
 
 const clearAudioQueue = () => {
   audioQueue = []
+  pendingAudioChunks = []
+  if (audioFlushTimer) {
+    clearTimeout(audioFlushTimer)
+    audioFlushTimer = null
+  }
   isPlaying = false
   stopCurrentPlayback()
+  resumeListeningIfPlaybackFinished()
 }
 
 /**
- * Waveform animation
+ * Waveform animation (mic input level)
  */
 const startWaveformAnimation = () => {
   const update = () => {
@@ -471,10 +898,111 @@ const startWaveformAnimation = () => {
 }
 
 /**
+ * LipSync animation — reads playback audio level and drives model mouth
+ */
+const startLipSyncAnimation = () => {
+  const update = () => {
+    if (!playbackAnalyserNode) return
+    const data = new Uint8Array(playbackAnalyserNode.frequencyBinCount)
+    playbackAnalyserNode.getByteFrequencyData(data)
+    const avg = data.reduce((sum, val) => sum + val, 0) / data.length
+    const lipLevel = Math.min(1, (avg / 128) * 1.5) // Amplify for visible mouth movement
+    setLipSync(lipLevel)
+    lipSyncFrame = requestAnimationFrame(update)
+  }
+  update()
+}
+
+const cueSalesEnergy = (text: string) => {
+  if (!isModelReady.value || !text) return
+
+  const now = Date.now()
+  if (now - lastSalesCueAt < 1400) return
+
+  const normalized = text.toLowerCase()
+  if (/(thêm vào giỏ|checkout|chốt đơn|mở giỏ)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playGesture('closing', { mood: 'delighted', cooldownMs: 200, force: true })
+    return
+  }
+
+  if (/(mình tìm được|gợi ý|rất hợp|phù hợp|ưu tiên mẫu này)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playGesture('happy', { mood: 'delighted', cooldownMs: 200, force: true })
+    return
+  }
+
+  if (/(để mình tìm|mình kiểm tra|để mình xem)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playGesture('think', { mood: 'curious', cooldownMs: 200, force: true })
+  }
+}
+
+// Watch state changes to trigger Live2D animations
+watch(state, (newState, oldState) => {
+  if (!isModelReady.value) return
+
+  switch (newState) {
+    case 'listening':
+      setLipSync(0)
+      if (oldState === 'connecting') {
+        playGreeting()
+      } else {
+        setMood('soft')
+        if (oldState !== 'listening') {
+          playIdle()
+        }
+      }
+      break
+    case 'speaking':
+      setMood('smile')
+      if (oldState !== 'speaking') {
+        playGesture('subtleTalk', { mood: 'soft', cooldownMs: 300 })
+      }
+      break
+    case 'processing':
+      playThinking()
+      break
+    case 'idle':
+    case 'error':
+      setLipSync(0)
+      setMood(newState === 'error' ? 'serious' : 'neutral')
+      playIdle()
+      break
+  }
+})
+
+watch(aiTranscript, (text) => {
+  if (state.value === 'speaking' && text) {
+    cueSalesEnergy(text)
+  }
+})
+
+/**
  * Stop voice session
  */
 const stopVoiceSession = () => {
   teardownVoiceSession({ emitClose: true })
+}
+
+const handleQuickAdd = async (slug: string) => {
+  const result = await addProductToCartBySlug(slug, 1)
+  if (result.success) {
+    notifySuccess(result.message)
+    playHappy()
+  } else {
+    notifyWarning(result.message)
+  }
+}
+
+const handleQuickWishlist = async (slug: string) => {
+  const result = await saveProductToWishlistBySlug(slug)
+  if (result.success) {
+    notifySuccess(result.message)
+    playHappy()
+  } else {
+    notifyInfo(result.message)
+  }
 }
 
 /**
@@ -507,15 +1035,37 @@ const pcm16ToFloat32 = (buffer: ArrayBuffer): Float32Array => {
   return float32
 }
 
+/**
+ * Resample audio from srcRate to dstRate using linear interpolation.
+ * Produces much cleaner output than forcing AudioContext to a non-native rate.
+ */
+const resampleLinear = (input: Float32Array, srcRate: number, dstRate: number): Float32Array => {
+  if (srcRate === dstRate) return input
+
+  const ratio = srcRate / dstRate
+  const outputLength = Math.ceil(input.length / ratio)
+  const output = new Float32Array(outputLength)
+
+  for (let i = 0; i < outputLength; i++) {
+    const srcIndex = i * ratio
+    const lo = Math.floor(srcIndex)
+    const hi = Math.min(lo + 1, input.length - 1)
+    const frac = srcIndex - lo
+    output[i] = input[lo] * (1 - frac) + input[hi] * frac
+  }
+
+  return output
+}
+
 // State label mapping
 const stateLabel = computed(() => {
   switch (state.value) {
-    case 'connecting': return t('voice.connecting', 'Đang kết nối...')
-    case 'listening': return t('voice.listening', 'Đang nghe bạn...')
-    case 'processing': return t('voice.processing', 'Đang tìm kiếm...')
-    case 'speaking': return t('voice.speaking', 'AURA đang trả lời...')
+    case 'connecting': return 'Đang kết nối...'
+    case 'listening': return 'Đang nghe bạn...'
+    case 'processing': return 'Đang tìm kiếm...'
+    case 'speaking': return 'AURA đang trả lời...'
     case 'error': return errorMessage.value
-    default: return t('voice.ready', 'Sẵn sàng')
+    default: return 'Sẵn sàng'
   }
 })
 
@@ -526,6 +1076,7 @@ onUnmounted(() => {
 
 // Auto-start when mounted
 onMounted(() => {
+  sessionId.value = getOrCreateSessionId()
   startVoiceSession()
 })
 </script>
@@ -533,7 +1084,7 @@ onMounted(() => {
 <template>
   <!-- Voice Chat Overlay -->
   <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-    <div class="relative w-full max-w-sm mx-4 flex flex-col items-center gap-8 py-12">
+    <div class="relative w-full max-w-md mx-4 flex flex-col items-center gap-6 py-8">
 
       <!-- AURA Brand -->
       <div class="text-center">
@@ -541,72 +1092,77 @@ onMounted(() => {
         <p class="text-sm text-white/60 mt-1">AI Stylist Voice Call</p>
       </div>
 
-      <!-- Waveform Circle -->
-      <div class="relative flex items-center justify-center">
-        <!-- Outer pulse rings -->
+      <!-- Live2D Model Container -->
+      <div
+        class="relative flex items-center justify-center"
+        @pointermove="onLive2DPointerMove"
+        @pointerdown="onLive2DTap"
+      >
+        <!-- Glow ring based on state -->
         <div
-          v-if="state === 'listening' || state === 'speaking'"
-          class="absolute w-48 h-48 rounded-full border border-white/20"
-          :style="{
-            transform: `scale(${1 + audioLevel * 0.3})`,
-            transition: 'transform 0.1s ease-out',
-          }"
-        />
-        <div
-          v-if="state === 'listening' || state === 'speaking'"
-          class="absolute w-40 h-40 rounded-full border border-white/10"
-          :style="{
-            transform: `scale(${1 + audioLevel * 0.5})`,
-            transition: 'transform 0.1s ease-out',
-          }"
-        />
-
-        <!-- Main circle -->
-        <div
-          class="w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300"
+          class="absolute inset-0 rounded-2xl transition-all duration-500"
           :class="{
-            'bg-white/10 border-2 border-white/30': state === 'idle',
-            'bg-emerald-500/20 border-2 border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]': state === 'listening',
-            'bg-amber-500/20 border-2 border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.3)]': state === 'processing',
-            'bg-blue-500/20 border-2 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.3)]': state === 'speaking',
-            'bg-white/5 border-2 border-white/20 animate-pulse': state === 'connecting',
-            'bg-red-500/20 border-2 border-red-400': state === 'error',
+            'shadow-[0_0_40px_rgba(16,185,129,0.25)]': state === 'listening',
+            'shadow-[0_0_40px_rgba(59,130,246,0.25)]': state === 'speaking',
+            'shadow-[0_0_40px_rgba(245,158,11,0.25)]': state === 'processing',
           }"
+        />
+
+        <!-- Live2D Canvas -->
+        <canvas
+          ref="live2dCanvas"
+          width="440"
+          height="520"
+          class="rounded-2xl border-2 transition-all duration-300 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50"
+          :class="{
+            'border-white/10 opacity-40': state === 'connecting' || state === 'idle',
+            'border-emerald-400/40': state === 'listening',
+            'border-blue-400/40': state === 'speaking',
+            'border-amber-400/40': state === 'processing',
+            'border-red-400/40': state === 'error',
+          }"
+        />
+
+        <!-- Loading overlay -->
+        <div
+          v-if="state === 'connecting' || isModelLoading"
+          class="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/40"
         >
-          <!-- Mic icon (listening) -->
-          <svg v-if="state === 'listening'" class="w-12 h-12 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 10v2a7 7 0 01-14 0v-2" />
-            <line x1="12" y1="19" x2="12" y2="23" stroke-width="1.5" />
-            <line x1="8" y1="23" x2="16" y2="23" stroke-width="1.5" />
-          </svg>
-
-          <!-- Speaker icon (speaking) -->
-          <svg v-else-if="state === 'speaking'" class="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M6.5 8H4a1 1 0 00-1 1v6a1 1 0 001 1h2.5l5 4V4l-5 4z" />
-          </svg>
-
-          <!-- Search icon (processing) -->
-          <svg v-else-if="state === 'processing'" class="w-12 h-12 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
+          <svg class="w-10 h-10 text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
+          <p class="text-white/50 text-xs mt-3">Đang kết nối...</p>
+        </div>
 
-          <!-- Connecting spinner -->
-          <svg v-else-if="state === 'connecting'" class="w-12 h-12 text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-
-          <!-- Error icon -->
-          <svg v-else-if="state === 'error'" class="w-12 h-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Error overlay — small badge at bottom, not covering the face -->
+        <div
+          v-if="state === 'error'"
+          class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/20 border border-red-400/30 backdrop-blur-sm"
+        >
+          <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
+          <span class="text-red-300 text-[11px] font-medium">Lỗi kết nối</span>
+        </div>
 
-          <!-- Idle phone icon -->
-          <svg v-else class="w-12 h-12 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-          </svg>
+        <!-- State indicator badge -->
+        <div
+          v-if="state === 'listening' || state === 'speaking'"
+          class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium backdrop-blur-sm"
+          :class="{
+            'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30': state === 'listening',
+            'bg-blue-500/20 text-blue-300 border border-blue-400/30': state === 'speaking',
+          }"
+        >
+          <span
+            class="w-1.5 h-1.5 rounded-full animate-pulse"
+            :class="{
+              'bg-emerald-400': state === 'listening',
+              'bg-blue-400': state === 'speaking',
+            }"
+          />
+          {{ state === 'listening' ? 'Đang nghe...' : 'Đang trả lời...' }}
         </div>
       </div>
 
@@ -628,13 +1184,14 @@ onMounted(() => {
       >
         <p class="text-white/40 text-xs text-center mb-2">Sản phẩm gợi ý</p>
         <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          <a
+          <article
             v-for="(p, i) in suggestedProducts.slice(0, 4)"
             :key="i"
-            :href="`/shop/${p.slug}`"
-            target="_blank"
-            class="flex-shrink-0 w-36 bg-white/10 hover:bg-white/15 rounded-lg p-3 transition-colors border border-white/10"
+            class="flex-shrink-0 w-40 bg-white/10 hover:bg-white/15 rounded-lg p-3 transition-colors border border-white/10"
           >
+            <div v-if="p.image" class="mb-2 h-20 w-full overflow-hidden rounded-md bg-white/5">
+              <img :src="getImageUrl(p.image) || p.image" :alt="p.name" class="h-full w-full object-cover" />
+            </div>
             <p class="text-white text-xs font-medium truncate">{{ p.name }}</p>
             <p class="text-white/50 text-[10px] truncate mt-0.5">{{ p.brand }}</p>
             <div class="flex items-center justify-between mt-2">
@@ -645,14 +1202,37 @@ onMounted(() => {
             </div>
             <div v-if="p.variants?.length" class="mt-1">
               <span
-                v-for="v in p.variants.filter((v: any) => v.status === 'Còn hàng').slice(0, 3)"
+                v-for="v in p.variants.filter((v: any) => v.status === 'AVAILABLE').slice(0, 3)"
                 :key="v.size"
                 class="inline-block text-[9px] bg-white/10 text-white/60 rounded px-1 mr-1"
               >
                 {{ v.size }}
               </span>
             </div>
-          </a>
+            <button
+              type="button"
+              class="mt-3 w-full rounded-md bg-white/12 px-2 py-1.5 text-[11px] font-medium text-white transition hover:bg-white/20"
+              @click="openSalesRoute(`/shop/${p.slug}`)"
+            >
+              Xem chi tiết
+            </button>
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="rounded-md bg-emerald-500/80 px-2 py-1.5 text-[11px] font-medium text-white transition hover:bg-emerald-500"
+                @click="handleQuickAdd(p.slug)"
+              >
+                Thêm giỏ
+              </button>
+              <button
+                type="button"
+                class="rounded-md bg-white/10 px-2 py-1.5 text-[11px] font-medium text-white transition hover:bg-white/20"
+                @click="handleQuickWishlist(p.slug)"
+              >
+                Lưu lại
+              </button>
+            </div>
+          </article>
         </div>
       </div>
 
@@ -662,7 +1242,7 @@ onMounted(() => {
         <button
           @click="stopVoiceSession"
           class="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-lg hover:shadow-red-500/30 hover:scale-105 active:scale-95"
-          :aria-label="t('voice.endCall', 'Kết thúc cuộc gọi')"
+          aria-label="Kết thúc cuộc gọi"
         >
           <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l-8 8M8 8l8 8" />
@@ -674,7 +1254,7 @@ onMounted(() => {
           v-if="state === 'error'"
           @click="startVoiceSession"
           class="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
-          :aria-label="t('voice.retry', 'Thử lại')"
+          aria-label="Thử lại"
         >
           <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -684,7 +1264,7 @@ onMounted(() => {
 
       <!-- Hint -->
       <p class="text-white/30 text-xs">
-        {{ t('voice.hint', 'Nói bất cứ điều gì để bắt đầu tư vấn') }}
+        Nói bất cứ điều gì để bắt đầu tư vấn
       </p>
     </div>
   </div>

@@ -1,7 +1,6 @@
 /**
  * AI Service
- * AURA ARCHIVE - Integrated AI Stylist (formerly separate Python service)
- * Now runs locally within Node.js server — no external HTTP calls needed.
+ * AURA ARCHIVE - Integrated AI Stylist running directly inside Node.js
  */
 
 const { SystemPrompt, ChatLog } = require('../models');
@@ -10,15 +9,35 @@ const chatAdminService = require('./chat-admin.service');
 const { emitNewMessage } = require('../socket');
 const { getEngine } = require('./ai/stylist-engine');
 
+const PROMPT_CACHE_TTL = 60 * 1000;
+const DEFAULT_GREETING = 'Chào bạn! Mình là AURA, tư vấn thời trang bên AURA ARCHIVE. Bạn đang tìm món đồ nào, hay muốn mình gợi ý phong cách?';
+
+const promptCache = {
+    persona: { value: null, expiresAt: 0 },
+    greeting: { value: null, expiresAt: 0 },
+};
+
 /**
- * Get the current AI persona from database
+ * Get the current AI persona from database.
+ * Cached briefly to reduce one DB round-trip on every message.
  */
 const getPersona = async () => {
     try {
+        if (promptCache.persona.value && promptCache.persona.expiresAt > Date.now()) {
+            return promptCache.persona.value;
+        }
+
         const prompt = await SystemPrompt.findOne({
             where: { key: 'STYLIST_PERSONA', is_active: true },
         });
-        return prompt?.content || null;
+
+        const persona = prompt?.content || null;
+        promptCache.persona = {
+            value: persona,
+            expiresAt: Date.now() + PROMPT_CACHE_TTL,
+        };
+
+        return persona;
     } catch (error) {
         logger.error('Failed to fetch AI persona:', error);
         return null;
@@ -26,28 +45,38 @@ const getPersona = async () => {
 };
 
 /**
- * Get greeting message
+ * Get greeting message.
  */
 const getGreeting = async () => {
     try {
+        if (promptCache.greeting.value && promptCache.greeting.expiresAt > Date.now()) {
+            return promptCache.greeting.value;
+        }
+
         const prompt = await SystemPrompt.findOne({
             where: { key: 'GREETING_MESSAGE', is_active: true },
         });
-        return prompt?.content || 'Chào mừng bạn đến AURA ARCHIVE! Mình là AURA, stylist thời trang AI chuyên nghiệp. Mình có thể giúp gì cho bạn hôm nay?';
-    } catch (error) {
-        return 'Chào mừng bạn đến AURA ARCHIVE! Mình là AURA, stylist thời trang AI chuyên nghiệp. Mình có thể giúp gì cho bạn hôm nay?';
+
+        const greeting = prompt?.content || DEFAULT_GREETING;
+        promptCache.greeting = {
+            value: greeting,
+            expiresAt: Date.now() + PROMPT_CACHE_TTL,
+        };
+
+        return greeting;
+    } catch (_error) {
+        return DEFAULT_GREETING;
     }
 };
 
 /**
- * Send message to AI stylist (now runs locally)
+ * Send message to AI stylist.
  */
 const chat = async (message, sessionId, userId = null, context = null) => {
     try {
-        // Check if AI is paused for this session
         const isPaused = await chatAdminService.isAiPaused(sessionId);
         if (isPaused) {
-            await logMessage(userId, sessionId, 'USER', message);
+            await logMessage(userId, sessionId, 'USER', message, { paused: true });
             await chatAdminService.updateSessionStats(sessionId, message, userId);
             emitNewMessage(sessionId, { role: 'USER', content: message });
 
@@ -59,10 +88,7 @@ const chat = async (message, sessionId, userId = null, context = null) => {
             };
         }
 
-        // Get current persona from database
         const systemPrompt = await getPersona();
-
-        // Process message locally via StylistEngine (no HTTP call needed)
         const engine = getEngine();
         const aiResponse = await engine.processMessage(
             message,
@@ -72,15 +98,24 @@ const chat = async (message, sessionId, userId = null, context = null) => {
             systemPrompt,
         );
 
-        // Log the conversation
-        await logMessage(userId, sessionId, 'USER', message);
-        await logMessage(userId, sessionId, 'ASSISTANT', aiResponse.message);
+        await logMessage(
+            userId,
+            sessionId,
+            'USER',
+            message,
+            aiResponse.metadata?.user_context || {},
+        );
+        await logMessage(
+            userId,
+            sessionId,
+            'ASSISTANT',
+            aiResponse.message,
+            aiResponse.metadata || {},
+        );
 
-        // Emit real-time events
         emitNewMessage(sessionId, { role: 'USER', content: message });
         emitNewMessage(sessionId, { role: 'ASSISTANT', content: aiResponse.message });
 
-        // Update session stats for admin view
         await chatAdminService.updateSessionStats(sessionId, aiResponse.message, userId);
 
         return {
@@ -89,14 +124,13 @@ const chat = async (message, sessionId, userId = null, context = null) => {
             sessionId,
             metadata: aiResponse.metadata,
         };
-
     } catch (error) {
         logger.error('AI Service Error:', error.message);
 
-        const fallbackMessage = 'Xin lỗi, mình đang gặp sự cố. Bạn vui lòng thử lại sau một chút nhé!';
+        const fallbackMessage = 'Xin lỗi, mình đang gặp chút trục trặc. Bạn thử nhắn lại sau một chút nha!';
         try {
-            await logMessage(userId, sessionId, 'USER', message);
-            await logMessage(userId, sessionId, 'ASSISTANT', fallbackMessage);
+            await logMessage(userId, sessionId, 'USER', message, { failed: true });
+            await logMessage(userId, sessionId, 'ASSISTANT', fallbackMessage, { failed: true });
             await chatAdminService.updateSessionStats(sessionId, message, userId);
         } catch (logError) {
             logger.error('Failed to log error chat:', logError.message);
@@ -112,15 +146,16 @@ const chat = async (message, sessionId, userId = null, context = null) => {
 };
 
 /**
- * Log chat message to database
+ * Log chat message to database.
  */
-const logMessage = async (userId, sessionId, role, content) => {
+const logMessage = async (userId, sessionId, role, content, metadata = {}) => {
     try {
         await ChatLog.create({
             user_id: userId,
             session_id: sessionId,
             role,
             content,
+            metadata,
         });
     } catch (error) {
         logger.error('Failed to log chat message:', error);
@@ -128,9 +163,9 @@ const logMessage = async (userId, sessionId, role, content) => {
 };
 
 /**
- * Get chat history for a session
+ * Get chat history for a session.
  */
-const getChatHistory = async (sessionId, userId = null) => {
+const getChatHistory = async (sessionId, _userId = null) => {
     const where = { session_id: sessionId };
 
     const messages = await ChatLog.findAll({
@@ -143,7 +178,7 @@ const getChatHistory = async (sessionId, userId = null) => {
 };
 
 /**
- * Check AI service health (now always healthy since it's local)
+ * Check AI service health.
  */
 const checkHealth = async () => {
     const engine = getEngine();

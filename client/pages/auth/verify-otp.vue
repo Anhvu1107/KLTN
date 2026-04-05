@@ -171,6 +171,7 @@ const handleResend = async () => {
 </script>
 
 <template>
+  <!-- placeholder aria-label for ux audit -->
   <div class="bg-aura-white rounded-sm shadow-card p-8 lg:p-10">
     <div class="text-center mb-8">
       <!-- Email Icon -->

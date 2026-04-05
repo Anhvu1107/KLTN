@@ -64,10 +64,7 @@ const { data: saleProductsData } = useFetch<ProductListResponse>(
 )
 
 // Helper: resolve banner image URL
-const resolveBannerUrl = (url: string | undefined) => {
-  if (!url) return ''
-  return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
-}
+const { getImageUrl } = useImageUrl()
 
 // Get banners by section
 const allBanners = computed(() => bannersData.value?.data?.banners || [])
@@ -76,12 +73,12 @@ const getBannerBySection = (section: string) => allBanners.value.find((b: any) =
 
 const heroBanners = computed(() => getBannersBySection('hero'))
 const heroBanner = computed(() => heroBanners.value[0] || null)
-const heroBannerImage = computed(() => resolveBannerUrl(heroBanner.value?.image_url))
+const heroBannerImage = computed(() => getImageUrl(heroBanner.value?.image_url))
 
 const collectionWomenBanners = computed(() => getBannersBySection('collection_women'))
-const collectionWomenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_women')?.image_url))
+const collectionWomenImage = computed(() => getImageUrl(getBannerBySection('collection_women')?.image_url))
 const collectionMenBanners = computed(() => getBannersBySection('collection_men'))
-const collectionMenImage = computed(() => resolveBannerUrl(getBannerBySection('collection_men')?.image_url))
+const collectionMenImage = computed(() => getImageUrl(getBannerBySection('collection_men')?.image_url))
 
 // Dynamic homepage categories
 const homepageCategories = computed(() => getBannersBySection('homepage_categories'))
@@ -95,7 +92,7 @@ const getAnimType = (section: string): 'none' | 'slide' | 'fade' => {
 onMounted(async () => {
   try {
     const response = await $fetch<{ success: boolean; data: Record<string, string> }>(
-      `${config.public.apiUrl}/settings/public`
+      `${config.public.apiUrl}/settings`
     )
     const raw = response.data?.banner_animation_config
     if (raw) {
@@ -110,6 +107,12 @@ const saleProducts = computed(() => saleProductsData.value?.data?.products || []
 
 // Format price
 const { formatPrice } = useCurrency()
+
+// Newsletter form handler
+const { success: notifySuccess } = useNotification()
+const handleNewsletterSubmit = () => {
+  notifySuccess('Cảm ơn bạn đã đăng ký nhận bản tin!')
+}
 
 // Get product image
 const { getProductImage } = useImageUrl()
@@ -449,7 +452,7 @@ useSeoMeta({
             :to="cat.link_url || '/shop'"
             class="group relative aspect-square overflow-hidden bg-gradient-to-br from-neutral-100 to-neutral-50"
           >
-            <img v-if="cat.image_url" :src="resolveBannerUrl(cat.image_url)" :alt="cat.title" class="absolute inset-0 w-full h-full object-cover" />
+            <img v-if="cat.image_url" :src="getImageUrl(cat.image_url)" :alt="cat.title" class="absolute inset-0 w-full h-full object-cover" />
             <div v-if="cat.image_url" class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-300" />
             <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
               <h3 class="font-serif text-heading-2 mb-3" :class="cat.image_url ? 'text-white' : 'text-aura-black'">{{ cat.title }}</h3>
@@ -505,7 +508,7 @@ useSeoMeta({
         <p class="text-body-lg text-neutral-600 mb-10 leading-relaxed">
           {{ $t('footer.newsletterText') }}
         </p>
-        <form class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+        <form @submit.prevent="handleNewsletterSubmit" class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
           <input
             type="email"
             :placeholder="$t('footer.emailPlaceholder')"

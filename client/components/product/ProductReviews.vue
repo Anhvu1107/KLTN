@@ -14,7 +14,7 @@ const props = defineProps<{
 const config = useRuntimeConfig()
 
 // Fetch reviews
-const { data: reviewsData, pending, refresh } = await useFetch<{
+const { data: reviewsData, pending, refresh } = useFetch<{
   success: boolean
   data: {
     reviews: any[]
@@ -25,7 +25,7 @@ const { data: reviewsData, pending, refresh } = await useFetch<{
 })
 
 // Fetch rating summary
-const { data: summaryData } = await useFetch<{
+const { data: summaryData } = useFetch<{
   success: boolean
   data: {
     averageRating: number

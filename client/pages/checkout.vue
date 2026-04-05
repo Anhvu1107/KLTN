@@ -78,7 +78,9 @@ const fetchPaymentSettings = async () => {
     if (settings.payment_methods) {
       try {
         enabledMethods.value = JSON.parse(settings.payment_methods)
-      } catch (e) {}
+      } catch {
+        // Ignore malformed payment settings and keep default checkout options.
+      }
     }
 
     // Auto-select first enabled method

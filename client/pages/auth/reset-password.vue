@@ -36,7 +36,7 @@ const passwordErrors = computed(() => {
   if (password.value.length > 0 && !/\d/.test(password.value)) {
     errors.push(t('auth.oneNumber'))
   }
-  if (password.value.length > 0 && !/[@$!%*?&~#^()_+=\-\[\]{}|\\:";'<>,.?\/]/.test(password.value)) {
+  if (password.value.length > 0 && !/[[@$!%*?&~#^()_+=\-\]{}|\\:";'<>,.?/]/.test(password.value)) {
     errors.push(t('auth.oneSpecialChar'))
   }
   return errors

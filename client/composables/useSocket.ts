@@ -20,7 +20,9 @@ export const useSocket = () => {
         if (socket) {
             try {
                 socket.connect?.()
-            } catch {}
+            } catch {
+                // Ignore reconnect errors and keep using the existing socket instance.
+            }
             return socket
         }
         if (connectPromise) return connectPromise

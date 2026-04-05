@@ -38,14 +38,14 @@ export const useImageUrl = () => {
      * Get the full URL for a product image.
      * Handles both string (JSON) and array formats for product.images.
      */
-    const getProductImage = (product: any): string | null => {
-        if (!product?.images || product.images.length === 0) return null
+    const getProductImage = (product: any): string | undefined => {
+        if (!product?.images || product.images.length === 0) return undefined
 
         const images = typeof product.images === 'string'
             ? JSON.parse(product.images)
             : product.images
 
-        if (!images || images.length === 0) return null
+        if (!images || images.length === 0) return undefined
 
         return resolveImagePath(images[0])
     }
@@ -53,8 +53,8 @@ export const useImageUrl = () => {
     /**
      * Get full URL for any server-relative image path.
      */
-    const getImageUrl = (path: string | null | undefined): string | null => {
-        if (!path) return null
+    const getImageUrl = (path: string | null | undefined): string | undefined => {
+        if (!path) return undefined
         return resolveImagePath(path)
     }
 

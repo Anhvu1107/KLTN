@@ -61,3 +61,7 @@ ai_service/
 # Analysis/temp files
 PROJECT_ANALYSIS.md
 eslint-errors.txt
+
+chrome-headless/
+standby_screen.jpg
+push_error.txt

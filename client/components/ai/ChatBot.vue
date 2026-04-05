@@ -1,196 +1,507 @@
 <script setup lang="ts">
 /**
- * Admin Image Upload Component
- * AURA ARCHIVE - Reusable image upload with preview and drag-drop
+ * ChatBot Panel
+ * AURA ARCHIVE - Chat window with AI stylist conversation
  */
 
-
-const props = defineProps<{
-  modelValue: string[]
-  maxFiles?: number
-}>()
+const config = useRuntimeConfig()
+const { t } = useI18n()
+const router = useRouter()
+import { useSocket } from '~/composables/useSocket'
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string[]]
+  close: []
+  openVoice: []
 }>()
 
-const { t } = useI18n()
-const config = useRuntimeConfig()
-const isUploading = ref(false)
-const isDragging = ref(false)
-const error = ref('')
+// Constants
+const STORAGE_KEY = 'aura_chat_session_id'
 
-const images = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+type ChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+// State
+const isLoading = ref(false)
+const isWaitingForAdmin = ref(false)
+const sessionId = ref('')
+const inputMessage = ref('')
+const messages = ref<ChatMessage[]>([])
+const chatContainer = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
+let hasSocketListener = false
+let isMounted = true
+
+// Appearance config (loaded from API)
+const appearance = ref({
+  chatName: 'AURA Stylist',
+  chatDescription: 'Trợ lý thời trang của bạn',
+  avatarUrl: '',
+  fontFamily: 'Inter',
+  headerFontFamily: 'Playfair Display',
+  headerBgColor: '#1a1a1a',
+  headerTextColor: '#ffffff',
+  botBgColor: '#f5f5f5',
+  botTextColor: '#262626',
+  userBgColor: '#1a1a1a',
+  userTextColor: '#ffffff',
 })
 
-const maxAllowed = computed(() => props.maxFiles || 5)
-const remainingSlots = computed(() => maxAllowed.value - images.value.length)
+// Dynamic Google Font loading
+const loadGoogleFont = (font: string) => {
+  if (!font || font === 'system-ui') return
+  const id = `gfont-${font.replace(/ /g, '-')}`
+  if (document.getElementById(id)) return
+  const link = document.createElement('link')
+  link.id = id
+  link.rel = 'stylesheet'
+  link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
+  document.head.appendChild(link)
+}
 
-// Get token
-const getToken = () => {
-  if (process.client) {
-    return localStorage.getItem('token')
+// Load appearance config
+const loadAppearance = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; data: any }>(
+      `${config.public.apiUrl}/chat/appearance`
+    )
+    if (res.data) {
+      appearance.value = { ...appearance.value, ...res.data }
+      if (import.meta.client && appearance.value.fontFamily) {
+        loadGoogleFont(appearance.value.fontFamily)
+      }
+      if (import.meta.client && appearance.value.headerFontFamily) {
+        loadGoogleFont(appearance.value.headerFontFamily)
+      }
+    }
+  } catch (e) {
+    console.warn('[AiChat] Failed to load appearance config, using defaults:', e)
+  }
+}
+
+// Save sessionId to localStorage
+const saveSessionId = (sid: string) => {
+  if (import.meta.client && sid) {
+    localStorage.setItem(STORAGE_KEY, sid)
+  }
+}
+
+// Clear sessionId from localStorage
+const clearSessionId = () => {
+  if (import.meta.client) {
+    localStorage.removeItem(STORAGE_KEY)
+  }
+}
+
+// Get saved sessionId from localStorage
+const getSavedSessionId = (): string | null => {
+  if (import.meta.client) {
+    return localStorage.getItem(STORAGE_KEY)
   }
   return null
 }
 
-// Handle file selection
-const handleFileSelect = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  if (input.files) {
-    uploadFiles(Array.from(input.files))
+const normalizeMessage = (message: ChatMessage): ChatMessage => ({
+  role: message.role,
+  content: message.content.trim(),
+})
+
+const isSameMessage = (left?: ChatMessage | null, right?: ChatMessage | null): boolean => {
+  if (!left || !right) return false
+  return left.role === right.role && left.content.trim() === right.content.trim()
+}
+
+const mapDbMessages = (dbMessages: { role: string; content: string }[]): ChatMessage[] =>
+  dbMessages.map((message) =>
+    normalizeMessage({
+      role: message.role === 'USER' ? 'user' : 'assistant',
+      content: message.content,
+    })
+  )
+
+const pushUniqueMessage = (message: ChatMessage): boolean => {
+  const normalized = normalizeMessage(message)
+  const lastMessage = messages.value[messages.value.length - 1]
+
+  if (isSameMessage(lastMessage, normalized)) {
+    return false
+  }
+
+  messages.value.push(normalized)
+  return true
+}
+
+const syncMessagesFromHistory = (dbMessages: { role: string; content: string }[]): boolean => {
+  const serverMessages = mapDbMessages(dbMessages)
+  const currentGreeting = messages.value[0]
+  const shouldKeepGreeting = currentGreeting
+    && currentGreeting.role === 'assistant'
+    && !serverMessages.some((message) => isSameMessage(message, currentGreeting))
+
+  const mergedMessages = [
+    ...(shouldKeepGreeting ? [normalizeMessage(currentGreeting)] : []),
+    ...serverMessages,
+  ].filter((message, index, list) => index === 0 || !isSameMessage(message, list[index - 1]))
+
+  const hasChanged = mergedMessages.length !== messages.value.length
+    || mergedMessages.some((message, index) => !isSameMessage(message, messages.value[index]))
+
+  if (hasChanged) {
+    messages.value = mergedMessages
+  }
+
+  return hasChanged
+}
+
+// ====== WebSocket Real-time ======
+const { connect, joinSession, onNewMessage, disconnect: disconnectSocket } = useSocket()
+
+const setupSocket = async (sid: string) => {
+  await connect()
+  joinSession(sid)
+  if (hasSocketListener) return
+  onNewMessage((data: any) => {
+    if (data.sessionId !== sessionId.value) return
+
+    const msg = data.message
+    const role = msg.role === 'USER' ? 'user' as const : 'assistant' as const
+
+    if (role === 'assistant') {
+      isWaitingForAdmin.value = false
+    }
+
+    if (pushUniqueMessage({ role, content: msg.content })) {
+      scrollToBottom()
+    }
+  })
+  hasSocketListener = true
+}
+
+// Load chat history from server
+const loadChatHistory = async (sid: string): Promise<boolean> => {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await $fetch<{
+      success: boolean
+      data: { messages: { role: string; content: string }[] }
+    }>(`${config.public.apiUrl}/chat/history/${sid}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    const dbMessages = response.data?.messages || []
+    if (dbMessages.length > 0) {
+      sessionId.value = sid
+      messages.value = mapDbMessages(dbMessages)
+        .filter((message, index, list) => index === 0 || !isSameMessage(message, list[index - 1]))
+      setupSocket(sid)
+      startWidgetPolling()
+      scrollToBottom()
+      return true
+    }
+    return false
+  } catch {
+    return false
   }
 }
 
-// Handle drag and drop
-const handleDrop = (event: DragEvent) => {
-  event.preventDefault()
-  isDragging.value = false
-  
-  if (event.dataTransfer?.files) {
-    uploadFiles(Array.from(event.dataTransfer.files))
-  }
-}
-
-const handleDragOver = (event: DragEvent) => {
-  event.preventDefault()
-  isDragging.value = true
-}
-
-const handleDragLeave = () => {
-  isDragging.value = false
-}
-
-// Upload files to server
-const uploadFiles = async (files: File[]) => {
-  if (files.length === 0) return
-  
-  // Check remaining slots
-  if (files.length > remainingSlots.value) {
-    error.value = t('admin.maxImagesError', { max: maxAllowed.value })
-    return
-  }
-
-  // Validate file types
-  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-  const invalidFiles = files.filter(f => !validTypes.includes(f.type))
-  if (invalidFiles.length > 0) {
-    error.value = t('admin.invalidImageType')
-    return
-  }
-
-  isUploading.value = true
-  error.value = ''
+// Initialize with greeting (new session)
+const initChat = async () => {
+  isLoading.value = true
 
   try {
-    const token = getToken()
-    const formData = new FormData()
-    files.forEach(file => formData.append('images', file))
+    const response = await $fetch<{
+      success: boolean
+      message: string
+      sessionId: string
+    }>(`${config.public.apiUrl}/chat/greeting`)
 
-    const response = await $fetch<{ success: boolean; data: { urls: string[] } }>(
-      `${config.public.apiUrl}/admin/upload/product-images`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      }
-    )
+    sessionId.value = response.sessionId
+    saveSessionId(response.sessionId)
+    pushUniqueMessage({
+      role: 'assistant',
+      content: response.message,
+    })
 
-    if (response.success) {
-      images.value = [...images.value, ...response.data.urls]
-    }
-  } catch (err: any) {
-    error.value = err.data?.message || t('admin.uploadError')
+    setupSocket(response.sessionId)
+    startWidgetPolling()
+  } catch {
+    pushUniqueMessage({
+      role: 'assistant',
+      content: t('chat.welcomeFallback', 'Chào mừng bạn đến AURA ARCHIVE! Tôi là AURA, stylist riêng của bạn. Tôi có thể giúp gì cho bạn hôm nay?'),
+    })
   } finally {
-    isUploading.value = false
+    isLoading.value = false
   }
 }
 
-// Remove image
-const removeImage = (index: number) => {
-  const newImages = [...images.value]
-  newImages.splice(index, 1)
-  images.value = newImages
+// Start a brand new conversation
+const startNewChat = async () => {
+  hasSocketListener = false
+  disconnectSocket()
+  stopWidgetPolling()
+
+  clearSessionId()
+  sessionId.value = ''
+  messages.value = []
+  isWaitingForAdmin.value = false
+
+  await initChat()
 }
 
-// Get full URL for image (supports Cloudinary URLs and legacy local paths)
-const getImageUrl = (path: string) => {
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
-  return `${config.public.apiUrl.replace('/api/v1', '')}${path}`
+// Polling fallback for when WebSocket fails
+let widgetPollTimer: ReturnType<typeof setInterval> | null = null
+
+const pollForNewMessages = async () => {
+  if (!sessionId.value || isLoading.value) return
+  try {
+    const token = localStorage.getItem('token')
+    const response = await $fetch<{
+      success: boolean
+      data: { messages: { role: string; content: string }[] }
+    }>(`${config.public.apiUrl}/chat/history/${sessionId.value}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    const dbMessages = response.data?.messages || []
+    if (dbMessages.length > 0) {
+      const previousLength = messages.value.length
+      const didSync = syncMessagesFromHistory(dbMessages)
+
+      if (didSync) {
+        const hasNewAssistant = messages.value
+          .slice(previousLength)
+          .some((message) => message.role === 'assistant')
+
+        if (hasNewAssistant) isWaitingForAdmin.value = false
+        scrollToBottom()
+      }
+    }
+  } catch { /* ignore */ }
 }
+
+const startWidgetPolling = () => {
+  if (!isMounted) return
+  stopWidgetPolling()
+  widgetPollTimer = setInterval(pollForNewMessages, 5000)
+}
+const stopWidgetPolling = () => {
+  if (widgetPollTimer) { clearInterval(widgetPollTimer); widgetPollTimer = null }
+}
+
+// Send message
+const sendMessage = async () => {
+  const message = inputMessage.value.trim()
+  if (!message || isLoading.value) return
+
+  pushUniqueMessage({
+    role: 'user',
+    content: message,
+  })
+
+  inputMessage.value = ''
+  isLoading.value = true
+  scrollToBottom()
+
+  try {
+    const token = localStorage.getItem('token')
+
+    const response = await $fetch<{
+      success: boolean
+      message: string | null
+      sessionId: string
+      metadata?: { paused?: boolean }
+    }>(`${config.public.apiUrl}/chat`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: {
+        message,
+        sessionId: sessionId.value,
+      },
+    })
+
+    sessionId.value = response.sessionId
+    saveSessionId(response.sessionId)
+
+    setupSocket(response.sessionId)
+    startWidgetPolling()
+
+    if (response.metadata?.paused) {
+      isWaitingForAdmin.value = true
+    } else if (response.message) {
+      pushUniqueMessage({
+        role: 'assistant',
+        content: response.message,
+      })
+    }
+  } catch {
+    if (sessionId.value) {
+      setupSocket(sessionId.value)
+      startWidgetPolling()
+    }
+    pushUniqueMessage({
+      role: 'assistant',
+      content: t('chat.connectionError', 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.'),
+    })
+  } finally {
+    isLoading.value = false
+    scrollToBottom()
+    nextTick(() => inputRef.value?.focus())
+  }
+}
+
+// Scroll to bottom of chat
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatContainer.value) {
+      chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+    }
+  })
+}
+
+// Handle enter key
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    sendMessage()
+  }
+}
+
+// Handle clicks on internal links in chat messages
+const handleChatClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (target.tagName === 'A') {
+    const href = target.getAttribute('href')
+    if (href && href.startsWith('/')) {
+      e.preventDefault()
+      emit('close')
+      router.push(href)
+    }
+  }
+}
+
+// Lifecycle
+onMounted(async () => {
+  await loadAppearance()
+
+  const savedSid = getSavedSessionId()
+  if (savedSid) {
+    isLoading.value = true
+    const restored = await loadChatHistory(savedSid)
+    isLoading.value = false
+    if (restored) return
+  }
+
+  await initChat()
+})
+
+onUnmounted(() => {
+  isMounted = false
+  hasSocketListener = false
+  disconnectSocket()
+  stopWidgetPolling()
+})
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- Upload Area -->
-    <div
-      @drop="handleDrop"
-      @dragover="handleDragOver"
-      @dragleave="handleDragLeave"
-      class="border-2 border-dashed rounded-sm p-6 text-center transition-colors cursor-pointer"
-      :class="{
-        'border-aura-black bg-neutral-50': isDragging,
-        'border-neutral-300 hover:border-neutral-400': !isDragging,
-        'opacity-50 pointer-events-none': remainingSlots <= 0 || isUploading,
-      }"
-    >
-      <input
-        type="file"
-        id="image-upload"
-        accept="image/jpeg,image/jpg,image/png,image/webp"
-        multiple
-        :disabled="remainingSlots <= 0 || isUploading"
-        @change="handleFileSelect"
-        class="hidden"
-      />
-      <label for="image-upload" class="cursor-pointer block">
-        <svg v-if="!isUploading" class="w-10 h-10 mx-auto text-neutral-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <svg v-else class="w-10 h-10 mx-auto text-neutral-400 mb-3 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-        <p class="text-body-sm text-neutral-600">
-          {{ isUploading ? t('admin.uploading') : t('admin.dragDropImages') }}
-        </p>
-        <p class="text-caption text-neutral-400 mt-1">
-          {{ t('admin.imageLimits', { remaining: remainingSlots, max: maxAllowed }) }}
-        </p>
-      </label>
-    </div>
-
-    <!-- Error Message -->
-    <div v-if="error" class="text-body-sm text-red-600">
-      {{ error }}
-    </div>
-
-    <!-- Image Previews -->
-    <div v-if="images.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div
-        v-for="(img, index) in images"
-        :key="index"
-        class="relative aspect-square bg-neutral-100 rounded-sm overflow-hidden group"
-      >
-        <img
-          :src="getImageUrl(img)"
-          :alt="`Product image ${index + 1}`"
-          class="w-full h-full object-cover"
-        />
+  <div
+    class="w-96 h-[500px] max-h-[80vh] bg-aura-white rounded-lg shadow-elevated overflow-hidden flex flex-col"
+    :style="{ fontFamily: appearance.fontFamily + ', sans-serif' }"
+  >
+    <!-- Header -->
+    <div class="px-4 py-3 flex items-center justify-between" :style="{ backgroundColor: appearance.headerBgColor, color: appearance.headerTextColor }">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style="background: rgba(255,255,255,0.15)">
+          <img v-if="appearance.avatarUrl" :src="appearance.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
+          <span v-else class="text-caption font-serif">A</span>
+        </div>
+        <div>
+          <h3 class="text-body-sm font-medium" :style="{ color: appearance.headerTextColor, fontFamily: appearance.headerFontFamily + ', serif' }">{{ appearance.chatName }}</h3>
+          <p class="text-caption" :style="{ color: appearance.headerTextColor, opacity: 0.7 }">{{ appearance.chatDescription }}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1">
         <button
-          type="button"
-          @click="removeImage(index)"
-          class="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          @click="startNewChat"
+          class="p-1 hover:bg-neutral-700 rounded transition-colors"
+          aria-label="New conversation"
+          :title="t('chat.newConversation', 'Cuộc trò chuyện mới')"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+        <button
+          @click="emit('close')"
+          class="p-1 hover:bg-neutral-700 rounded transition-colors"
+          aria-label="Close chat"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-caption py-1 px-2">
-          {{ index === 0 ? t('admin.mainImage') : `#${index + 1}` }}
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div
+      ref="chatContainer"
+      class="flex-1 overflow-y-auto p-4 space-y-4"
+      @click="handleChatClick"
+    >
+      <ChatMessage
+        v-for="(msg, index) in messages"
+        :key="index"
+        :role="msg.role"
+        :content="msg.content"
+        :appearance="appearance"
+      />
+
+      <!-- Loading / Waiting for reply indicator -->
+      <div v-if="isLoading || isWaitingForAdmin" class="flex justify-start">
+        <div class="bg-neutral-100 px-4 py-3 rounded-lg">
+          <div class="flex gap-1">
+            <span class="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+            <span class="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+            <span class="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="border-t border-neutral-200 p-3">
+      <div class="flex gap-2">
+        <!-- Voice Call Button -->
+        <button
+          @click="emit('openVoice')"
+          class="p-2 rounded-lg text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition-colors flex-shrink-0"
+          :title="t('chat.voiceCall', 'Gọi thoại với AURA')"
+          aria-label="Voice call"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 10v2a7 7 0 01-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" stroke-width="1.5" />
+            <line x1="8" y1="23" x2="16" y2="23" stroke-width="1.5" />
+          </svg>
+        </button>
+        <input
+          ref="inputRef"
+          v-model="inputMessage"
+          @keydown="handleKeydown"
+          type="text"
+          :placeholder="t('chat.inputPlaceholder', 'Hỏi về thời trang, phong cách...')"
+          class="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-body-sm focus:outline-none focus:border-neutral-300"
+          :disabled="isLoading"
+        />
+        <button
+          @click="sendMessage"
+          :disabled="!inputMessage.trim() || isLoading"
+          class="px-4 py-2 rounded-lg text-body-sm transition-colors disabled:opacity-50"
+          :style="{ backgroundColor: appearance.headerBgColor, color: appearance.headerTextColor }"
+          :class="(!inputMessage.trim() || isLoading) ? 'cursor-not-allowed' : 'cursor-pointer'"
+        >
+          {{ t('chat.send', 'Gửi') }}
+        </button>
       </div>
     </div>
   </div>
