@@ -126,9 +126,10 @@ const mapDbMessages = (dbMessages: { role: string; content: string }[]): ChatMes
 
 const pushUniqueMessage = (message: ChatMessage): boolean => {
   const normalized = normalizeMessage(message)
-  const lastMessage = messages.value[messages.value.length - 1]
 
-  if (isSameMessage(lastMessage, normalized)) {
+  // Check against last 3 messages to prevent duplicates from WebSocket/HTTP race conditions
+  const recentMessages = messages.value.slice(-3)
+  if (recentMessages.some((msg) => isSameMessage(msg, normalized))) {
     return false
   }
 
@@ -291,6 +292,76 @@ const stopWidgetPolling = () => {
   if (widgetPollTimer) { clearInterval(widgetPollTimer); widgetPollTimer = null }
 }
 
+// Auto-execute action links from AI response (add-to-cart, wishlist, etc.)
+const autoExecuteActions = async (responseText: string) => {
+  if (!responseText) return
+
+  // Extract all action links from markdown: [text](/add-to-cart/slug), [text](/save-wishlist/slug), etc.
+  const actionLinkRegex = /\[.*?\]\(\/(add-to-cart|save-wishlist|open-cart|checkout)\/([\w-]*)\)/g
+  let match: RegExpExecArray | null
+
+  while ((match = actionLinkRegex.exec(responseText)) !== null) {
+    const action = match[1]
+    const slug = match[2]
+
+    try {
+      if (action === 'add-to-cart' && slug) {
+        if (!authStore.isAuthenticated) continue
+
+        const res = await $fetch<{ success: boolean; data: { product: any } }>(
+          `${config.public.apiUrl}/products/${slug}`
+        )
+        const product = res.data?.product
+        if (!product) continue
+
+        const variants = (Array.isArray(product.variants) ? product.variants : [])
+          .filter((v: any) => v?.status === 'AVAILABLE')
+
+        if (!variants.length) continue
+
+        const variant = variants.find((v: any) => !cartStore.isInCart(v.id)) || null
+        if (!variant) continue
+
+        let image = ''
+        try {
+          const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
+          if (Array.isArray(imgs) && imgs.length) image = getImageUrl(imgs[0]) || imgs[0] || ''
+        } catch {}
+
+        cartStore.addToCart({
+          id: variant.id,
+          productId: product.id,
+          productName: product.name,
+          productBrand: product.brand,
+          productImage: image,
+          variantSize: variant.size || '',
+          variantColor: variant.color || '',
+          price: parseFloat(product.sale_price || product.base_price || 0),
+        })
+        notifySuccess(`Đã thêm ${product.name} vào giỏ hàng!`)
+      } else if (action === 'save-wishlist' && slug) {
+        if (!authStore.isAuthenticated) continue
+
+        const token = localStorage.getItem('token')
+        const res = await $fetch<{ success: boolean; data: { product: any } }>(
+          `${config.public.apiUrl}/products/${slug}`
+        )
+        const product = res.data?.product
+        if (!product) continue
+
+        await $fetch(`${config.public.apiUrl}/wishlist`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: { productId: product.id },
+        })
+        notifySuccess(`Đã lưu ${product.name} vào wishlist!`)
+      }
+    } catch {
+      // silently fail for individual actions
+    }
+  }
+}
+
 // Send message
 const sendMessage = async () => {
   const message = inputMessage.value.trim()
@@ -335,6 +406,8 @@ const sendMessage = async () => {
         role: 'assistant',
         content: response.message,
       })
+      // Auto-execute action links (add-to-cart, wishlist, etc.)
+      await autoExecuteActions(response.message)
     }
   } catch {
     if (sessionId.value) {

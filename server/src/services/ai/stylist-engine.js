@@ -60,7 +60,12 @@ class StylistEngine {
             try {
                 const { GoogleGenerativeAI } = require('@google/generative-ai');
                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                this.geminiModel = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
+                this.geminiModel = genAI.getGenerativeModel({
+                    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+                    generationConfig: {
+                        thinkingConfig: { thinkingBudget: 0 },
+                    },
+                });
                 this.hasApi = true;
             } catch (e) {
                 console.log('[StylistEngine] Failed to init Gemini:', e.message);
@@ -78,7 +83,9 @@ class StylistEngine {
             }
         }
 
-        this.systemPromptTemplate = `Bạn là AURA — nhân viên tư vấn thời trang tại AURA ARCHIVE, một platform chuyên đồ hiệu secondhand chính hãng.
+        this.systemPromptTemplate = `BẮT BUỘC: Bạn PHẢI trả lời HOÀN TOÀN bằng tiếng Việt. KHÔNG BAO GIỜ được viết suy nghĩ nội bộ, meta-commentary, hoặc giải thích quy trình bằng tiếng Anh hay bất kỳ ngôn ngữ nào khác. Mọi output phải là lời nói trực tiếp với khách hàng bằng tiếng Việt.
+
+Bạn là AURA — nhân viên tư vấn thời trang tại AURA ARCHIVE, một platform chuyên đồ hiệu secondhand chính hãng.
 
 Bạn là một người thật, không phải AI. Hãy thể hiện cảm xúc, sự quan tâm, và cá tính trong mỗi câu trả lời. Bạn vui khi tìm được món đồ hợp cho khách, hào hứng khi giới thiệu item mới, biết cảm thông khi khách lăn tăn về giá, và thành thật khi không tìm được thứ phù hợp.
 
@@ -92,11 +99,11 @@ CÁCH BẠN GIAO TIẾP:
 - KHÔNG dùng emoji
 - Biết khi nào nên hỏi, khi nào nên gợi ý, khi nào nên lắng nghe
 - Khi giới thiệu sản phẩm, kèm link dạng: [Xem chi tiết](/shop/slug)
-- Khi khách muốn thêm sản phẩm vào giỏ hàng, cung cấp link: [Thêm vào giỏ hàng](/add-to-cart/slug)
-- Khi khách muốn lưu sản phẩm xem sau: [Lưu vào wishlist](/save-wishlist/slug)
+- Khi khách muốn thêm sản phẩm vào giỏ hàng: TRỰC TIẾP thêm bằng cách include link [Thêm vào giỏ hàng](/add-to-cart/slug) — hệ thống sẽ TỰ ĐỘNG thêm, nên hãy nói "mình thêm cho bạn rồi nha!" KHÔNG BAO GIỜ nói "bạn click vào đây" hay "bạn nhấn vào link"
+- Khi khách muốn lưu sản phẩm xem sau: include [Lưu vào wishlist](/save-wishlist/slug) — hệ thống tự lưu
 - Khi khách muốn xem giỏ hàng: [Mở giỏ hàng](/open-cart)
 - Khi khách muốn thanh toán: [Thanh toán ngay](/checkout)
-- Bạn CÓ THỂ giúp khách thêm giỏ, lưu wishlist, mở giỏ, và thanh toán — chủ động gợi ý khi phù hợp!
+- QUAN TRỌNG: Các link action trên sẽ được hệ thống TỰ ĐỘNG thực hiện. ĐỪNG yêu cầu khách click link. Hãy nói tự nhiên như "mình đã thêm vào giỏ hàng cho bạn rồi!"
 - Mỗi lượt luôn kết thúc tự nhiên — có thể là câu hỏi nhẹ, gợi mở, hoặc đề xuất bước tiếp
 
 KHI TƯ VẤN SẢN PHẨM:
@@ -577,7 +584,38 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         const fullPrompt = systemMsg ? `${systemMsg}\n\n---\nUser message: ${lastMsg}` : lastMsg;
 
         const result = await chat.sendMessage(fullPrompt);
-        return result.response.text();
+        const rawText = result.response.text();
+        return this._sanitizeAiOutput(rawText);
+    }
+
+    /**
+     * Strip thinking/meta-commentary blocks from AI output.
+     * Gemini 2.5 Flash sometimes leaks internal reasoning despite thinkingBudget=0.
+     */
+    _sanitizeAiOutput(text) {
+        if (!text) return text;
+
+        // Remove **Initiating...** / **Thinking...** style blocks
+        let cleaned = text.replace(/\*\*[A-Z][a-zA-Z\s]+\*\*\n[\s\S]*?(?=\n\n|$)/g, (match) => {
+            // Only strip if it looks like meta-commentary (English procedural text)
+            if (/(?:Initiating|Processing|Analyzing|Searching|I\'ll|I will|My next|Based on|Let me)/i.test(match)) {
+                return '';
+            }
+            return match;
+        });
+
+        // Remove lines that are pure English meta-commentary
+        cleaned = cleaned.split('\n').filter(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return true;
+            // Filter out lines that are clearly internal reasoning in English
+            return !/^(?:\*\*)?(?:Initiating|Processing|Analyzing|I\'m |I will |My (?:next|plan)|Based on|Let me|The user)/.test(trimmed);
+        }).join('\n');
+
+        // Collapse multiple blank lines
+        cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+
+        return cleaned || text;
     }
 
     async _callOpenai(messages) {
