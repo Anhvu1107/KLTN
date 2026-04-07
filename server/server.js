@@ -53,14 +53,16 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Rate limiting - relaxed in development
+// Rate limiting - relaxed for normal usage
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'development' ? 1000 : 500, // Higher limit in dev
+    max: process.env.NODE_ENV === 'development' ? 5000 : 2000, // ~2 req/s is reasonable
     message: {
         success: false,
         message: 'Too many requests, please try again later.',
     },
+    standardHeaders: true,
+    legacyHeaders: false,
     skip: (req) => process.env.NODE_ENV === 'development', // Skip rate limiting in dev
 });
 app.use('/api/', limiter);

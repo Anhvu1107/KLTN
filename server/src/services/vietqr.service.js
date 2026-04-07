@@ -16,7 +16,7 @@ const BANK_CONFIG = {
  * Uses VietQR API to generate QR code image
  */
 const generateQRUrl = (order) => {
-    const amountVND = Math.round(order.total_amount * 24000);
+    const amountVND = Math.round(order.total_amount); // Prices are already in VND
     const description = `AURA ${order.order_number || order.id.slice(0, 8).toUpperCase()}`;
 
     // VietQR URL format

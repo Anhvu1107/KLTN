@@ -41,8 +41,8 @@ const createPaymentUrl = (order, ipAddr) => {
     const createDate = date.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
     const orderId = date.getTime().toString();
 
-    // Convert USD to VND (simplified rate)
-    const amountVND = Math.round(order.total_amount * 24000 * 100); // VNPay requires amount * 100
+    // VNPay requires amount in VND * 100
+    const amountVND = Math.round(order.total_amount * 100); // VNPay requires amount * 100, prices already in VND
 
     let vnp_Params = {
         vnp_Version: '2.1.0',

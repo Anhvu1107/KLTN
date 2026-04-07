@@ -413,7 +413,11 @@
         "confirmCancel": "Bạn có chắc muốn hủy đơn hàng này?",
         "cancelOrder": "Hủy đơn hàng",
         "viewReceipt": "Xem biên lai",
-        "transactionId": "Mã giao dịch"
+        "transactionId": "Mã giao dịch",
+        "bankTransferQR": "💳 Quét QR để thanh toán",
+        "bankTransferQRDesc": "Quét mã QR bên dưới bằng app ngân hàng để chuyển khoản nhanh",
+        "bankTransferNote": "Vui lòng ghi đúng nội dung chuyển khoản để đơn hàng được xác nhận nhanh nhất",
+        "transferContent": "Nội dung CK"
     },
     "profile": {
         "title": "Chỉnh sửa hồ sơ",

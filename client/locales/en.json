@@ -403,7 +403,11 @@
         "confirmCancel": "Are you sure you want to cancel this order?",
         "cancelOrder": "Cancel Order",
         "viewReceipt": "View Receipt",
-        "transactionId": "Transaction ID"
+        "transactionId": "Transaction ID",
+        "bankTransferQR": "💳 Scan QR to Pay",
+        "bankTransferQRDesc": "Scan the QR code below with your banking app to transfer quickly",
+        "bankTransferNote": "Please include the correct transfer content so your order can be confirmed promptly",
+        "transferContent": "Transfer Content"
     },
     "profile": {
         "title": "Edit Profile",

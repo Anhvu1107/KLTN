@@ -143,7 +143,7 @@ const vietQrUrl = computed(() => {
   if (!primaryBank.value || !order.value) return ''
   const bank = primaryBank.value
   const bankCode = getBankCode(bank.bankName)
-  const amount = Math.round((order.value.total_amount || 0) * 23000) // Convert USD to VND approx
+  const amount = Math.round(order.value.total_amount || 0) // Prices are already in VND
   const description = `DH ${order.value.order_number || order.value.id?.slice(0, 8)}`
   return `https://img.vietqr.io/image/${bankCode}-${bank.accountNumber}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(description)}&accountName=${encodeURIComponent(bank.accountHolder)}`
 })

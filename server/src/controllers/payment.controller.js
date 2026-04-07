@@ -9,8 +9,7 @@ const paypalService = require('../services/paypal.service');
 const { Order } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 
-// Exchange rate: 1 USD = 25,000 VND (must match client-side EXCHANGE_RATE)
-const EXCHANGE_RATE_VND = 25000;
+// Prices in DB are stored in VND — no conversion needed
 
 /**
  * POST /api/v1/payments/vnpay/create
@@ -101,7 +100,7 @@ const vnpayIPN = catchAsync(async (req, res) => {
     }
 
     // Verify amount (use integer math to avoid floating-point errors)
-    const expectedAmountVND = Math.round(order.total_amount * EXCHANGE_RATE_VND);
+    const expectedAmountVND = Math.round(order.total_amount);
     if (Math.round(result.amount) !== expectedAmountVND) {
         return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
     }
@@ -147,8 +146,8 @@ const createMoMoPayment = catchAsync(async (req, res) => {
         });
     }
 
-    // Convert USD to VND
-    const amountVND = Math.round(order.total_amount * EXCHANGE_RATE_VND);
+    // Prices already in VND
+    const amountVND = Math.round(order.total_amount);
 
     const result = await momoService.createPaymentUrl({
         orderId: order.id.toString(),

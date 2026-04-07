@@ -58,7 +58,7 @@ const createPayment = async (order) => {
                 description: `AURA ARCHIVE - Order #${order.id.slice(0, 8)}`,
                 amount: {
                     currency_code: 'USD',
-                    value: order.total_amount.toFixed(2),
+                    value: (order.total_amount / 25000).toFixed(2), // Convert VND → USD
                 },
             }],
             application_context: {
