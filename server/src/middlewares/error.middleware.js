@@ -38,11 +38,11 @@ const errorHandler = (err, req, res, next) => {
         });
     }
 
-    // Programming or unknown errors
+    // Programming or unknown errors - include message for debugging
     return res.status(500).json({
         success: false,
         status: 'error',
-        message: 'Đã xảy ra lỗi. Vui lòng thử lại sau.',
+        message: err.message || 'Đã xảy ra lỗi. Vui lòng thử lại sau.',
     });
 };
 
