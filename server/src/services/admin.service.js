@@ -191,7 +191,6 @@ const updateOrderStatus = async (orderId, status) => {
 
     try {
         const order = await Order.findByPk(orderId, {
-            include: [{ model: OrderItem, as: 'items' }],
             lock: transaction.LOCK.UPDATE,
             transaction,
         });
@@ -200,6 +199,12 @@ const updateOrderStatus = async (orderId, status) => {
             await transaction.rollback();
             throw new AppError('Order not found', 404);
         }
+
+        // Load items separately to avoid outer join lock error
+        order.items = await OrderItem.findAll({
+            where: { order_id: orderId },
+            transaction,
+        });
 
         const validTransitions = {
             PENDING: ['CONFIRMED', 'CANCELLED'],
