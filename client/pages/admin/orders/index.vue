@@ -45,7 +45,9 @@ const updateStatus = async (orderId: string, newStatus: string) => {
     })
     await refresh()
   } catch (error: any) {
-    showAlert({ title: t('notifications.error', 'Lỗi'), message: error?.data?.message || t('notifications.updateError'), type: 'danger' })
+    const msg = error?.data?.message || error?.statusMessage || error?.message || t('notifications.updateError')
+    const statusCode = error?.statusCode || error?.status || ''
+    showAlert({ title: t('notifications.error', 'Lỗi'), message: statusCode ? `[${statusCode}] ${msg}` : msg, type: 'danger' })
   }
 }
 
