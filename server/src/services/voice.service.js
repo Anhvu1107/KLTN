@@ -9,11 +9,42 @@ const productSearch = require('./ai/product-search');
 const sessionMemory = require('./ai/session-memory');
 const kb = require('./ai/knowledge-base');
 const logger = require('../utils/logger');
+const chatAdminService = require('./chat-admin.service');
+const { emitNewMessage } = require('../socket');
 
 const PROMPT_CACHE_TTL = 60 * 1000;
 const promptCache = {
     persona: { value: null, expiresAt: 0 },
 };
+
+/**
+ * Strip thinking/meta-commentary blocks from AI output.
+ */
+function sanitizeAiOutput(text) {
+    if (!text) return text;
+
+    // Remove **Initiating...** / **Greeting...** / **Thinking...** style blocks and following pure English/reasoning lines
+    let cleaned = text.replace(/\*\*[A-Z][a-zA-Z\s]+\*\*\n[\s\S]*?(?=\n\n|$)/g, (match) => {
+        // Strip if it looks like meta-commentary instructions
+        if (/(?:Initiating|Processing|Analyzing|Searching|I\'ll|I will|My next|Based on|Let me|Greeting|Approach|Starting|Establishing|focusing)/i.test(match)) {
+            return '';
+        }
+        return match;
+    });
+
+    // Remove standalone lines that are pure English meta-commentary
+    cleaned = cleaned.split('\n').filter(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return true;
+        // Filter out lines that are clearly internal reasoning in English
+        return !/^(?:\*\*)?(?:Initiating|Processing|Analyzing|I\'m |I will |My (?:next|plan)|Based on|Let me|The user|Greeting|Approach|Starting)/.test(trimmed);
+    }).join('\n');
+
+    // Collapse multiple blank lines
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+
+    return cleaned || text;
+}
 
 function extractFirstImage(images) {
     if (!images) return null;
@@ -527,14 +558,17 @@ const getVoiceConfig = async (sessionId = null) => {
 /**
  * Sync voice conversation transcript to shared session memory + database.
  * Called by frontend after each voice turn so text chat has full context.
+ * Also updates ChatSession for admin visibility and emits WebSocket events.
  */
 const syncVoiceTranscript = async (sessionId, userText, aiText) => {
     if (!sessionId) return;
 
     if (userText && userText.trim()) {
+        const content = userText.trim();
+
         sessionMemory.appendMessage(sessionId, {
             role: 'user',
-            content: userText.trim(),
+            content,
             source: 'voice',
         });
 
@@ -542,30 +576,40 @@ const syncVoiceTranscript = async (sessionId, userText, aiText) => {
             await ChatLog.create({
                 session_id: sessionId,
                 role: 'USER',
-                content: userText.trim(),
+                content,
                 metadata: { source: 'voice' },
             });
+
+            await chatAdminService.updateSessionStats(sessionId, content);
+            emitNewMessage(sessionId, { role: 'USER', content });
         } catch (err) {
             logger.error('[Voice] Failed to save user transcript to DB:', err.message);
         }
     }
 
     if (aiText && aiText.trim()) {
-        sessionMemory.appendMessage(sessionId, {
-            role: 'assistant',
-            content: aiText.trim(),
-            source: 'voice',
-        });
-
-        try {
-            await ChatLog.create({
-                session_id: sessionId,
-                role: 'ASSISTANT',
-                content: aiText.trim(),
-                metadata: { source: 'voice' },
+        const content = sanitizeAiOutput(aiText.trim());
+        
+        if (content) {
+            sessionMemory.appendMessage(sessionId, {
+                role: 'assistant',
+                content,
+                source: 'voice',
             });
-        } catch (err) {
-            logger.error('[Voice] Failed to save AI transcript to DB:', err.message);
+
+            try {
+                await ChatLog.create({
+                    session_id: sessionId,
+                    role: 'ASSISTANT',
+                    content,
+                    metadata: { source: 'voice' },
+                });
+
+                await chatAdminService.updateSessionStats(sessionId, content);
+                emitNewMessage(sessionId, { role: 'ASSISTANT', content });
+            } catch (err) {
+                logger.error('[Voice] Failed to save AI transcript to DB:', err.message);
+            }
         }
     }
 };

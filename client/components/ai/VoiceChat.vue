@@ -257,7 +257,7 @@ const startVoiceSession = async () => {
         setup: {
           model: `models/${model}`,
           generationConfig: {
-            responseModalities: ['AUDIO'],
+            responseModalities: ['AUDIO', 'TEXT'],
             temperature: 0.2,
             speechConfig: {
               voiceConfig: {
@@ -273,6 +273,8 @@ const startVoiceSession = async () => {
           tools: [{
             functionDeclarations: tools,
           }],
+          inputAudioTranscription: { model: `models/${model}` },
+          outputAudioTranscription: {},
         },
       }
 
@@ -293,20 +295,6 @@ const startVoiceSession = async () => {
           console.log('[Voice] Setup complete — starting mic capture')
           await startMicCapture()
           state.value = 'listening'
-
-          // AI speaks first — send a hidden greeting trigger
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              clientContent: {
-                turns: [{
-                  role: 'user',
-                  parts: [{ text: 'Xin chào, mình vừa ghé thăm shop.' }],
-                }],
-                turnComplete: true,
-              },
-            }))
-            console.log('[Voice] Sent auto-greeting trigger')
-          }
           return
         }
 
@@ -318,21 +306,41 @@ const startVoiceSession = async () => {
           return
         }
 
+        // Handle output audio transcription (what AI actually said)
+        if (data.serverContent?.outputTranscript?.text) {
+          const transcriptText = data.serverContent.outputTranscript.text.trim()
+          if (transcriptText) {
+            aiTranscript.value = aiTranscript.value
+              ? `${aiTranscript.value} ${transcriptText}`
+              : transcriptText
+          }
+          return
+        }
+
+        // Handle input audio transcription (what user actually said)
+        if (data.serverContent?.inputTranscript?.text) {
+          const transcriptText = data.serverContent.inputTranscript.text.trim()
+          if (transcriptText) {
+            transcript.value = transcriptText
+          }
+          return
+        }
+
         // Handle server content (audio response)
         if (data.serverContent) {
           const parts = data.serverContent.modelTurn?.parts || []
-          const hasResponseParts = parts.some((part: any) =>
-            !!part.text || part.inlineData?.mimeType?.startsWith('audio/')
+          const hasAudioParts = parts.some((part: any) =>
+            part.inlineData?.mimeType?.startsWith('audio/')
           )
 
-          if (hasResponseParts && !isStreamingAiResponse) {
+          if (hasAudioParts && !isStreamingAiResponse) {
             // New model turn starting — reset dedup counters
             resetStreamingResponseTracking({ clearDedup: true })
             isStreamingAiResponse = true
             aiTranscript.value = ''
           }
 
-          if (hasResponseParts) {
+          if (hasAudioParts) {
             state.value = 'speaking'
           }
 
@@ -343,18 +351,6 @@ const startVoiceSession = async () => {
               state.value = 'speaking'
               const audioBytes = base64ToArrayBuffer(part.inlineData.data)
               scheduleAudioChunk(audioBytes)
-            }
-
-            // Text transcript of AI response
-            if (part.text) {
-              const nextText = part.text.trim()
-              if (!nextText) continue
-              if (currentTurnTextParts.has(nextText)) continue
-
-              currentTurnTextParts.add(nextText)
-              if (!aiTranscript.value || nextText.length >= aiTranscript.value.length) {
-                aiTranscript.value = nextText
-              }
             }
           }
 
@@ -378,6 +374,10 @@ const startVoiceSession = async () => {
                   aiText: aiTranscript.value,
                 },
               }).catch(() => {})
+              
+              // Clear after sync so we don't duplicate on tool call boundaries
+              transcript.value = ''
+              aiTranscript.value = ''
             }
           }
 
