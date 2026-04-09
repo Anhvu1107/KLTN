@@ -1344,7 +1344,7 @@ onMounted(() => {
         </button>
 
         <div
-          v-if="isMinimized"
+          v-if="false"
           class="absolute right-1.5 top-1.5 z-20 flex items-center gap-1"
         >
           <button
