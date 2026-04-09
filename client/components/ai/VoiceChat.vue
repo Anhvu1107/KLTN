@@ -8,6 +8,7 @@
 
 const config = useRuntimeConfig()
 const router = useRouter()
+const route = useRoute()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const { getImageUrl } = useImageUrl()
@@ -28,6 +29,7 @@ const transcript = ref('')
 const aiTranscript = ref('')
 const suggestedProducts = ref<any[]>([])
 const sessionId = ref('')
+const isMinimized = ref(false)
 let isInitialGreetingTurn = false
 
 // Live2D Model
@@ -163,6 +165,39 @@ const getOrCreateSessionId = () => {
   const freshId = crypto.randomUUID()
   localStorage.setItem(STORAGE_KEY, freshId)
   return freshId
+}
+
+const isProductDetailPath = (path: string) => /^\/shop\/[^/?#]+(?:[?#].*)?$/.test(path)
+
+const minimizeVoiceWidget = () => {
+  isMinimized.value = true
+}
+
+const maximizeVoiceWidget = () => {
+  isMinimized.value = false
+}
+
+const syncMinimizedStateWithRoute = (path: string) => {
+  if (isProductDetailPath(path)) {
+    minimizeVoiceWidget()
+    return
+  }
+
+  maximizeVoiceWidget()
+}
+
+const handleCanvasPointerMove = (event: PointerEvent) => {
+  if (isMinimized.value) return
+  onLive2DPointerMove(event)
+}
+
+const handleCanvasPointerDown = (event: PointerEvent) => {
+  if (isMinimized.value) {
+    maximizeVoiceWidget()
+    return
+  }
+
+  onLive2DTap(event)
 }
 
 const sessionQuery = computed(() =>
@@ -530,6 +565,9 @@ const startVoiceSession = async () => {
 const openSalesRoute = async (path: string) => {
   try {
     await router.push(path)
+    if (isProductDetailPath(path)) {
+      minimizeVoiceWidget()
+    }
   } catch {
     if (import.meta.client) {
       window.location.href = path
@@ -1226,6 +1264,10 @@ const stateLabel = computed(() => {
   }
 })
 
+watch(() => route.path, (path) => {
+  syncMinimizedStateWithRoute(path)
+})
+
 // Cleanup on unmount
 onUnmounted(() => {
   teardownVoiceSession()
@@ -1242,6 +1284,7 @@ onMounted(() => {
   window.addEventListener('touchstart', resetActivity, { passive: true })
   window.addEventListener('wheel', resetActivity, { passive: true })
 
+  syncMinimizedStateWithRoute(route.path)
   sessionId.value = getOrCreateSessionId()
   startVoiceSession()
 })
@@ -1249,21 +1292,72 @@ onMounted(() => {
 
 <template>
   <!-- Voice Chat Overlay -->
-  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-    <div class="relative w-full max-w-md mx-4 flex flex-col items-center gap-6 py-8">
+  <div
+    class="fixed inset-0 z-[60] flex transition-[background-color,backdrop-filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+    :class="isMinimized
+      ? 'pointer-events-none items-end justify-end bg-transparent backdrop-blur-0'
+      : 'pointer-events-auto items-center justify-center bg-black/80 backdrop-blur-sm'"
+  >
+    <div
+      class="relative flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      :class="isMinimized
+        ? 'pointer-events-auto mr-4 mb-4 w-44 overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950/85 px-2 py-2 shadow-[0_22px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl'
+        : 'w-full max-w-md mx-4 gap-6 py-8'"
+    >
 
       <!-- AURA Brand -->
-      <div class="text-center">
+      <div v-if="!isMinimized" class="text-center">
         <h2 class="text-2xl font-serif text-white tracking-widest">AURA</h2>
         <p class="text-sm text-white/60 mt-1">AI Stylist Voice Call</p>
       </div>
 
       <!-- Live2D Model Container -->
       <div
-        class="relative flex items-center justify-center"
-        @pointermove="onLive2DPointerMove"
-        @pointerdown="onLive2DTap"
+        class="relative flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        :class="isMinimized ? 'w-full cursor-pointer' : ''"
+        @pointermove="handleCanvasPointerMove"
+        @pointerdown="handleCanvasPointerDown"
       >
+        <button
+          v-if="!isMinimized && isProductDetailPath(route.path)"
+          type="button"
+          class="absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/35 text-white/75 transition hover:bg-black/55 hover:text-white"
+          aria-label="Thu nhỏ cuộc gọi"
+          @pointerdown.stop
+          @click.stop="minimizeVoiceWidget"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 19h4v-4m0 4-5-5M9 5H5v4m0-4 5 5" />
+          </svg>
+        </button>
+
+        <div
+          v-if="isMinimized"
+          class="absolute right-2 top-2 z-20 flex items-center gap-1.5"
+        >
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white/80 transition hover:bg-black/65 hover:text-white"
+            aria-label="Phóng to cuộc gọi"
+            @pointerdown.stop
+            @click.stop="maximizeVoiceWidget"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H5v4m0-4 5 5m5 9h4v-4m0 4-5-5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/90 text-white transition hover:bg-red-500"
+            aria-label="Kết thúc cuộc gọi"
+            @pointerdown.stop
+            @click.stop="stopVoiceSession"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l-8 8M8 8l8 8" />
+            </svg>
+          </button>
+        </div>
         <!-- Glow ring based on state -->
         <div
           class="absolute inset-0 rounded-2xl transition-all duration-500"
@@ -1279,14 +1373,17 @@ onMounted(() => {
           ref="live2dCanvas"
           width="440"
           height="520"
-          class="rounded-2xl border-2 transition-all duration-300 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50"
-          :class="{
-            'border-white/10 opacity-40': state === 'connecting' || state === 'idle',
-            'border-emerald-400/40': state === 'listening',
-            'border-blue-400/40': state === 'speaking',
-            'border-amber-400/40': state === 'processing',
-            'border-red-400/40': state === 'error',
-          }"
+          class="rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          :class="[
+            isMinimized ? 'h-56 w-40 rounded-[24px]' : 'h-[520px] w-[440px] max-w-full',
+            {
+              'border-white/10 opacity-40': state === 'connecting' || state === 'idle',
+              'border-emerald-400/40': state === 'listening',
+              'border-blue-400/40': state === 'speaking',
+              'border-amber-400/40': state === 'processing',
+              'border-red-400/40': state === 'error',
+            },
+          ]"
         />
 
         <!-- Loading overlay -->
@@ -1294,7 +1391,7 @@ onMounted(() => {
           v-if="state === 'connecting' || isModelLoading"
           class="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/40"
         >
-          <svg class="w-10 h-10 text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
+          <svg :class="isMinimized ? 'h-7 w-7' : 'h-10 w-10'" class="text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
@@ -1304,7 +1401,8 @@ onMounted(() => {
         <!-- Error overlay — small badge at bottom, not covering the face -->
         <div
           v-if="state === 'error'"
-          class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/20 border border-red-400/30 backdrop-blur-sm"
+          class="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-red-500/20 border border-red-400/30 backdrop-blur-sm"
+          :class="isMinimized ? 'bottom-2 px-2.5 py-1 text-[10px]' : 'bottom-3 px-3 py-1.5'"
         >
           <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -1315,11 +1413,14 @@ onMounted(() => {
         <!-- State indicator badge -->
         <div
           v-if="state === 'listening' || state === 'speaking'"
-          class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium backdrop-blur-sm"
-          :class="{
-            'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30': state === 'listening',
-            'bg-blue-500/20 text-blue-300 border border-blue-400/30': state === 'speaking',
-          }"
+          class="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full font-medium backdrop-blur-sm"
+          :class="[
+            isMinimized ? 'bottom-2 px-2.5 py-1 text-[10px]' : 'bottom-3 px-3 py-1 text-[11px]',
+            {
+              'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30': state === 'listening',
+              'bg-blue-500/20 text-blue-300 border border-blue-400/30': state === 'speaking',
+            },
+          ]"
         >
           <span
             class="w-1.5 h-1.5 rounded-full animate-pulse"
@@ -1333,11 +1434,11 @@ onMounted(() => {
       </div>
 
       <!-- State Label -->
-      <p class="text-white/80 text-sm tracking-wide">{{ stateLabel }}</p>
+      <p v-if="!isMinimized" class="text-white/80 text-sm tracking-wide">{{ stateLabel }}</p>
 
       <!-- AI transcript (shows what AI is saying) -->
       <div
-        v-if="aiTranscript"
+        v-if="aiTranscript && !isMinimized"
         class="max-w-xs text-center text-white/50 text-xs leading-relaxed max-h-20 overflow-y-auto px-4"
       >
         {{ aiTranscript }}
@@ -1345,7 +1446,7 @@ onMounted(() => {
 
       <!-- Suggested Products -->
       <div
-        v-if="suggestedProducts.length"
+        v-if="suggestedProducts.length && !isMinimized"
         class="w-full max-w-sm px-4"
       >
         <p class="text-white/40 text-xs text-center mb-2">Sản phẩm gợi ý</p>
@@ -1403,7 +1504,7 @@ onMounted(() => {
       </div>
 
       <!-- Controls -->
-      <div class="flex items-center gap-6">
+      <div v-if="!isMinimized" class="flex items-center gap-6">
         <!-- End Call button -->
         <button
           @click="stopVoiceSession"
@@ -1429,7 +1530,7 @@ onMounted(() => {
       </div>
 
       <!-- Hint -->
-      <p class="text-white/30 text-xs">
+      <p v-if="!isMinimized" class="text-white/30 text-xs">
         Nói bất cứ điều gì để bắt đầu tư vấn
       </p>
     </div>
