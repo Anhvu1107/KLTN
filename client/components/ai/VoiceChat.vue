@@ -75,6 +75,18 @@ let lipSyncFrame: number | null = null
 let lastSalesCueAt = 0
 let listeningCooldown: ReturnType<typeof setTimeout> | null = null
 
+// --- Idle Tracking & Context-Awareness ---
+let lastActivityAt = Date.now()
+let hasCheckedIn = false
+let idleCheckInterval: ReturnType<typeof setInterval> | null = null
+
+const resetActivity = () => {
+  if (state.value !== 'error' && state.value !== 'idle') {
+    lastActivityAt = Date.now()
+    hasCheckedIn = false
+  }
+}
+
 const resetStreamingResponseTracking = ({ clearDedup = true } = {}) => {
   if (clearDedup) {
     currentTurnAudioIndex = 0
@@ -209,6 +221,11 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
     clearTimeout(listeningCooldown)
     listeningCooldown = null
   }
+  
+  if (idleCheckInterval) {
+    clearInterval(idleCheckInterval)
+    idleCheckInterval = null
+  }
 
   if (emitClose) {
     emit('close')
@@ -251,6 +268,33 @@ const startVoiceSession = async () => {
     ws.onopen = async () => {
       if (websocket !== ws) return
       console.log('[Voice] WebSocket connected')
+
+      // Start idle tracking interval (Context-Awareness)
+      if (idleCheckInterval) clearInterval(idleCheckInterval)
+      resetActivity() // Start counting from connection
+      idleCheckInterval = setInterval(() => {
+        if (!websocket || websocket.readyState !== WebSocket.OPEN) return
+        if (state.value !== 'listening') return
+        
+        const idleTime = Date.now() - lastActivityAt
+        if (idleTime > 60000 && !hasCheckedIn) {
+          hasCheckedIn = true
+          console.log('[Voice] User is idle for 60s. Sending context cue to AI.')
+          
+          const contextMsg = {
+            clientContent: {
+              turns: [{
+                role: 'user',
+                parts: [{ 
+                  text: '[Hệ thống: Khách hàng dường như không có bất kỳ tương tác trên màn hình hay giọng nói nào trong khoảng 1 phút qua. Hãy chủ động lên tiếng hỏi thăm ngắn gọn tự nhiên xem họ còn ở đó không hoặc có cần tư vấn thêm gì không.]' 
+                }]
+              }],
+              turnComplete: true
+            }
+          }
+          websocket.send(JSON.stringify(contextMsg))
+        }
+      }, 1000)
 
       // 3. Send full setup config
       const setupMessage = {
@@ -792,10 +836,18 @@ const startMicCapture = async () => {
     const inputData = e.inputBuffer.getChannelData(0)
 
     // Convert float32 to int16
+    let sumSquares = 0
     const pcm16 = new Int16Array(inputData.length)
     for (let i = 0; i < inputData.length; i++) {
       const s = Math.max(-1, Math.min(1, inputData[i]))
       pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+      sumSquares += inputData[i] * inputData[i]
+    }
+
+    // Voice Activity Tracking (RMS > 0.01 threshold signals active user)
+    const rms = Math.sqrt(sumSquares / inputData.length)
+    if (rms > 0.01) {
+      resetActivity()
     }
 
     // Send as base64 to Gemini
@@ -1112,10 +1164,19 @@ const stateLabel = computed(() => {
 // Cleanup on unmount
 onUnmounted(() => {
   teardownVoiceSession()
+  window.removeEventListener('pointermove', resetActivity)
+  window.removeEventListener('keydown', resetActivity)
+  window.removeEventListener('touchstart', resetActivity)
+  window.removeEventListener('wheel', resetActivity)
 })
 
 // Auto-start when mounted
 onMounted(() => {
+  window.addEventListener('pointermove', resetActivity, { passive: true })
+  window.addEventListener('keydown', resetActivity, { passive: true })
+  window.addEventListener('touchstart', resetActivity, { passive: true })
+  window.addEventListener('wheel', resetActivity, { passive: true })
+
   sessionId.value = getOrCreateSessionId()
   startVoiceSession()
 })
