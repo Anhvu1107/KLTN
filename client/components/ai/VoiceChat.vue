@@ -31,6 +31,7 @@ const suggestedProducts = ref<any[]>([])
 const sessionId = ref('')
 const isMinimized = ref(false)
 let isInitialGreetingTurn = false
+let hasSentInitialGreetingPrompt = false
 
 // Live2D Model
 const live2dCanvas = ref<HTMLCanvasElement | null>(null)
@@ -136,12 +137,14 @@ const sendAudioStreamEnd = () => {
 
 const sendInitialGreetingPrompt = (greetingMessage: string) => {
   if (!websocket || websocket.readyState !== WebSocket.OPEN) return
+  if (hasSentInitialGreetingPrompt) return
 
-  const cueText = [
-    '[He thong: Cuoc goi vua bat dau. Hay chu dong chao khach truoc bang tieng Viet that tu nhien, ngan gon trong 1-2 cau.]',
-    greetingMessage?.trim() ? `Goi y cau chao: ${greetingMessage.trim()}` : '',
-    '[Sau loi chao, hoi ngan gon khach dang muon tim gi hom nay.]',
-  ].filter(Boolean).join('\n')
+  const fallbackGreeting = 'Chào bạn! Mình là AURA. Hôm nay bạn đang muốn tìm món đồ nào vậy?'
+  const openingLine = greetingMessage?.trim() || fallbackGreeting
+
+  const cueText = `[He thong: Day la loi mo dau cua cuoc goi. Hay noi tu nhien va chi chao mot lan, khong lap lai y chao. Neu phu hop, hay dung sat cau nay: "${openingLine}". Sau do lang nghe khach.]`
+
+  hasSentInitialGreetingPrompt = true
 
   websocket.send(JSON.stringify({
     clientContent: {
@@ -303,6 +306,7 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
   }
   hasDetectedSpeechSinceLastFlush = false
   isInitialGreetingTurn = false
+  hasSentInitialGreetingPrompt = false
   
   if (idleCheckInterval) {
     clearInterval(idleCheckInterval)
