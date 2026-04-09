@@ -186,6 +186,14 @@ const maximizeVoiceWidget = () => {
   isMinimized.value = false
 }
 
+const updateSuggestedProducts = (products: any[] = []) => {
+  suggestedProducts.value = Array.isArray(products) ? products : []
+
+  if (suggestedProducts.value.length > 1) {
+    maximizeVoiceWidget()
+  }
+}
+
 const syncMinimizedStateWithRoute = (path: string) => {
   if (isProductDetailPath(path)) {
     minimizeVoiceWidget()
@@ -576,6 +584,7 @@ const startVoiceSession = async () => {
 
 const openSalesRoute = async (path: string) => {
   try {
+    suggestedProducts.value = []
     await router.push(path)
     if (isProductDetailPath(path)) {
       minimizeVoiceWidget()
@@ -841,9 +850,11 @@ const handleToolCall = async (toolCall: any) => {
       )
 
       const toolData = res.data || {}
-      if (call.name === 'search_products' && toolData.products?.length) {
-        suggestedProducts.value = toolData.products
-        playHappy()
+      if (call.name === 'search_products') {
+        updateSuggestedProducts(toolData.products)
+        if (suggestedProducts.value.length) {
+          playHappy()
+        }
       }
 
       responses.push({
