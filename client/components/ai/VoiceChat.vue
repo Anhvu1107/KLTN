@@ -74,6 +74,10 @@ let animationFrame: number | null = null
 let lipSyncFrame: number | null = null
 let lastSalesCueAt = 0
 let listeningCooldown: ReturnType<typeof setTimeout> | null = null
+let silenceFlushTimer: ReturnType<typeof setTimeout> | null = null
+let hasDetectedSpeechSinceLastFlush = false
+const MIC_ACTIVITY_RMS_THRESHOLD = 0.01
+const AUDIO_END_SILENCE_MS = 900
 
 // --- Idle Tracking & Context-Awareness ---
 let lastActivityAt = Date.now()
@@ -111,6 +115,20 @@ const resumeListeningIfPlaybackFinished = () => {
       state.value = 'listening'
     }
   }, 600)
+}
+
+const sendAudioStreamEnd = () => {
+  if (!websocket || websocket.readyState !== WebSocket.OPEN) return
+  if (state.value !== 'listening') return
+
+  websocket.send(JSON.stringify({
+    realtimeInput: {
+      audioStreamEnd: true,
+    },
+  }))
+
+  hasDetectedSpeechSinceLastFlush = false
+  console.log('[Voice] audioStreamEnd sent')
 }
 
 const getOrCreateSessionId = () => {
@@ -221,6 +239,11 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
     clearTimeout(listeningCooldown)
     listeningCooldown = null
   }
+  if (silenceFlushTimer) {
+    clearTimeout(silenceFlushTimer)
+    silenceFlushTimer = null
+  }
+  hasDetectedSpeechSinceLastFlush = false
   
   if (idleCheckInterval) {
     clearInterval(idleCheckInterval)
@@ -817,6 +840,7 @@ const startMicCapture = async () => {
 
   audioContext = new AudioContext({ sampleRate: 16000 })
   await audioContext.resume().catch(() => {})
+  console.log('[Voice] Mic AudioContext sampleRate:', audioContext.sampleRate)
   micSourceNode = audioContext.createMediaStreamSource(mediaStream)
 
   // Setup analyser for waveform visualization
@@ -844,20 +868,30 @@ const startMicCapture = async () => {
       sumSquares += inputData[i] * inputData[i]
     }
 
-    // Voice Activity Tracking (RMS > 0.01 threshold signals active user)
+    // Track speech locally so we can flush the audio stream after a brief pause.
     const rms = Math.sqrt(sumSquares / inputData.length)
-    if (rms > 0.01) {
+    if (rms > MIC_ACTIVITY_RMS_THRESHOLD) {
       resetActivity()
+      hasDetectedSpeechSinceLastFlush = true
+      if (silenceFlushTimer) {
+        clearTimeout(silenceFlushTimer)
+        silenceFlushTimer = null
+      }
+    } else if (hasDetectedSpeechSinceLastFlush && !silenceFlushTimer) {
+      silenceFlushTimer = setTimeout(() => {
+        silenceFlushTimer = null
+        sendAudioStreamEnd()
+      }, AUDIO_END_SILENCE_MS)
     }
 
     // Send as base64 to Gemini
     const base64 = arrayBufferToBase64(pcm16.buffer)
     const audioMessage = {
       realtimeInput: {
-        mediaChunks: [{
+        audio: {
           data: base64,
-          mimeType: 'audio/pcm;rate=16000',
-        }],
+          mimeType: `audio/pcm;rate=${audioContext?.sampleRate || 16000}`,
+        },
       },
     }
     websocket.send(JSON.stringify(audioMessage))
