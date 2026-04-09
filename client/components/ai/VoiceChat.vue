@@ -261,7 +261,7 @@ const startVoiceSession = async () => {
     const { apiKey, model, systemPrompt, tools } = configRes.data
 
     // 2. Connect to Gemini Live API via WebSocket (direct API key)
-    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`
+    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`
     const ws = new WebSocket(wsUrl)
     websocket = ws
 
@@ -301,7 +301,7 @@ const startVoiceSession = async () => {
         setup: {
           model: `models/${model}`,
           generationConfig: {
-            responseModalities: ['AUDIO', 'TEXT'],
+            responseModalities: ['AUDIO'],
             temperature: 0.2,
             speechConfig: {
               voiceConfig: {

@@ -12,6 +12,7 @@ const logger = require('../utils/logger');
 const chatAdminService = require('./chat-admin.service');
 const { emitNewMessage } = require('../socket');
 
+const DEFAULT_GEMINI_LIVE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const PROMPT_CACHE_TTL = 60 * 1000;
 const promptCache = {
     persona: { value: null, expiresAt: 0 },
@@ -537,6 +538,7 @@ const executeToolCall = async (toolName, args = {}, sessionId = null) => {
  */
 const getVoiceConfig = async (sessionId = null) => {
     const apiKey = process.env.GEMINI_API_KEY;
+    const liveModel = process.env.GEMINI_LIVE_MODEL || DEFAULT_GEMINI_LIVE_MODEL;
     if (!apiKey) {
         throw new Error('GEMINI_API_KEY is not configured');
     }
@@ -549,7 +551,7 @@ const getVoiceConfig = async (sessionId = null) => {
 
     return {
         apiKey,
-        model: 'gemini-2.5-flash-native-audio-latest',
+        model: liveModel,
         systemPrompt,
         tools: getToolDeclarations(),
     };
