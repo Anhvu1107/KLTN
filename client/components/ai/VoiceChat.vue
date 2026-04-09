@@ -1313,7 +1313,7 @@ onMounted(() => {
     <div
       class="relative flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
       :class="isMinimized
-        ? 'pointer-events-auto mr-4 mb-4 w-[116px] overflow-visible bg-transparent p-0 shadow-none'
+        ? 'pointer-events-auto mr-4 mb-4 w-40 overflow-visible bg-transparent p-0 shadow-none'
         : 'w-full max-w-md mx-4 gap-6 py-8'"
     >
 
@@ -1326,7 +1326,7 @@ onMounted(() => {
       <!-- Live2D Model Container -->
       <div
         class="relative flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-        :class="isMinimized ? 'w-full cursor-pointer' : ''"
+        :class="isMinimized ? 'h-56 w-40 cursor-pointer' : ''"
         @pointermove="handleCanvasPointerMove"
         @pointerdown="handleCanvasPointerDown"
       >
@@ -1385,11 +1385,11 @@ onMounted(() => {
           ref="live2dCanvas"
           width="440"
           height="520"
-          class="rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          class="transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           :class="[
             isMinimized
-              ? 'h-[154px] w-[116px] rounded-[18px] border-transparent bg-transparent drop-shadow-[0_14px_26px_rgba(0,0,0,0.28)]'
-              : 'h-[520px] w-[440px] max-w-full',
+              ? 'h-56 w-40 rounded-2xl border-0 bg-none shadow-none'
+              : 'h-[520px] w-[440px] max-w-full rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50',
             {
               'border-white/10 opacity-40': !isMinimized && (state === 'connecting' || state === 'idle'),
               'border-emerald-400/40': !isMinimized && state === 'listening',
@@ -1403,7 +1403,8 @@ onMounted(() => {
         <!-- Loading overlay -->
         <div
           v-if="state === 'connecting' || isModelLoading"
-          class="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/40"
+          class="absolute inset-0 flex flex-col items-center justify-center"
+          :class="isMinimized ? 'bg-transparent' : 'rounded-2xl bg-black/40'"
         >
           <svg :class="isMinimized ? 'h-6 w-6' : 'h-10 w-10'" class="text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
