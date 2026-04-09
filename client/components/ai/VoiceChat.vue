@@ -1313,7 +1313,7 @@ onMounted(() => {
     <div
       class="relative flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
       :class="isMinimized
-        ? 'pointer-events-auto mr-4 mb-4 w-[132px] overflow-hidden rounded-[22px] border border-white/10 bg-neutral-950/88 px-1.5 py-1.5 shadow-[0_18px_56px_rgba(0,0,0,0.42)] backdrop-blur-xl'
+        ? 'pointer-events-auto mr-4 mb-4 w-[116px] overflow-visible bg-transparent p-0 shadow-none'
         : 'w-full max-w-md mx-4 gap-6 py-8'"
     >
 
@@ -1387,13 +1387,15 @@ onMounted(() => {
           height="520"
           class="rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           :class="[
-            isMinimized ? 'h-[154px] w-[116px] rounded-[18px]' : 'h-[520px] w-[440px] max-w-full',
+            isMinimized
+              ? 'h-[154px] w-[116px] rounded-[18px] border-transparent bg-transparent drop-shadow-[0_14px_26px_rgba(0,0,0,0.28)]'
+              : 'h-[520px] w-[440px] max-w-full',
             {
-              'border-white/10 opacity-40': state === 'connecting' || state === 'idle',
-              'border-emerald-400/40': state === 'listening',
-              'border-blue-400/40': state === 'speaking',
-              'border-amber-400/40': state === 'processing',
-              'border-red-400/40': state === 'error',
+              'border-white/10 opacity-40': !isMinimized && (state === 'connecting' || state === 'idle'),
+              'border-emerald-400/40': !isMinimized && state === 'listening',
+              'border-blue-400/40': !isMinimized && state === 'speaking',
+              'border-amber-400/40': !isMinimized && state === 'processing',
+              'border-red-400/40': !isMinimized && state === 'error',
             },
           ]"
         />
