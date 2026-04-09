@@ -28,6 +28,7 @@ const transcript = ref('')
 const aiTranscript = ref('')
 const suggestedProducts = ref<any[]>([])
 const sessionId = ref('')
+let isInitialGreetingTurn = false
 
 // Live2D Model
 const live2dCanvas = ref<HTMLCanvasElement | null>(null)
@@ -129,6 +130,28 @@ const sendAudioStreamEnd = () => {
 
   hasDetectedSpeechSinceLastFlush = false
   console.log('[Voice] audioStreamEnd sent')
+}
+
+const sendInitialGreetingPrompt = (greetingMessage: string) => {
+  if (!websocket || websocket.readyState !== WebSocket.OPEN) return
+
+  const cueText = [
+    '[He thong: Cuoc goi vua bat dau. Hay chu dong chao khach truoc bang tieng Viet that tu nhien, ngan gon trong 1-2 cau.]',
+    greetingMessage?.trim() ? `Goi y cau chao: ${greetingMessage.trim()}` : '',
+    '[Sau loi chao, hoi ngan gon khach dang muon tim gi hom nay.]',
+  ].filter(Boolean).join('\n')
+
+  websocket.send(JSON.stringify({
+    clientContent: {
+      turns: [{
+        role: 'user',
+        parts: [{ text: cueText }],
+      }],
+      turnComplete: true,
+    },
+  }))
+
+  console.log('[Voice] Initial greeting prompt sent')
 }
 
 const getOrCreateSessionId = () => {
@@ -244,6 +267,7 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
     silenceFlushTimer = null
   }
   hasDetectedSpeechSinceLastFlush = false
+  isInitialGreetingTurn = false
   
   if (idleCheckInterval) {
     clearInterval(idleCheckInterval)
@@ -274,14 +298,14 @@ const startVoiceSession = async () => {
     // 1. Get voice config from backend (API key + model + system prompt + tools)
     const configRes = await $fetch<{
       success: boolean
-      data: { apiKey: string; model: string; systemPrompt: string; tools: any[] }
+      data: { apiKey: string; model: string; systemPrompt: string; greetingMessage: string; tools: any[] }
     }>(`${config.public.apiUrl}/chat/voice-token${sessionQuery.value}`)
 
     if (!configRes.success || !configRes.data?.apiKey) {
       throw new Error('Failed to get voice config')
     }
 
-    const { apiKey, model, systemPrompt, tools } = configRes.data
+    const { apiKey, model, systemPrompt, greetingMessage, tools } = configRes.data
 
     // 2. Connect to Gemini Live API via WebSocket (direct API key)
     const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`
@@ -361,7 +385,9 @@ const startVoiceSession = async () => {
         if (data.setupComplete) {
           console.log('[Voice] Setup complete — starting mic capture')
           await startMicCapture()
-          state.value = 'listening'
+          isInitialGreetingTurn = true
+          state.value = 'processing'
+          sendInitialGreetingPrompt(greetingMessage)
           return
         }
 
@@ -423,6 +449,11 @@ const startVoiceSession = async () => {
 
           // Check if response is complete
           if (data.serverContent.turnComplete) {
+            const isGreetingTurn = isInitialGreetingTurn
+            if (isGreetingTurn) {
+              isInitialGreetingTurn = false
+            }
+
             console.log('[Voice] Turn complete')
             // Flush any remaining batched audio
             flushPendingAudio()
@@ -432,7 +463,7 @@ const startVoiceSession = async () => {
             resumeListeningIfPlaybackFinished()
 
             // Sync transcript to backend session memory (fire-and-forget)
-            if (sessionId.value && (transcript.value || aiTranscript.value)) {
+            if (!isGreetingTurn && sessionId.value && (transcript.value || aiTranscript.value)) {
               $fetch(`${config.public.apiUrl}/chat/voice-sync`, {
                 method: 'POST',
                 body: {

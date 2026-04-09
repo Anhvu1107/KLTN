@@ -20,6 +20,7 @@ const getVoiceToken = catchAsync(async (req, res) => {
             apiKey: config.apiKey,
             model: config.model,
             systemPrompt: config.systemPrompt,
+            greetingMessage: config.greetingMessage,
             tools: config.tools,
         },
     });

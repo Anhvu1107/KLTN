@@ -8,6 +8,7 @@ const { SystemPrompt, ChatLog } = require('../models');
 const productSearch = require('./ai/product-search');
 const sessionMemory = require('./ai/session-memory');
 const kb = require('./ai/knowledge-base');
+const aiService = require('./ai.service');
 const logger = require('../utils/logger');
 const chatAdminService = require('./chat-admin.service');
 const { emitNewMessage } = require('../socket');
@@ -548,11 +549,13 @@ const getVoiceConfig = async (sessionId = null) => {
     }
 
     const systemPrompt = await buildVoiceSystemPrompt(sessionId);
+    const greetingMessage = await aiService.getGreeting();
 
     return {
         apiKey,
         model: liveModel,
         systemPrompt,
+        greetingMessage,
         tools: getToolDeclarations(),
     };
 };
