@@ -4,8 +4,25 @@
  * AURA ARCHIVE - Live2D Mascot + ChatBot panel + VoiceChat overlay
  */
 
+const route = useRoute()
 const isOpen = ref(false)
 const isVoiceActive = ref(false)
+
+const isProductDetailPath = (path: string) => /^\/shop\/[^/?#]+(?:[?#].*)?$/.test(path)
+
+const openVoiceChat = () => {
+  isVoiceActive.value = true
+
+  if (isProductDetailPath(route.path)) {
+    isOpen.value = false
+  }
+}
+
+watch(() => route.path, (path) => {
+  if (isVoiceActive.value && isProductDetailPath(path)) {
+    isOpen.value = false
+  }
+})
 </script>
 
 <template>
@@ -29,7 +46,7 @@ const isVoiceActive = ref(false)
     <div v-if="isOpen" class="fixed bottom-6 right-6 z-50">
       <ChatBot
         @close="isOpen = false"
-        @open-voice="isVoiceActive = true"
+        @open-voice="openVoiceChat"
       />
     </div>
   </Transition>
