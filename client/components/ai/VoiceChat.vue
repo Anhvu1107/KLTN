@@ -317,7 +317,7 @@ const startVoiceSession = async () => {
           tools: [{
             functionDeclarations: tools,
           }],
-          inputAudioTranscription: { model: `models/${model}` },
+          inputAudioTranscription: {},
           outputAudioTranscription: {},
         },
       }
@@ -351,8 +351,8 @@ const startVoiceSession = async () => {
         }
 
         // Handle output audio transcription (what AI actually said)
-        if (data.serverContent?.outputTranscript?.text) {
-          const transcriptText = data.serverContent.outputTranscript.text.trim()
+        if (data.serverContent?.outputTranscription?.text) {
+          const transcriptText = data.serverContent.outputTranscription.text.trim()
           if (transcriptText) {
             aiTranscript.value = aiTranscript.value
               ? `${aiTranscript.value} ${transcriptText}`
@@ -362,8 +362,8 @@ const startVoiceSession = async () => {
         }
 
         // Handle input audio transcription (what user actually said)
-        if (data.serverContent?.inputTranscript?.text) {
-          const transcriptText = data.serverContent.inputTranscript.text.trim()
+        if (data.serverContent?.inputTranscription?.text) {
+          const transcriptText = data.serverContent.inputTranscription.text.trim()
           if (transcriptText) {
             transcript.value = transcriptText
           }
