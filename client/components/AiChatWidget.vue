@@ -9,6 +9,7 @@ const isOpen = ref(false)
 const isVoiceActive = ref(false)
 
 const isProductDetailPath = (path: string) => /^\/shop\/[^/?#]+(?:[?#].*)?$/.test(path)
+const shouldHideChatWindow = computed(() => isVoiceActive.value && isProductDetailPath(route.path))
 
 const openVoiceChat = () => {
   isVoiceActive.value = true
@@ -43,7 +44,7 @@ watch(() => route.path, (path) => {
     leave-from-class="opacity-100 translate-y-0 scale-100"
     leave-to-class="opacity-0 translate-y-4 scale-95"
   >
-    <div v-if="isOpen" class="fixed bottom-6 right-6 z-50">
+    <div v-if="isOpen && !shouldHideChatWindow" class="fixed bottom-6 right-6 z-50">
       <ChatBot
         @close="isOpen = false"
         @open-voice="openVoiceChat"
