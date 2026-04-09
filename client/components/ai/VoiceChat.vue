@@ -14,6 +14,12 @@ const authStore = useAuthStore()
 const { getImageUrl } = useImageUrl()
 const { success: notifySuccess, info: notifyInfo, warning: notifyWarning } = useNotification()
 
+const props = withDefaults(defineProps<{
+  startMinimized?: boolean
+}>(), {
+  startMinimized: false,
+})
+
 const emit = defineEmits<{
   close: []
 }>()
@@ -29,7 +35,7 @@ const transcript = ref('')
 const aiTranscript = ref('')
 const suggestedProducts = ref<any[]>([])
 const sessionId = ref('')
-const isMinimized = ref(false)
+const isMinimized = ref(props.startMinimized)
 let isInitialGreetingTurn = false
 let hasSentInitialGreetingPrompt = false
 
@@ -186,7 +192,9 @@ const syncMinimizedStateWithRoute = (path: string) => {
     return
   }
 
-  maximizeVoiceWidget()
+  if (props.startMinimized) {
+    minimizeVoiceWidget()
+  }
 }
 
 const handleCanvasPointerMove = (event: PointerEvent) => {
@@ -1305,7 +1313,7 @@ onMounted(() => {
     <div
       class="relative flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
       :class="isMinimized
-        ? 'pointer-events-auto mr-4 mb-4 w-44 overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950/85 px-2 py-2 shadow-[0_22px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl'
+        ? 'pointer-events-auto mr-5 mb-5 w-[152px] overflow-hidden rounded-[24px] border border-white/10 bg-neutral-950/85 px-2 py-2 shadow-[0_22px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl'
         : 'w-full max-w-md mx-4 gap-6 py-8'"
     >
 
@@ -1379,7 +1387,7 @@ onMounted(() => {
           height="520"
           class="rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           :class="[
-            isMinimized ? 'h-56 w-40 rounded-[24px]' : 'h-[520px] w-[440px] max-w-full',
+            isMinimized ? 'h-[182px] w-[136px] rounded-[20px]' : 'h-[520px] w-[440px] max-w-full',
             {
               'border-white/10 opacity-40': state === 'connecting' || state === 'idle',
               'border-emerald-400/40': state === 'listening',

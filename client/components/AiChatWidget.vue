@@ -36,6 +36,10 @@ const isVoiceActive = ref(false)
 
   <!-- Voice Chat Overlay (with Live2D model) -->
   <ClientOnly>
-    <LazyVoiceChat v-if="isVoiceActive" @close="isVoiceActive = false" />
+    <LazyVoiceChat
+      v-if="isVoiceActive"
+      :start-minimized="isOpen"
+      @close="isVoiceActive = false"
+    />
   </ClientOnly>
 </template>
