@@ -1313,7 +1313,7 @@ onMounted(() => {
     <div
       class="relative flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
       :class="isMinimized
-        ? 'pointer-events-auto mr-5 mb-5 w-[152px] overflow-hidden rounded-[24px] border border-white/10 bg-neutral-950/85 px-2 py-2 shadow-[0_22px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl'
+        ? 'pointer-events-auto mr-4 mb-4 w-[132px] overflow-hidden rounded-[22px] border border-white/10 bg-neutral-950/88 px-1.5 py-1.5 shadow-[0_18px_56px_rgba(0,0,0,0.42)] backdrop-blur-xl'
         : 'w-full max-w-md mx-4 gap-6 py-8'"
     >
 
@@ -1345,27 +1345,27 @@ onMounted(() => {
 
         <div
           v-if="isMinimized"
-          class="absolute right-2 top-2 z-20 flex items-center gap-1.5"
+          class="absolute right-1.5 top-1.5 z-20 flex items-center gap-1"
         >
           <button
             type="button"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white/80 transition hover:bg-black/65 hover:text-white"
+            class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white/80 transition hover:bg-black/65 hover:text-white"
             aria-label="Phóng to cuộc gọi"
             @pointerdown.stop
             @click.stop="maximizeVoiceWidget"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H5v4m0-4 5 5m5 9h4v-4m0 4-5-5" />
             </svg>
           </button>
           <button
             type="button"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/90 text-white transition hover:bg-red-500"
+            class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-500/90 text-white transition hover:bg-red-500"
             aria-label="Kết thúc cuộc gọi"
             @pointerdown.stop
             @click.stop="stopVoiceSession"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l-8 8M8 8l8 8" />
             </svg>
           </button>
@@ -1387,7 +1387,7 @@ onMounted(() => {
           height="520"
           class="rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           :class="[
-            isMinimized ? 'h-[182px] w-[136px] rounded-[20px]' : 'h-[520px] w-[440px] max-w-full',
+            isMinimized ? 'h-[154px] w-[116px] rounded-[18px]' : 'h-[520px] w-[440px] max-w-full',
             {
               'border-white/10 opacity-40': state === 'connecting' || state === 'idle',
               'border-emerald-400/40': state === 'listening',
@@ -1403,7 +1403,7 @@ onMounted(() => {
           v-if="state === 'connecting' || isModelLoading"
           class="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-black/40"
         >
-          <svg :class="isMinimized ? 'h-7 w-7' : 'h-10 w-10'" class="text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
+          <svg :class="isMinimized ? 'h-6 w-6' : 'h-10 w-10'" class="text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
@@ -1414,7 +1414,7 @@ onMounted(() => {
         <div
           v-if="state === 'error'"
           class="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-red-500/20 border border-red-400/30 backdrop-blur-sm"
-          :class="isMinimized ? 'bottom-2 px-2.5 py-1 text-[10px]' : 'bottom-3 px-3 py-1.5'"
+          :class="isMinimized ? 'bottom-1.5 px-2 py-0.5 text-[9px]' : 'bottom-3 px-3 py-1.5'"
         >
           <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -1427,7 +1427,7 @@ onMounted(() => {
           v-if="state === 'listening' || state === 'speaking'"
           class="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full font-medium backdrop-blur-sm"
           :class="[
-            isMinimized ? 'bottom-2 px-2.5 py-1 text-[10px]' : 'bottom-3 px-3 py-1 text-[11px]',
+            isMinimized ? 'bottom-1.5 px-2 py-0.5 text-[9px]' : 'bottom-3 px-3 py-1 text-[11px]',
             {
               'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30': state === 'listening',
               'bg-blue-500/20 text-blue-300 border border-blue-400/30': state === 'speaking',
