@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Full order view with status management
  */
 
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+
 
 definePageMeta({
   layout: 'admin',
@@ -16,6 +18,7 @@ const route = useRoute()
 const config = useRuntimeConfig()
 const { getToken } = useAuthToken()
 const { getImageUrl } = useImageUrl()
+const { formatSizeLabel } = useProductSizeLabel()
 const orderId = route.params.id as string
 
 const order = ref<any>(null)
@@ -195,7 +198,7 @@ useSeoMeta({ title: 'Order Detail | Admin' })
                 <p class="text-caption text-neutral-500 uppercase">{{ item.product_brand || '' }}</p>
                 <p class="font-medium">{{ item.product_name }}</p>
                 <p class="text-body-sm text-neutral-500">
-                  Size: {{ item.variant_size || item.variant?.size }} | {{ t('shop.filters.color') }}: {{ item.variant_color || item.variant?.color }}
+                  {{ t('shop.size') }}: {{ formatSizeLabel(item.variant_size || item.variant?.size) }} | {{ t('shop.color') }}: {{ item.variant_color || item.variant?.color }}
                 </p>
                 <p class="text-caption text-neutral-400">SKU: {{ item.variant?.sku || 'N/A' }}</p>
               </div>

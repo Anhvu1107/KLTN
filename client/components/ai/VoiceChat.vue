@@ -6,12 +6,15 @@
  * Integrated with Live2D model for visual feedback
  */
 
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+
 const config = useRuntimeConfig()
 const router = useRouter()
 const route = useRoute()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const { getImageUrl } = useImageUrl()
+const { formatSizeLabel } = useProductSizeLabel()
 const { success: notifySuccess, info: notifyInfo, warning: notifyWarning } = useNotification()
 
 const props = withDefaults(defineProps<{
@@ -1502,7 +1505,7 @@ onMounted(() => {
                 :key="v.size"
                 class="inline-block text-[9px] bg-white/10 text-white/60 rounded px-1 mr-1"
               >
-                {{ v.size }}
+                {{ formatSizeLabel(v.size) }}
               </span>
             </div>
             <button

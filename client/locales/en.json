@@ -186,6 +186,8 @@
         "bags": "Bags",
         "accessories": "Accessories",
         "dresses": "Dresses",
+        "jewelry": "Jewelry",
+        "watches": "Watches",
         "unisex": "Unisex"
     },
     "conditions": {
@@ -204,7 +206,9 @@
         "burgundy": "Burgundy",
         "cream": "Cream",
         "brown": "Brown",
-        "multi": "Multi"
+        "multi": "Multi",
+        "gold": "Gold",
+        "silver": "Silver"
     },
     "materials": {
         "leather": "Leather",
@@ -215,7 +219,21 @@
         "cashmere": "Cashmere",
         "polyester": "Polyester",
         "linen": "Linen",
-        "mixed": "Mixed"
+        "mixed": "Mixed",
+        "canvas": "Canvas",
+        "metal": "Metal"
+    },
+    "sizeLabels": {
+        "oneSize": "One Size",
+        "freeSize": "Free Size",
+        "mini": "Mini",
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+    },
+    "brands": {
+        "cdg": "Comme des Garçons",
+        "hermes": "Hermès"
     },
     "shop": {
         "title": "Shop",
@@ -616,6 +634,7 @@
                 "product_categories": "Product Categories",
                 "product_colors": "Product Colors",
                 "product_sizes": "Product Sizes",
+                "product_size_groups": "Product Size Groups",
                 "product_materials": "Product Materials"
             },
             "descriptions": {
@@ -623,6 +642,7 @@
                 "product_categories": "List of categories available when creating a product",
                 "product_colors": "List of colors available when creating a product",
                 "product_sizes": "List of sizes available when creating a product",
+                "product_size_groups": "Size groups by category available when creating a product",
                 "product_materials": "List of materials available when creating a product"
             }
         },
@@ -637,6 +657,12 @@
             "colorsDesc": "Available color options",
             "sizes": "Sizes",
             "sizesDesc": "Available size options",
+            "sizesByCategoryDesc": "Set dedicated size groups for each category, for example tops use XS-XL, pants use numeric sizes, and shoes use 35-45.",
+            "sizesFallbackHint": "Used for new categories or categories that do not have their own size group yet",
+            "sizesGroupHint": "Default size group for this category",
+            "sizeGroupDefault": "Default / fallback",
+            "sizeCount": "{count} sizes",
+            "addSize": "Add a new size...",
             "materials": "Materials",
             "materialsDesc": "Available material types"
         },

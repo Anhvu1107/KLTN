@@ -4,14 +4,64 @@
  * AURA ARCHIVE - Manage dynamic product options (brands, categories, colors, sizes, materials)
  */
 
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+import { DEFAULT_SIZE_GROUPS, flattenSizeGroups, normalizeSizeGroups, type SizeGroups } from '~/utils/productSizeGroups'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
 
+type LocalizedOption = { value: string; label_en: string; label_vi: string }
+type ProductAttributesState = {
+  brands: string[]
+  categories: LocalizedOption[]
+  colors: LocalizedOption[]
+  sizes: string[]
+  size_groups: SizeGroups
+  materials: LocalizedOption[]
+}
+
+type SavableAttributeKey = 'brands' | 'categories' | 'colors' | 'size_groups' | 'materials'
+const SIZE_GROUP_TRANSLATION_KEYS: Record<string, string> = {
+  Tops: 'categories.tops',
+  Pants: 'categories.pants',
+  Outerwear: 'categories.outerwear',
+  Shoes: 'categories.shoes',
+  Bags: 'categories.bags',
+  Accessories: 'categories.accessories',
+  Dresses: 'categories.dresses',
+  Jewelry: 'categories.jewelry',
+  Watches: 'categories.watches',
+}
+
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 const { getToken } = useAuthToken()
+const { formatSizeLabel } = useProductSizeLabel()
+
+const createEmptyAttributes = (): ProductAttributesState => ({
+  brands: [],
+  categories: [],
+  colors: [],
+  sizes: flattenSizeGroups(DEFAULT_SIZE_GROUPS),
+  size_groups: normalizeSizeGroups(DEFAULT_SIZE_GROUPS),
+  materials: [],
+})
+
+const normalizeAttributes = (rawAttributes?: Partial<ProductAttributesState>): ProductAttributesState => {
+  const categories = Array.isArray(rawAttributes?.categories) ? rawAttributes.categories : []
+  const sizeGroups = normalizeSizeGroups(rawAttributes?.size_groups, categories)
+
+  return {
+    brands: Array.isArray(rawAttributes?.brands) ? rawAttributes.brands : [],
+    categories,
+    colors: Array.isArray(rawAttributes?.colors) ? rawAttributes.colors : [],
+    sizes: flattenSizeGroups(sizeGroups),
+    size_groups: sizeGroups,
+    materials: Array.isArray(rawAttributes?.materials) ? rawAttributes.materials : [],
+  }
+}
 
 // Active tab
 const activeTab = ref('brands')
@@ -24,19 +74,7 @@ const tabs = computed(() => [
 ])
 
 // Data state
-const attributes = ref<{
-  brands: string[]
-  categories: Array<{ value: string; label_en: string; label_vi: string }>
-  colors: Array<{ value: string; label_en: string; label_vi: string }>
-  sizes: string[]
-  materials: Array<{ value: string; label_en: string; label_vi: string }>
-}>({
-  brands: [],
-  categories: [],
-  colors: [],
-  sizes: [],
-  materials: [],
-})
+const attributes = ref<ProductAttributesState>(createEmptyAttributes())
 
 const isLoading = ref(true)
 const isSaving = ref(false)
@@ -45,10 +83,62 @@ const errorMessage = ref('')
 
 // New item input
 const newBrand = ref('')
-const newSize = ref('')
 const newCategory = ref({ value: '', label_en: '', label_vi: '' })
 const newColor = ref({ value: '', label_en: '', label_vi: '' })
 const newMaterial = ref({ value: '', label_en: '', label_vi: '' })
+const newSizeInputs = reactive<Record<string, string>>({})
+
+const getSizeGroupLabel = (groupKey: string) => {
+  if (groupKey === 'default') {
+    return t('admin.attributes.sizeGroupDefault')
+  }
+
+  const translationKey = SIZE_GROUP_TRANSLATION_KEYS[groupKey]
+  if (translationKey) return t(translationKey)
+
+  const category = attributes.value.categories.find((item) => item.value === groupKey)
+  if (!category) return groupKey
+
+  if (locale.value === 'vi') {
+    return category.label_vi || category.label_en || category.value
+  }
+
+  return category.label_en || category.label_vi || category.value
+}
+
+const sizeGroupEntries = computed(() => {
+  const seen = new Set<string>()
+  const entries: Array<{ key: string; label: string; hint: string }> = []
+
+  const pushEntry = (rawKey?: string) => {
+    const key = rawKey?.trim()
+    if (!key || seen.has(key)) return
+
+    seen.add(key)
+    entries.push({
+      key,
+      label: getSizeGroupLabel(key),
+      hint: key === 'default'
+        ? t('admin.attributes.sizesFallbackHint')
+        : t('admin.attributes.sizesGroupHint'),
+    })
+  }
+
+  pushEntry('default')
+  attributes.value.categories.forEach((category) => pushEntry(category.value))
+  Object.keys(attributes.value.size_groups).forEach((groupKey) => pushEntry(groupKey))
+
+  return entries
+})
+
+watch(
+  () => attributes.value.categories.map((category) => `${category.value}|${category.label_en}|${category.label_vi}`),
+  () => {
+    attributes.value.size_groups = normalizeSizeGroups(attributes.value.size_groups, attributes.value.categories)
+    attributes.value.sizes = flattenSizeGroups(attributes.value.size_groups)
+  },
+  { deep: true }
+)
 
 // Fetch attributes from API
 const fetchAttributes = async () => {
@@ -56,11 +146,11 @@ const fetchAttributes = async () => {
   try {
     const response = await $fetch<{
       success: boolean
-      data: { attributes: typeof attributes.value }
+      data: { attributes: Partial<ProductAttributesState> }
     }>(`${config.public.apiUrl}/settings/product-attributes`)
 
     if (response.success) {
-      attributes.value = response.data.attributes
+      attributes.value = normalizeAttributes(response.data.attributes)
     }
   } catch (err: any) {
     errorMessage.value = err?.data?.message || t('notifications.loadError', 'Failed to load attributes')
@@ -70,19 +160,25 @@ const fetchAttributes = async () => {
 }
 
 // Save a specific attribute
-const saveAttribute = async (key: string) => {
+const saveAttribute = async (key: SavableAttributeKey) => {
   isSaving.value = true
   errorMessage.value = ''
   successMessage.value = ''
 
   try {
-    const items = attributes.value[key as keyof typeof attributes.value]
-    
+    const items = key === 'size_groups'
+      ? attributes.value.size_groups
+      : attributes.value[key]
+
     await $fetch(`${config.public.apiUrl}/admin/product-attributes/${key}`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${getToken()}` },
       body: { items }
     })
+
+    if (key === 'size_groups') {
+      attributes.value.sizes = flattenSizeGroups(attributes.value.size_groups)
+    }
 
     successMessage.value = t('common.saveSuccess', '\u0110\u00e3 l\u01b0u th\u00e0nh c\u00f4ng!')
     setTimeout(() => { successMessage.value = '' }, 3000)
@@ -95,17 +191,29 @@ const saveAttribute = async (key: string) => {
 
 // Add item functions
 const addBrand = () => {
-  if (newBrand.value.trim() && !attributes.value.brands.includes(newBrand.value.trim())) {
-    attributes.value.brands.push(newBrand.value.trim())
+  const nextBrand = newBrand.value.trim()
+
+  if (nextBrand && !attributes.value.brands.includes(nextBrand)) {
+    attributes.value.brands.push(nextBrand)
     newBrand.value = ''
   }
 }
 
-const addSize = () => {
-  if (newSize.value.trim() && !attributes.value.sizes.includes(newSize.value.trim())) {
-    attributes.value.sizes.push(newSize.value.trim())
-    newSize.value = ''
+const addSizeToGroup = (groupKey: string) => {
+  const nextSize = newSizeInputs[groupKey]?.trim()
+
+  if (!nextSize) return
+
+  if (!attributes.value.size_groups[groupKey]) {
+    attributes.value.size_groups[groupKey] = []
   }
+
+  if (!attributes.value.size_groups[groupKey].includes(nextSize)) {
+    attributes.value.size_groups[groupKey].push(nextSize)
+    attributes.value.sizes = flattenSizeGroups(attributes.value.size_groups)
+  }
+
+  newSizeInputs[groupKey] = ''
 }
 
 const addCategory = () => {
@@ -134,8 +242,9 @@ const removeBrand = (index: number) => {
   attributes.value.brands.splice(index, 1)
 }
 
-const removeSize = (index: number) => {
-  attributes.value.sizes.splice(index, 1)
+const removeSizeFromGroup = (groupKey: string, index: number) => {
+  attributes.value.size_groups[groupKey]?.splice(index, 1)
+  attributes.value.sizes = flattenSizeGroups(attributes.value.size_groups)
 }
 
 const removeCategory = (index: number) => {
@@ -346,45 +455,63 @@ useSeoMeta({
         <!-- Sizes Tab -->
         <div v-if="activeTab === 'sizes'" class="bg-white p-6 rounded-sm shadow-card">
           <h2 class="font-serif text-heading-4 text-aura-black mb-4">{{ $t('admin.attributes.sizes') }}</h2>
-          <p class="text-body-sm text-neutral-500 mb-6">{{ $t('admin.attributes.sizesDesc') }}</p>
+          <p class="text-body-sm text-neutral-500 mb-6">
+            {{ t('admin.attributes.sizesByCategoryDesc') }}
+          </p>
 
-          <!-- List -->
-          <div class="flex flex-wrap gap-2 mb-6">
+          <div class="space-y-5">
             <div
-              v-for="(size, index) in attributes.sizes"
-              :key="index"
-              class="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-sm"
+              v-for="group in sizeGroupEntries"
+              :key="group.key"
+              class="border border-neutral-200 rounded-sm p-4"
             >
-              <span class="text-body-sm">{{ size }}</span>
-              <button
-                type="button"
-                @click="removeSize(index)"
-                class="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-red-500"
-              >
-                &#215;
-              </button>
-            </div>
-          </div>
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+                <div>
+                  <h3 class="text-body font-medium text-aura-black">{{ group.label }}</h3>
+                  <p class="text-caption text-neutral-500">{{ group.hint }}</p>
+                </div>
+                <span class="text-caption uppercase tracking-wide text-neutral-400">
+                  {{ t('admin.attributes.sizeCount', { count: attributes.size_groups[group.key]?.length || 0 }) }}
+                </span>
+              </div>
 
-          <!-- Add new -->
-          <div class="flex gap-3">
-            <input
-              v-model="newSize"
-              type="text"
-              class="input-field flex-1"
-              :placeholder="t('admin.attributes.addSize', 'Th\u00eam k\u00edch c\u1ee1 m\u1edbi...')"
-              @keyup.enter="addSize"
-            />
-            <button type="button" @click="addSize" class="btn-secondary">
-              {{ $t('common.add') }}
-            </button>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <div
+                  v-for="(size, index) in attributes.size_groups[group.key]"
+                  :key="`${group.key}-${index}`"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-sm"
+                >
+                  <span class="text-body-sm">{{ formatSizeLabel(size) }}</span>
+                  <button
+                    type="button"
+                    @click="removeSizeFromGroup(group.key, index)"
+                    class="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-red-500"
+                  >
+                    &#215;
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex gap-3">
+                <input
+                  v-model="newSizeInputs[group.key]"
+                  type="text"
+                  class="input-field flex-1"
+                  :placeholder="t('admin.attributes.addSize', 'Th\u00eam k\u00edch c\u1ee1 m\u1edbi...')"
+                  @keyup.enter="addSizeToGroup(group.key)"
+                />
+                <button type="button" @click="addSizeToGroup(group.key)" class="btn-secondary">
+                  {{ $t('common.add') }}
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Save -->
           <div class="mt-6 pt-6 border-t border-neutral-200">
             <button 
               type="button" 
-              @click="saveAttribute('sizes')"
+              @click="saveAttribute('size_groups')"
               :disabled="isSaving"
               class="btn-primary"
             >

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
 import { useDialog } from '~/composables/useDialog'
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
 
 const { t } = useI18n()
 const cartStore = useCartStore()
 const config = useRuntimeConfig()
 const { alert: showDialog } = useDialog()
+const { formatSizeLabel } = useProductSizeLabel()
 
 // Format price
 const { formatPrice } = useCurrency()
@@ -146,7 +148,7 @@ useSeoMeta({
                   <span v-if="item.quantity > 1" class="text-neutral-500 text-sm bg-neutral-200 px-2 py-0.5 rounded-full">x{{ item.quantity }}</span>
                 </h3>
                 <p class="text-body-sm text-neutral-600 mb-4">
-                  {{ item.variantSize }} / {{ item.variantColor }}
+                  {{ formatSizeLabel(item.variantSize) }} / {{ item.variantColor }}
                 </p>
                 <p class="text-body font-medium text-aura-black mb-4">
                   {{ formatPrice(item.price) }} <span v-if="item.quantity > 1" class="text-neutral-500 text-sm ml-1">({{ formatPrice(item.price * item.quantity) }})</span>

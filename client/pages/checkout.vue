@@ -6,12 +6,14 @@
 
 import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
 import { VIETNAM_CITIES, DEFAULT_CITY } from '~/utils/constants'
 
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+const { formatSizeLabel } = useProductSizeLabel()
 
 // Form state
 const shippingForm = reactive({
@@ -320,7 +322,7 @@ const handleCheckout = async () => {
 
     // COD / Bank Transfer / gateway failed → go to order detail
     navigateTo(`/account/orders/${orderId}`)
-  } catch (err: any) {
+  } catch {
     // Show user-friendly message instead of raw technical errors
     error.value = t('checkout.checkoutFailed')
   } finally {
@@ -436,7 +438,7 @@ useSeoMeta({
                     {{ item.productName }}
                     <span v-if="item.quantity > 1" class="text-neutral-500 text-xs bg-neutral-200 px-1.5 py-0.5 rounded-sm">x{{ item.quantity }}</span>
                   </p>
-                  <p class="text-caption text-neutral-600">{{ item.variantSize }} / {{ item.variantColor }}</p>
+                  <p class="text-caption text-neutral-600">{{ formatSizeLabel(item.variantSize) }} / {{ item.variantColor }}</p>
                 </div>
                 <p class="text-body-sm font-medium">{{ formatPrice(item.price * item.quantity) }}</p>
               </div>

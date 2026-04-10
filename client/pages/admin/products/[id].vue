@@ -5,17 +5,21 @@
  */
 
 import { useDialog } from '~/composables/useDialog'
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+import { DEFAULT_SIZE_GROUPS, getSizesForCategory, normalizeSizeGroups, type SizeGroups } from '~/utils/productSizeGroups'
 
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const config = useRuntimeConfig()
 const { confirm: showConfirm } = useDialog()
+const sizeGroups = ref<SizeGroups>(normalizeSizeGroups(DEFAULT_SIZE_GROUPS))
+const { formatSizeLabel } = useProductSizeLabel()
 
 const productId = route.params.id
 const isLoading = ref(true)
@@ -68,6 +72,29 @@ const getToken = () => {
     return localStorage.getItem('token') || ''
   }
   return ''
+}
+
+const fetchProductAttributes = async () => {
+  try {
+    const response = await $fetch<{
+      success: boolean
+      data: {
+        attributes?: {
+          size_groups?: SizeGroups
+          categories?: Array<{ value: string }>
+        }
+      }
+    }>(`${config.public.apiUrl}/settings/product-attributes`)
+
+    if (response.success) {
+      sizeGroups.value = normalizeSizeGroups(
+        response.data.attributes?.size_groups,
+        response.data.attributes?.categories || []
+      )
+    }
+  } catch {
+    sizeGroups.value = normalizeSizeGroups(DEFAULT_SIZE_GROUPS)
+  }
 }
 
 const uploadImages = async (files: FileList) => {
@@ -123,7 +150,7 @@ const removeProductImage = (index: number) => {
 // Helper functions for variants
 const createEmptyVariant = (): VariantData => ({
   id: null,
-  size: 'M',
+  size: getSizesForCategory(sizeGroups.value, getActiveCategory())[0] || 'Other',
   customSize: '',
   color: 'Black',
   customColor: '',
@@ -206,18 +233,6 @@ const subcategories = computed(() => [
   { value: 'Other', label: otherLabel.value },
 ])
 
-const sizes = computed(() => [
-  { value: 'XS', label: 'XS' },
-  { value: 'S', label: 'S' },
-  { value: 'M', label: 'M' },
-  { value: 'L', label: 'L' },
-  { value: 'XL', label: 'XL' },
-  { value: 'XXL', label: 'XXL' },
-  { value: 'One Size', label: t('shop.filters.oneSize', 'One Size') },
-  { value: 'Free Size', label: t('shop.filters.freeSize', 'Free Size') },
-  { value: 'Other', label: otherLabel.value },
-])
-
 const colors = computed(() => [
   { value: 'Black', label: t('colors.black') },
   { value: 'White', label: t('colors.white') },
@@ -253,6 +268,17 @@ const customCategory = ref('')
 const customSubcategory = ref('')
 const customCondition = ref('')
 
+const getActiveCategory = () => (form.category === 'Other' ? customCategory.value.trim() : form.category)
+
+const sizes = computed(() => {
+  const categorySizes = getSizesForCategory(sizeGroups.value, getActiveCategory())
+
+  return [
+    ...categorySizes.map((size) => ({ value: size, label: formatSizeLabel(size) })),
+    { value: 'Other', label: otherLabel.value },
+  ]
+})
+
 // Watch for "Other" selection - reset custom value when not Other
 watch(() => form.category, (newVal) => {
   if (newVal !== 'Other') customCategory.value = ''
@@ -263,6 +289,45 @@ watch(() => form.subcategory, (newVal) => {
 watch(() => form.condition_text, (newVal) => {
   if (newVal !== 'Other') customCondition.value = ''
 })
+
+const syncVariantsForCurrentCategory = () => {
+  const availableSizes = getSizesForCategory(sizeGroups.value, getActiveCategory())
+
+  variants.value.forEach((variant) => {
+    const actualSize = variant.size === 'Other'
+      ? (variant.customSize || '').trim()
+      : variant.size
+
+    if (!actualSize) {
+      variant.size = availableSizes[0] || 'Other'
+      variant.customSize = ''
+      return
+    }
+
+    if (availableSizes.includes(actualSize)) {
+      variant.size = actualSize
+      variant.customSize = ''
+      return
+    }
+
+    if (variant.isNew && !variant.customSize) {
+      variant.size = availableSizes[0] || 'Other'
+      variant.customSize = variant.size === 'Other' ? actualSize : ''
+      return
+    }
+
+    variant.size = 'Other'
+    variant.customSize = actualSize
+  })
+}
+
+watch(
+  [() => form.category, customCategory, sizeGroups],
+  () => {
+    syncVariantsForCurrentCategory()
+  },
+  { deep: true }
+)
 
 
 
@@ -323,16 +388,19 @@ const fetchProduct = async () => {
       form.is_active = product.is_active
       form.is_new_arrival = product.is_new_arrival || false
 
+      const activeCategory = form.category === 'Other' ? customCategory.value.trim() : form.category
+      const availableSizes = getSizesForCategory(sizeGroups.value, activeCategory)
+
       // Populate variants (all variants)
       if (product.variants && product.variants.length > 0) {
         variants.value = product.variants.map((v: any) => {
-          const isKnownSize = !v.size || sizes.value.some(s => s.value === v.size)
+          const isKnownSize = !v.size || availableSizes.includes(v.size)
           const isKnownColor = !v.color || colors.value.some(c => c.value === v.color)
           const isKnownMaterial = !v.material || materials.value.some(m => m.value === v.material)
 
           return {
             id: v.id,
-            size: isKnownSize ? (v.size || 'M') : 'Other',
+            size: isKnownSize ? (v.size || availableSizes[0] || 'Other') : 'Other',
             customSize: !isKnownSize ? v.size : '',
             color: isKnownColor ? (v.color || 'Black') : 'Other',
             customColor: !isKnownColor ? v.color : '',
@@ -348,6 +416,8 @@ const fetchProduct = async () => {
         // Add empty variant if none exists
         variants.value = [createEmptyVariant()]
       }
+
+      syncVariantsForCurrentCategory()
 
       // Populate images
       productImages.value = product.images || []
@@ -459,11 +529,9 @@ const deleteProduct = async () => {
   }
 }
 
-// Format price for display
-const { formatPrice } = useCurrency()
-
-onMounted(() => {
-  fetchProduct()
+onMounted(async () => {
+  await fetchProductAttributes()
+  await fetchProduct()
 })
 
 useSeoMeta({

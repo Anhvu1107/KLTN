@@ -5,6 +5,7 @@
 
 const { Product, Variant, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
+const { getDefaultSizeForCategory } = require('../utils/product-size-groups');
 
 /**
  * Create product with variant (unique item model)
@@ -44,10 +45,10 @@ const createProduct = async (productData, variantData) => {
         }, { transaction });
 
         // Create variant
-        const variant = await Variant.create({
+        await Variant.create({
             product_id: product.id,
             sku,
-            size: variantData.size || 'One Size',
+            size: variantData.size || getDefaultSizeForCategory(productData.category),
             color: variantData.color || 'N/A',
             material: variantData.material || '',
             price_adjustment: 0,

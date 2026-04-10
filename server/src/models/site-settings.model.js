@@ -3,6 +3,8 @@
  * AURA ARCHIVE - System configuration (logo, contact, SEO, scripts)
  */
 
+const { DEFAULT_PRODUCT_SIZE_GROUPS, flattenSizeGroups } = require('../utils/product-size-groups');
+
 module.exports = (sequelize, DataTypes) => {
     const SiteSettings = sequelize.define('SiteSettings', {
         id: {
@@ -153,11 +155,19 @@ module.exports = (sequelize, DataTypes) => {
         },
         {
             key: 'product_sizes',
-            value: JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size', 'Free Size']),
+            value: JSON.stringify(flattenSizeGroups(DEFAULT_PRODUCT_SIZE_GROUPS)),
             type: 'json',
             group: 'product_attributes',
             label: 'Kích cỡ sản phẩm',
             description: 'Danh sách kích cỡ có thể chọn khi tạo sản phẩm'
+        },
+        {
+            key: 'product_size_groups',
+            value: JSON.stringify(DEFAULT_PRODUCT_SIZE_GROUPS),
+            type: 'json',
+            group: 'product_attributes',
+            label: 'Product size groups',
+            description: 'Category-based size presets for apparel, pants, shoes, bags, and accessories'
         },
         {
             key: 'product_materials',

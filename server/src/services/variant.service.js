@@ -6,6 +6,7 @@
 const { Variant, Product } = require('../models');
 const AppError = require('../utils/AppError');
 const { v4: uuidv4 } = require('uuid');
+const { getDefaultSizeForCategory } = require('../utils/product-size-groups');
 
 /**
  * Get all variants for a product
@@ -45,7 +46,7 @@ const createVariant = async (productId, variantData) => {
     const variant = await Variant.create({
         product_id: productId,
         sku,
-        size: variantData.size || 'One Size',
+        size: variantData.size || getDefaultSizeForCategory(product.category),
         color: variantData.color || 'Default',
         material: variantData.material || null,
         price_adjustment: variantData.price_adjustment || 0,

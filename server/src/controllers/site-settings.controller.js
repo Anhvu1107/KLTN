@@ -5,6 +5,39 @@
 
 const siteSettingsService = require('../services/site-settings.service');
 const catchAsync = require('../utils/catchAsync');
+const { SiteSettings } = require('../models');
+const {
+    DEFAULT_PRODUCT_SIZE_GROUPS,
+    normalizeSizeGroups,
+    flattenSizeGroups,
+    applyLegacySizesFallback,
+} = require('../utils/product-size-groups');
+
+const getDefaultSettingValue = (key, fallback) => {
+    const defaultSetting = SiteSettings.defaultSettings?.find((setting) => setting.key === key);
+
+    if (!defaultSetting?.value) {
+        return fallback;
+    }
+
+    try {
+        return JSON.parse(defaultSetting.value);
+    } catch {
+        return fallback;
+    }
+};
+
+const parseSettingValue = (setting, fallback) => {
+    if (!setting?.value) {
+        return fallback;
+    }
+
+    try {
+        return JSON.parse(setting.value);
+    } catch {
+        return fallback;
+    }
+};
 
 /**
  * GET /api/v1/settings
@@ -72,29 +105,54 @@ const seedSettings = catchAsync(async (req, res) => {
  * Get product attributes for product form (public)
  */
 const getProductAttributes = catchAsync(async (req, res) => {
-    const attributeKeys = [
-        'product_brands',
-        'product_categories',
-        'product_colors',
-        'product_sizes',
-        'product_materials'
-    ];
+    const [
+        brandsSetting,
+        categoriesSetting,
+        colorsSetting,
+        legacySizesSetting,
+        sizeGroupsSetting,
+        materialsSetting,
+    ] = await Promise.all([
+        siteSettingsService.getSettingByKey('product_brands'),
+        siteSettingsService.getSettingByKey('product_categories'),
+        siteSettingsService.getSettingByKey('product_colors'),
+        siteSettingsService.getSettingByKey('product_sizes'),
+        siteSettingsService.getSettingByKey('product_size_groups'),
+        siteSettingsService.getSettingByKey('product_materials'),
+    ]);
 
-    const attributes = {};
+    const categories = parseSettingValue(
+        categoriesSetting,
+        getDefaultSettingValue('product_categories', [])
+    );
 
-    for (const key of attributeKeys) {
-        const setting = await siteSettingsService.getSettingByKey(key);
-        if (setting && setting.value) {
-            try {
-                // Parse JSON value
-                attributes[key.replace('product_', '')] = JSON.parse(setting.value);
-            } catch (e) {
-                attributes[key.replace('product_', '')] = [];
-            }
-        } else {
-            attributes[key.replace('product_', '')] = [];
-        }
-    }
+    const legacySizes = parseSettingValue(
+        legacySizesSetting,
+        getDefaultSettingValue('product_sizes', flattenSizeGroups(DEFAULT_PRODUCT_SIZE_GROUPS))
+    );
+
+    const rawSizeGroups = parseSettingValue(sizeGroupsSetting, DEFAULT_PRODUCT_SIZE_GROUPS);
+    const sizeGroups = sizeGroupsSetting?.value
+        ? normalizeSizeGroups(rawSizeGroups, categories)
+        : normalizeSizeGroups(applyLegacySizesFallback(rawSizeGroups, legacySizes), categories);
+
+    const attributes = {
+        brands: parseSettingValue(
+            brandsSetting,
+            getDefaultSettingValue('product_brands', [])
+        ),
+        categories,
+        colors: parseSettingValue(
+            colorsSetting,
+            getDefaultSettingValue('product_colors', [])
+        ),
+        sizes: flattenSizeGroups(sizeGroups),
+        size_groups: sizeGroups,
+        materials: parseSettingValue(
+            materialsSetting,
+            getDefaultSettingValue('product_materials', [])
+        ),
+    };
 
     res.status(200).json({
         success: true,
@@ -112,8 +170,9 @@ const updateProductAttribute = catchAsync(async (req, res) => {
     const { items } = req.body;
 
     // Validate key
-    const validKeys = ['product_brands', 'product_categories', 'product_colors', 'product_sizes', 'product_materials'];
+    const validKeys = ['product_brands', 'product_categories', 'product_colors', 'product_sizes', 'product_size_groups', 'product_materials'];
     const fullKey = key.startsWith('product_') ? key : `product_${key}`;
+    const expectsObject = fullKey === 'product_size_groups';
 
     if (!validKeys.includes(fullKey)) {
         return res.status(400).json({
@@ -122,10 +181,38 @@ const updateProductAttribute = catchAsync(async (req, res) => {
         });
     }
 
-    if (!Array.isArray(items)) {
+    if (expectsObject) {
+        if (!items || typeof items !== 'object' || Array.isArray(items)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Items must be an object of size groups',
+            });
+        }
+    } else if (!Array.isArray(items)) {
         return res.status(400).json({
             success: false,
             message: 'Items must be an array',
+        });
+    }
+
+    if (expectsObject) {
+        const categoriesSetting = await siteSettingsService.getSettingByKey('product_categories');
+        const categories = parseSettingValue(
+            categoriesSetting,
+            getDefaultSettingValue('product_categories', [])
+        );
+        const normalizedGroups = normalizeSizeGroups(items, categories);
+
+        await siteSettingsService.updateSetting(fullKey, JSON.stringify(normalizedGroups));
+        await siteSettingsService.updateSetting('product_sizes', JSON.stringify(flattenSizeGroups(normalizedGroups)));
+
+        return res.status(200).json({
+            success: true,
+            message: 'Product attribute updated successfully',
+            data: {
+                [key]: normalizedGroups,
+                sizes: flattenSizeGroups(normalizedGroups),
+            }
         });
     }
 

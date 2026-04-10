@@ -196,6 +196,8 @@
         "bags": "Túi xách",
         "accessories": "Phụ kiện",
         "dresses": "Váy đầm",
+        "jewelry": "Trang sức",
+        "watches": "Đồng hồ",
         "unisex": "Unisex"
     },
     "conditions": {
@@ -214,7 +216,9 @@
         "burgundy": "Đỏ burgundy",
         "cream": "Kem",
         "brown": "Nâu",
-        "multi": "Đa màu"
+        "multi": "Đa màu",
+        "gold": "Vàng",
+        "silver": "Bạc"
     },
     "materials": {
         "leather": "Da",
@@ -225,7 +229,21 @@
         "cashmere": "Cashmere",
         "polyester": "Polyester",
         "linen": "Lanh",
-        "mixed": "Pha trộn"
+        "mixed": "Pha trộn",
+        "canvas": "Canvas",
+        "metal": "Kim loại"
+    },
+    "sizeLabels": {
+        "oneSize": "Một cỡ",
+        "freeSize": "Freesize",
+        "mini": "Mini",
+        "small": "Nhỏ",
+        "medium": "Vừa",
+        "large": "Lớn"
+    },
+    "brands": {
+        "cdg": "Comme des Garçons",
+        "hermes": "Hermès"
     },
     "shop": {
         "title": "Cửa hàng",
@@ -637,6 +655,7 @@
                 "product_categories": "Danh mục sản phẩm",
                 "product_colors": "Màu sắc sản phẩm",
                 "product_sizes": "Kích cỡ sản phẩm",
+                "product_size_groups": "Nhóm kích cỡ sản phẩm",
                 "product_materials": "Chất liệu sản phẩm"
             },
             "descriptions": {
@@ -644,6 +663,7 @@
                 "product_categories": "Danh sách danh mục có thể chọn khi tạo sản phẩm",
                 "product_colors": "Danh sách màu sắc có thể chọn khi tạo sản phẩm",
                 "product_sizes": "Danh sách kích cỡ có thể chọn khi tạo sản phẩm",
+                "product_size_groups": "Các nhóm kích cỡ theo từng danh mục khi tạo sản phẩm",
                 "product_materials": "Danh sách chất liệu có thể chọn khi tạo sản phẩm"
             }
         },
@@ -658,6 +678,12 @@
             "colorsDesc": "Các tùy chọn màu sắc có sẵn",
             "sizes": "Kích cỡ",
             "sizesDesc": "Các tùy chọn kích cỡ có sẵn",
+            "sizesByCategoryDesc": "Thiết lập bộ size riêng cho từng danh mục, ví dụ áo dùng XS-XL, quần dùng size số, giày dùng 35-45.",
+            "sizesFallbackHint": "Dùng cho danh mục mới hoặc danh mục chưa có bộ size riêng",
+            "sizesGroupHint": "Bộ size mặc định cho danh mục này",
+            "sizeGroupDefault": "Mặc định / dự phòng",
+            "sizeCount": "{count} kích cỡ",
+            "addSize": "Thêm kích cỡ mới...",
             "materials": "Chất liệu",
             "materialsDesc": "Các loại chất liệu có sẵn"
         },

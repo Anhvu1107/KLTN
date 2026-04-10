@@ -4,6 +4,8 @@
  * AURA ARCHIVE - View individual order details
  */
 
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+
 
 definePageMeta({
   middleware: ['auth'],
@@ -15,6 +17,7 @@ const config = useRuntimeConfig()
 const { confirm: showConfirm } = useDialog()
 const { getAuthHeaders } = useAuthToken()
 const { getImageUrl } = useImageUrl()
+const { formatSizeLabel } = useProductSizeLabel()
 
 const orderId = route.params.id as string
 
@@ -325,7 +328,7 @@ useSeoMeta({
                 <p class="text-caption text-neutral-500 uppercase">{{ item.product_brand }}</p>
                 <p class="text-body font-medium text-aura-black">{{ item.product_name }}</p>
                 <p class="text-body-sm text-neutral-600">
-                  {{ item.variant_size }} / {{ item.variant_color }}
+                  {{ formatSizeLabel(item.variant_size) }} / {{ item.variant_color }}
                 </p>
               </div>
               <div class="text-right">

@@ -4,15 +4,20 @@
  * AURA ARCHIVE - Form to create new product with variant and image upload
  */
 
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+import { DEFAULT_SIZE_GROUPS, getSizesForCategory, normalizeSizeGroups, type SizeGroups } from '~/utils/productSizeGroups'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['admin'],
 })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const config = useRuntimeConfig()
 const router = useRouter()
 const { getToken } = useAuthToken()
+const sizeGroups = ref<SizeGroups>(normalizeSizeGroups(DEFAULT_SIZE_GROUPS))
+const { formatSizeLabel } = useProductSizeLabel()
 
 // Form state
 const form = reactive({
@@ -44,6 +49,29 @@ const fileInput = ref<HTMLInputElement | null>(null)
 
 const otherLabel = computed(() => t('common.other', 'Other'))
 
+const fetchProductAttributes = async () => {
+  try {
+    const response = await $fetch<{
+      success: boolean
+      data: {
+        attributes?: {
+          size_groups?: SizeGroups
+          categories?: Array<{ value: string }>
+        }
+      }
+    }>(`${config.public.apiUrl}/settings/product-attributes`)
+
+    if (response.success) {
+      sizeGroups.value = normalizeSizeGroups(
+        response.data.attributes?.size_groups,
+        response.data.attributes?.categories || []
+      )
+    }
+  } catch {
+    sizeGroups.value = normalizeSizeGroups(DEFAULT_SIZE_GROUPS)
+  }
+}
+
 const brands = computed(() => [
   { value: 'Rick Owens', label: 'Rick Owens' },
   { value: 'Acronym', label: 'Acronym' },
@@ -73,18 +101,6 @@ const categories = computed(() => [
   { value: 'Dresses', label: t('categories.dresses') },
   { value: 'Jewelry', label: t('categories.jewelry', 'Trang sức') },
   { value: 'Watches', label: t('categories.watches', 'Đồng hồ') },
-  { value: 'Other', label: otherLabel.value },
-])
-
-const sizes = computed(() => [
-  { value: 'XS', label: 'XS' },
-  { value: 'S', label: 'S' },
-  { value: 'M', label: 'M' },
-  { value: 'L', label: 'L' },
-  { value: 'XL', label: 'XL' },
-  { value: 'XXL', label: 'XXL' },
-  { value: 'One Size', label: t('shop.filters.oneSize', 'One Size') },
-  { value: 'Free Size', label: t('shop.filters.freeSize', 'Free Size') },
   { value: 'Other', label: otherLabel.value },
 ])
 
@@ -143,6 +159,17 @@ const customSize = ref('')
 const customColor = ref('')
 const customMaterial = ref('')
 
+const getActiveCategory = () => (form.category === 'Other' ? customCategory.value.trim() : form.category)
+
+const sizes = computed(() => {
+  const categorySizes = getSizesForCategory(sizeGroups.value, getActiveCategory())
+
+  return [
+    ...categorySizes.map((size) => ({ value: size, label: formatSizeLabel(size) })),
+    { value: 'Other', label: otherLabel.value },
+  ]
+})
+
 // Watch for "Other" selection - reset custom value when not Other
 watch(() => form.brand, (newVal) => {
   if (newVal !== 'Other') customBrand.value = ''
@@ -165,6 +192,17 @@ watch(() => form.color, (newVal) => {
 watch(() => form.material, (newVal) => {
   if (newVal !== 'Other') customMaterial.value = ''
 })
+watch(
+  [() => form.category, customCategory, sizeGroups],
+  () => {
+    const availableSizes = getSizesForCategory(sizeGroups.value, getActiveCategory())
+
+    if (form.size !== 'Other' && !availableSizes.includes(form.size)) {
+      form.size = availableSizes[0] || 'Other'
+    }
+  },
+  { deep: true }
+)
 
 // Handle file selection
 const handleFileSelect = async (event: Event) => {
@@ -291,6 +329,10 @@ const handleSubmit = async () => {
 
 useSeoMeta({
   title: 'Add Product | AURA ARCHIVE Admin',
+})
+
+onMounted(() => {
+  fetchProductAttributes()
 })
 </script>
 

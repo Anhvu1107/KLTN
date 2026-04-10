@@ -6,6 +6,7 @@
 
 import { useCartStore } from '~/stores/cart'
 import { useAuthStore } from '~/stores/auth'
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
 import { useRecentlyViewed } from '~/composables/useRecentlyViewed'
 import { useCompare } from '~/composables/useCompare'
 
@@ -15,6 +16,7 @@ const config = useRuntimeConfig()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const { getImageUrl } = useImageUrl()
+const { formatSizeLabel } = useProductSizeLabel()
 
 const productId = route.params.id as string
 
@@ -366,7 +368,7 @@ useSeoMeta({
             <div class="flex gap-8">
               <div>
                 <p class="text-caption text-neutral-500 uppercase">{{ t('shop.size') }}</p>
-                <p class="text-body font-medium">{{ variant.size }}</p>
+                <p class="text-body font-medium">{{ formatSizeLabel(variant.size) }}</p>
               </div>
               <div v-if="variant.color">
                 <p class="text-caption text-neutral-500 uppercase">{{ t('shop.color') }}</p>

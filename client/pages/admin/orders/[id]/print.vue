@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Generate printable invoice/packing slip
  */
 
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'admin',
@@ -13,6 +15,7 @@ const route = useRoute()
 const config = useRuntimeConfig()
 const { getToken } = useAuthToken()
 const { t } = useI18n()
+const { formatSizeLabel } = useProductSizeLabel()
 const orderId = route.params.id as string
 
 const order = ref<any>(null)
@@ -141,8 +144,8 @@ onMounted(fetchOrder)
         <thead>
           <tr class="border-b-2 border-black">
             <th class="text-left py-2 font-bold">{{ t('cart.product') }}</th>
-            <th class="text-center py-2 font-bold w-24">Size</th>
-            <th class="text-center py-2 font-bold w-24">{{ t('shop.filters.color') }}</th>
+            <th class="text-center py-2 font-bold w-24">{{ t('shop.size') }}</th>
+            <th class="text-center py-2 font-bold w-24">{{ t('shop.color') }}</th>
             <th class="text-right py-2 font-bold w-32">{{ t('cart.price') }}</th>
           </tr>
         </thead>
@@ -152,7 +155,7 @@ onMounted(fetchOrder)
               <p class="font-medium">{{ item.product_name || item.product?.name }}</p>
               <p class="text-xs text-neutral-500">SKU: {{ item.variant?.sku || 'N/A' }}</p>
             </td>
-            <td class="text-center py-3">{{ item.variant_size || item.variant?.size }}</td>
+            <td class="text-center py-3">{{ formatSizeLabel(item.variant_size || item.variant?.size) }}</td>
             <td class="text-center py-3">{{ item.variant_color || item.variant?.color }}</td>
             <td class="text-right py-3">{{ formatPrice(item.price) }}</td>
           </tr>

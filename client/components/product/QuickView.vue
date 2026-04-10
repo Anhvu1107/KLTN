@@ -4,6 +4,8 @@
  * AURA ARCHIVE - Product quick view popup
  */
 
+import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+
 const props = defineProps<{
   product: any
   isOpen: boolean
@@ -11,9 +13,8 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'addToCart', 'buyNow'])
 
-const config = useRuntimeConfig()
 const selectedVariant = ref<any>(null)
-const isLoading = ref(false)
+const { formatSizeLabel } = useProductSizeLabel()
 
 // Get variants
 const variants = computed(() => props.product?.variants || [])
@@ -128,7 +129,7 @@ const handleBuyNow = () => {
                     class="px-4 py-2 text-body-sm border transition-colors"
                     :class="selectedSize === size ? 'border-aura-black bg-aura-black text-white' : 'border-neutral-300 hover:border-aura-black'"
                   >
-                    {{ size }}
+                    {{ formatSizeLabel(size) }}
                   </button>
                 </div>
               </div>
