@@ -52,7 +52,7 @@ const INTENTS = {
         priority: 7,
     },
     PRICE_INQUIRY: {
-        phrases: ['gia', 'bao nhieu', 'price', 'cost', 'budget', 'tam gia', 'khoang gia', 'trong khoang', 're', 'dat', 'cheap', 'expensive', 'affordable', 'sale', 'giam gia', 'khuyen mai'],
+        phrases: ['gia', 'bao nhieu', 'price', 'cost', 'budget', 'tam gia', 'khoang gia', 'trong khoang', 're', 'dat', 'cheap', 'expensive', 'affordable', 'sale'],
         priority: 8,
     },
     STYLE_ADVICE: {
@@ -78,6 +78,10 @@ const INTENTS = {
     INVENTORY_CHECK: {
         phrases: ['kho hang', 'ton kho', 'inventory', 'stock', 'con hang', 'in stock', 'bao nhieu san pham', 'tong san pham', 'tat ca san pham', 'danh sach san pham', 'what do you have', 'available'],
         priority: 8,
+    },
+    COUPON_INQUIRY: {
+        phrases: ['coupon', 'ma giam gia', 'giam gia', 'voucher', 'discount', 'khuyen mai', 'promo', 'promotion', 'code', 'ma uu dai', 'uu dai', 'ma khuyen mai'],
+        priority: 9,
     },
     AUTHENTICITY: {
         phrases: ['that', 'chinh hang', 'authentic', 'real', 'fake', 'gia', 'xac thuc', 'verify', 'legit', 'bao dam', 'guarantee', 'warranty', 'cam ket', 'certificate'],

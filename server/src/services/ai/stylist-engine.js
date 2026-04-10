@@ -14,6 +14,7 @@ const { classifyIntent, extractEntities, extractSearchQuery, normalizeForMatchin
 const kb = require('./knowledge-base');
 const productSearch = require('./product-search');
 const sessionMemory = require('./session-memory');
+const couponService = require('../coupon.service');
 
 const GENERIC_RECOMMENDATION_PHRASES = [
     'gioi thieu',
@@ -319,6 +320,28 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         if (intent === 'CONSIGNMENT') enrichment.policy = kb.STORE_POLICIES.consignment;
         if (intent === 'ORDER_STATUS') enrichment.policy = kb.STORE_POLICIES.shipping;
 
+        // Coupon / discount codes
+        if (intent === 'COUPON_INQUIRY') {
+            try {
+                const { coupons } = await couponService.getAllCoupons({ status: 'active', limit: 10 });
+                if (coupons && coupons.length) {
+                    enrichment.coupons = coupons.map(c => ({
+                        code: c.code,
+                        name: c.name,
+                        description: c.description,
+                        type: c.type,
+                        value: parseFloat(c.value),
+                        min_order_amount: parseFloat(c.min_order_amount || 0),
+                        max_discount_amount: c.max_discount_amount ? parseFloat(c.max_discount_amount) : null,
+                        expires_at: c.expires_at,
+                        applies_to: c.applies_to,
+                    }));
+                }
+            } catch (e) {
+                console.log('[StylistEngine] Failed to fetch coupons:', e.message);
+            }
+        }
+
         return enrichment;
     }
 
@@ -525,6 +548,21 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         if (enrichment.inventory_context) {
             contextParts.push(`\n📊 TỔNG QUAN KHO HÀNG:\n${enrichment.inventory_context}`);
             contextParts.push('\n⚠️ CHỈ sử dụng số liệu kho hàng ở trên để trả lời. KHÔNG ĐƯỢC tự nghĩ ra số liệu.');
+        }
+
+        if (enrichment.coupons && enrichment.coupons.length) {
+            const couponLines = enrichment.coupons.map(c => {
+                const typeLabel = c.type === 'PERCENTAGE' ? `${c.value}%` : `${c.value.toLocaleString('vi-VN')}₫`;
+                const expiry = c.expires_at ? new Date(c.expires_at).toLocaleDateString('vi-VN') : 'Không giới hạn';
+                const minOrder = c.min_order_amount > 0 ? ` | Đơn tối thiểu: ${c.min_order_amount.toLocaleString('vi-VN')}₫` : '';
+                const maxDiscount = c.max_discount_amount ? ` | Giảm tối đa: ${c.max_discount_amount.toLocaleString('vi-VN')}₫` : '';
+                return `• Mã: **${c.code}** — ${c.name || ''} | Giảm: ${typeLabel}${minOrder}${maxDiscount} | HSD: ${expiry}`;
+            });
+            contextParts.push(`\n🎟️ MÃ GIẢM GIÁ ĐANG HOẠT ĐỘNG:\n${couponLines.join('\n')}`);
+            contextParts.push('\n💡 Hãy chia sẻ mã giảm giá với khách một cách tự nhiên. Hướng dẫn khách nhập mã khi thanh toán.');
+        } else if (intent === 'COUPON_INQUIRY') {
+            contextParts.push('\n🎟️ MÃ GIẢM GIÁ: Hiện tại shop KHÔNG có mã giảm giá nào đang hoạt động.');
+            contextParts.push('Hãy nói với khách rằng hiện chưa có mã giảm giá, nhưng có thể gợi ý các sản phẩm đang sale nếu có.');
         }
 
         // Customer profile
@@ -822,6 +860,27 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
                 'Ấy, mình không lấy được thông tin kho hàng lúc này. Thông cảm nha!\n' +
                 "Bạn cứ hỏi trực tiếp về sản phẩm (kiểu 'Tìm giày Rick Owens') " +
                 'là mình tìm ngay cho!'
+            );
+        }
+
+        // COUPON INQUIRY
+        if (intent === 'COUPON_INQUIRY') {
+            const coupons = enrichment.coupons || [];
+            if (coupons.length) {
+                let response = 'Có chứ bạn! Shop mình đang có mấy mã giảm giá nè:\n\n';
+                for (const c of coupons) {
+                    const typeLabel = c.type === 'PERCENTAGE' ? `${c.value}%` : `${c.value.toLocaleString('vi-VN')}₫`;
+                    const expiry = c.expires_at ? new Date(c.expires_at).toLocaleDateString('vi-VN') : 'Không giới hạn';
+                    response += `• Mã **${c.code}** — Giảm **${typeLabel}**`;
+                    if (c.min_order_amount > 0) response += ` (đơn tối thiểu ${c.min_order_amount.toLocaleString('vi-VN')}₫)`;
+                    response += ` | HSD: ${expiry}\n`;
+                }
+                response += '\nBạn chỉ cần nhập mã khi thanh toán là được nha! Muốn mình tìm đồ gì để dùng mã luôn không?';
+                return response;
+            }
+            return (
+                'Tiếc quá, hiện tại shop chưa có mã giảm giá nào đang hoạt động.\n\n' +
+                'Nhưng mà mình có mấy món đang **sale** khá hấp dẫn lắm, bạn muốn xem không?'
             );
         }
 
