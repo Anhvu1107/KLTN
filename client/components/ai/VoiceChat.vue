@@ -176,8 +176,6 @@ const getOrCreateSessionId = () => {
   return freshId
 }
 
-const isProductDetailPath = (path: string) => /^\/shop\/[^/?#]+(?:[?#].*)?$/.test(path)
-
 const minimizeVoiceWidget = () => {
   isMinimized.value = true
 }
@@ -191,17 +189,6 @@ const updateSuggestedProducts = (products: any[] = []) => {
 
   if (suggestedProducts.value.length > 1) {
     maximizeVoiceWidget()
-  }
-}
-
-const syncMinimizedStateWithRoute = (path: string) => {
-  if (isProductDetailPath(path)) {
-    minimizeVoiceWidget()
-    return
-  }
-
-  if (props.startMinimized) {
-    minimizeVoiceWidget()
   }
 }
 
@@ -586,9 +573,7 @@ const openSalesRoute = async (path: string) => {
   try {
     suggestedProducts.value = []
     await router.push(path)
-    if (isProductDetailPath(path)) {
-      minimizeVoiceWidget()
-    }
+    minimizeVoiceWidget()
   } catch {
     if (import.meta.client) {
       window.location.href = path
@@ -1287,8 +1272,9 @@ const stateLabel = computed(() => {
   }
 })
 
-watch(() => route.path, (path) => {
-  syncMinimizedStateWithRoute(path)
+watch(() => route.path, (path, previousPath) => {
+  if (!previousPath || path === previousPath) return
+  minimizeVoiceWidget()
 })
 
 // Cleanup on unmount
@@ -1307,7 +1293,6 @@ onMounted(() => {
   window.addEventListener('touchstart', resetActivity, { passive: true })
   window.addEventListener('wheel', resetActivity, { passive: true })
 
-  syncMinimizedStateWithRoute(route.path)
   sessionId.value = getOrCreateSessionId()
   startVoiceSession()
 })
@@ -1342,7 +1327,7 @@ onMounted(() => {
         @pointerdown="handleCanvasPointerDown"
       >
         <button
-          v-if="!isMinimized && isProductDetailPath(route.path)"
+          v-if="!isMinimized"
           type="button"
           class="absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/35 text-white/75 transition hover:bg-black/55 hover:text-white"
           aria-label="Thu nhỏ cuộc gọi"
