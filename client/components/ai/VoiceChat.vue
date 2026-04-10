@@ -68,7 +68,7 @@ let isPlaying = false
 let playbackSource: AudioBufferSourceNode | null = null
 let micSourceNode: MediaStreamAudioSourceNode | null = null
 let micProcessorNode: ScriptProcessorNode | null = null
-let currentTurnAudioIndex = 0
+let currentTurnAudioParts = new Set<string>()
 let currentTurnTextParts = new Set<string>()
 let isStreamingAiResponse = false
 let shouldResumeListeningAfterPlayback = false
@@ -103,11 +103,32 @@ const resetActivity = () => {
 
 const resetStreamingResponseTracking = ({ clearDedup = true } = {}) => {
   if (clearDedup) {
-    currentTurnAudioIndex = 0
+    currentTurnAudioParts = new Set()
     currentTurnTextParts = new Set()
   }
   isStreamingAiResponse = false
   shouldResumeListeningAfterPlayback = false
+}
+
+const appendUniqueTranscript = (text: string) => {
+  const transcriptText = text.trim()
+  if (!transcriptText) return
+
+  // Gemini can resend cumulative transcript snapshots for the same turn.
+  if (transcriptText.startsWith(aiTranscript.value)) {
+    aiTranscript.value = transcriptText
+    currentTurnTextParts.add(transcriptText)
+    return
+  }
+
+  if (aiTranscript.value.startsWith(transcriptText) || currentTurnTextParts.has(transcriptText)) {
+    return
+  }
+
+  currentTurnTextParts.add(transcriptText)
+  aiTranscript.value = aiTranscript.value
+    ? `${aiTranscript.value} ${transcriptText}`
+    : transcriptText
 }
 
 const resumeListeningIfPlaybackFinished = () => {
@@ -443,12 +464,7 @@ const startVoiceSession = async () => {
 
         // Handle output audio transcription (what AI actually said)
         if (data.serverContent?.outputTranscription?.text) {
-          const transcriptText = data.serverContent.outputTranscription.text.trim()
-          if (transcriptText) {
-            aiTranscript.value = aiTranscript.value
-              ? `${aiTranscript.value} ${transcriptText}`
-              : transcriptText
-          }
+          appendUniqueTranscript(data.serverContent.outputTranscription.text)
           return
         }
 
@@ -480,11 +496,13 @@ const startVoiceSession = async () => {
           }
 
           for (const part of parts) {
-            // Audio response — use sequential index to avoid replaying
             if (part.inlineData?.mimeType?.startsWith('audio/')) {
-              currentTurnAudioIndex++
+              const audioData = part.inlineData.data
+              if (!audioData || currentTurnAudioParts.has(audioData)) continue
+
+              currentTurnAudioParts.add(audioData)
               state.value = 'speaking'
-              const audioBytes = base64ToArrayBuffer(part.inlineData.data)
+              const audioBytes = base64ToArrayBuffer(audioData)
               scheduleAudioChunk(audioBytes)
             }
           }
