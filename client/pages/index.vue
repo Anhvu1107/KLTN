@@ -174,7 +174,6 @@ useSeoMeta({
                   v-if="heroBanners.length > 0"
                   :banners="heroBanners"
                   :animation="getAnimType('hero')"
-                  aspect-class=""
                 />
                 <!-- Fallback placeholder -->
                 <div v-else class="w-full aspect-[3/4] flex items-center justify-center text-neutral-400">

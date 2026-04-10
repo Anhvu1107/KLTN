@@ -32,6 +32,8 @@ const currentIndex = ref(0)
 const isTransitioning = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
+const resolvedAspectClass = computed(() => props.aspectClass?.trim() || 'aspect-[3/4]')
+
 const resolveUrl = (url: string) => {
   if (!url) return ''
   return url.startsWith('http') ? url : `${config.public.apiUrl}${url}`
@@ -71,7 +73,7 @@ watch(() => props.banners.length, resetTimer)
 </script>
 
 <template>
-  <div class="banner-slider relative overflow-hidden w-full h-full" :class="aspectClass">
+  <div class="banner-slider relative overflow-hidden w-full h-full" :class="resolvedAspectClass">
     <!-- STATIC / single banner -->
     <template v-if="animation === 'none' || !hasMultiple">
       <div v-if="currentBanner" class="w-full h-full">
