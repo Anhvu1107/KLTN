@@ -837,7 +837,18 @@
             "usageLimitReached": "Mã giảm giá đã hết lượt sử dụng",
             "alreadyUsed": "Bạn đã sử dụng mã giảm giá này rồi",
             "minOrderRequired": "Giá trị đơn hàng chưa đạt mức tối thiểu",
-            "couponNotYetValid": "Mã giảm giá chưa có hiệu lực"
+            "couponNotYetValid": "Mã giảm giá chưa có hiệu lực",
+            "visibility": "Phạm vi",
+            "visibilityPublic": "Công khai",
+            "visibilityPrivate": "VVIP",
+            "visibilityPersonal": "Cá nhân",
+            "visibilityPublicDesc": "Tất cả đều thấy và dùng được. AI sẽ chia sẻ cho khách hàng.",
+            "visibilityPrivateDesc": "Chỉ admin biết và phân phối. Dành cho khách VVIP. Ẩn khỏi AI.",
+            "visibilityPersonalDesc": "Gán cho từng khách hàng cụ thể. Chọn người dùng bên dưới.",
+            "assignUsers": "Gán cho người dùng",
+            "searchUsers": "Tìm theo email hoặc tên...",
+            "noUsersFound": "Không tìm thấy người dùng",
+            "couponNotForYou": "Mã giảm giá này không dành cho tài khoản của bạn"
         },
         "banners": {
             "title": "Quản lý banner",

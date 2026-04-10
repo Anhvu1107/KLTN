@@ -320,12 +320,12 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         if (intent === 'CONSIGNMENT') enrichment.policy = kb.STORE_POLICIES.consignment;
         if (intent === 'ORDER_STATUS') enrichment.policy = kb.STORE_POLICIES.shipping;
 
-        // Coupon / discount codes
+        // Coupon / discount codes — only PUBLIC coupons shared via AI
         if (intent === 'COUPON_INQUIRY') {
             try {
-                const { coupons } = await couponService.getAllCoupons({ status: 'active', limit: 10 });
-                if (coupons && coupons.length) {
-                    enrichment.coupons = coupons.map(c => ({
+                const publicCoupons = await couponService.getPublicCoupons(10);
+                if (publicCoupons && publicCoupons.length) {
+                    enrichment.coupons = publicCoupons.map(c => ({
                         code: c.code,
                         name: c.name,
                         description: c.description,

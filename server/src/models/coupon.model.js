@@ -88,6 +88,11 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: [],
             comment: 'Array of category names if applies_to is SPECIFIC_CATEGORIES',
         },
+        visibility: {
+            type: DataTypes.ENUM('PUBLIC', 'PRIVATE', 'PERSONAL'),
+            defaultValue: 'PUBLIC',
+            comment: 'PUBLIC = everyone, PRIVATE = admin-only (VVIP), PERSONAL = assigned users only',
+        },
     }, {
         tableName: 'coupons',
         timestamps: true,
@@ -96,8 +101,16 @@ module.exports = (sequelize, DataTypes) => {
             { unique: true, fields: ['code'] },
             { fields: ['is_active'] },
             { fields: ['expires_at'] },
+            { fields: ['visibility'] },
         ],
     });
+
+    Coupon.associate = (models) => {
+        Coupon.hasMany(models.CouponAssignment, {
+            foreignKey: 'coupon_id',
+            as: 'assignments',
+        });
+    };
 
     return Coupon;
 };

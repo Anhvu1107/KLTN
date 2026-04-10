@@ -90,6 +90,33 @@ const validateCoupon = catchAsync(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/coupons/public
+ * Get active PUBLIC coupons (for storefront / AI)
+ */
+const getPublicCoupons = catchAsync(async (req, res) => {
+    const coupons = await couponService.getPublicCoupons();
+
+    res.status(200).json({
+        success: true,
+        data: { coupons },
+    });
+});
+
+/**
+ * GET /api/v1/coupons/my
+ * Get coupons available for the logged-in user (PUBLIC + PERSONAL assigned)
+ */
+const getMyCoupons = catchAsync(async (req, res) => {
+    const userId = req.user.id;
+    const coupons = await couponService.getCouponsForUser(userId);
+
+    res.status(200).json({
+        success: true,
+        data: { coupons },
+    });
+});
+
+/**
  * GET /api/v1/admin/coupons/:id/stats
  * Get coupon usage stats (admin)
  */
@@ -109,5 +136,7 @@ module.exports = {
     updateCoupon,
     deleteCoupon,
     validateCoupon,
+    getPublicCoupons,
+    getMyCoupons,
     getCouponStats,
 };

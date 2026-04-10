@@ -3,9 +3,17 @@
  * AURA ARCHIVE - Business logic for coupons
  */
 
-const { Coupon, CouponUsage, Order, sequelize } = require('../models');
+const { Coupon, CouponUsage, CouponAssignment, User, Order, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
+
+const activeConditions = () => ({
+    is_active: true,
+    [Op.or]: [
+        { expires_at: null },
+        { expires_at: { [Op.gt]: new Date() } },
+    ],
+});
 
 /**
  * Get all coupons (admin)
@@ -21,11 +29,7 @@ const getAllCoupons = async (options = {}) => {
     const where = {};
 
     if (status === 'active') {
-        where.is_active = true;
-        where[Op.or] = [
-            { expires_at: null },
-            { expires_at: { [Op.gt]: new Date() } },
-        ];
+        Object.assign(where, activeConditions());
     } else if (status === 'expired') {
         where[Op.or] = [
             { is_active: false },
@@ -38,6 +42,11 @@ const getAllCoupons = async (options = {}) => {
         order: [['created_at', 'DESC']],
         limit,
         offset,
+        include: [{
+            model: CouponAssignment,
+            as: 'assignments',
+            include: [{ model: User, as: 'user', attributes: ['id', 'email', 'first_name', 'last_name'] }],
+        }],
     });
 
     return {
@@ -55,11 +64,68 @@ const getAllCoupons = async (options = {}) => {
  * Get coupon by ID
  */
 const getCouponById = async (id) => {
-    const coupon = await Coupon.findByPk(id);
+    const coupon = await Coupon.findByPk(id, {
+        include: [{
+            model: CouponAssignment,
+            as: 'assignments',
+            include: [{ model: User, as: 'user', attributes: ['id', 'email', 'first_name', 'last_name'] }],
+        }],
+    });
     if (!coupon) {
         throw new AppError('Coupon not found', 404);
     }
     return coupon;
+};
+
+/**
+ * Get PUBLIC active coupons (for AI / public display)
+ */
+const getPublicCoupons = async (limit = 10) => {
+    const coupons = await Coupon.findAll({
+        where: {
+            ...activeConditions(),
+            visibility: 'PUBLIC',
+        },
+        order: [['created_at', 'DESC']],
+        limit,
+    });
+    return coupons;
+};
+
+/**
+ * Get coupons available for a specific user (PUBLIC + their PERSONAL assignments)
+ */
+const getCouponsForUser = async (userId, limit = 20) => {
+    // PUBLIC coupons
+    const publicCoupons = await Coupon.findAll({
+        where: { ...activeConditions(), visibility: 'PUBLIC' },
+        order: [['created_at', 'DESC']],
+        limit,
+    });
+
+    // PERSONAL coupons assigned to this user
+    const personalAssignments = await CouponAssignment.findAll({
+        where: { user_id: userId },
+        include: [{
+            model: Coupon,
+            as: 'coupon',
+            where: activeConditions(),
+        }],
+    });
+    const personalCoupons = personalAssignments
+        .map(a => a.coupon)
+        .filter(Boolean);
+
+    // Merge and deduplicate by ID
+    const seen = new Set();
+    const merged = [];
+    for (const c of [...publicCoupons, ...personalCoupons]) {
+        if (!seen.has(c.id)) {
+            seen.add(c.id);
+            merged.push(c);
+        }
+    }
+    return merged;
 };
 
 /**
@@ -81,9 +147,10 @@ const createCoupon = async (data) => {
         applies_to,
         product_ids,
         category_ids,
+        visibility,
+        assigned_user_ids,
     } = data;
 
-    // Check if code already exists
     const existingCoupon = await Coupon.findOne({ where: { code: code.toUpperCase() } });
     if (existingCoupon) {
         throw new AppError('Coupon code already exists', 400);
@@ -104,31 +171,70 @@ const createCoupon = async (data) => {
         applies_to: applies_to || 'ALL',
         product_ids: product_ids || [],
         category_ids: category_ids || [],
+        visibility: visibility || 'PUBLIC',
     });
 
-    return coupon;
+    // Create assignments for PERSONAL coupons
+    if (visibility === 'PERSONAL' && Array.isArray(assigned_user_ids) && assigned_user_ids.length) {
+        await _syncAssignments(coupon.id, assigned_user_ids);
+    }
+
+    return getCouponById(coupon.id);
 };
 
 /**
  * Update coupon (admin)
  */
 const updateCoupon = async (id, data) => {
-    const coupon = await getCouponById(id);
+    const coupon = await Coupon.findByPk(id);
+    if (!coupon) throw new AppError('Coupon not found', 404);
 
     const updateData = { ...data };
-    if (data.code) {
-        updateData.code = data.code.toUpperCase();
-    }
+    if (data.code) updateData.code = data.code.toUpperCase();
+    delete updateData.assigned_user_ids;
 
     await coupon.update(updateData);
-    return coupon;
+
+    // Sync assignments if visibility is PERSONAL
+    if (coupon.visibility === 'PERSONAL' && Array.isArray(data.assigned_user_ids)) {
+        await _syncAssignments(coupon.id, data.assigned_user_ids);
+    } else if (coupon.visibility !== 'PERSONAL') {
+        // Remove all assignments if no longer PERSONAL
+        await CouponAssignment.destroy({ where: { coupon_id: coupon.id } });
+    }
+
+    return getCouponById(coupon.id);
+};
+
+/**
+ * Sync user assignments for a PERSONAL coupon
+ */
+const _syncAssignments = async (couponId, userIds) => {
+    const existing = await CouponAssignment.findAll({ where: { coupon_id: couponId } });
+    const existingUserIds = existing.map(a => a.user_id);
+
+    // Add new
+    const toAdd = userIds.filter(uid => !existingUserIds.includes(uid));
+    for (const userId of toAdd) {
+        await CouponAssignment.create({ coupon_id: couponId, user_id: userId });
+    }
+
+    // Remove unassigned
+    const toRemove = existingUserIds.filter(uid => !userIds.includes(uid));
+    if (toRemove.length) {
+        await CouponAssignment.destroy({
+            where: { coupon_id: couponId, user_id: { [Op.in]: toRemove } },
+        });
+    }
 };
 
 /**
  * Delete coupon (admin)
  */
 const deleteCoupon = async (id) => {
-    const coupon = await getCouponById(id);
+    const coupon = await Coupon.findByPk(id);
+    if (!coupon) throw new AppError('Coupon not found', 404);
+    await CouponAssignment.destroy({ where: { coupon_id: id } });
     await coupon.destroy();
     return { message: 'Coupon deleted successfully' };
 };
@@ -145,12 +251,24 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
         throw new AppError('Invalid coupon code', 400);
     }
 
-    // Check if active
     if (!coupon.is_active) {
         throw new AppError('This coupon is no longer active', 400);
     }
 
-    // Check start date (compare date only, ignore time/timezone)
+    // Visibility check
+    if (coupon.visibility === 'PERSONAL') {
+        if (!userId) {
+            throw new AppError('Please log in to use this coupon', 400);
+        }
+        const assignment = await CouponAssignment.findOne({
+            where: { coupon_id: coupon.id, user_id: userId },
+        });
+        if (!assignment) {
+            throw new AppError('This coupon is not available for your account', 400);
+        }
+    }
+
+    // Check start date
     if (coupon.starts_at) {
         const startDate = new Date(coupon.starts_at).toISOString().split('T')[0];
         const today = new Date().toISOString().split('T')[0];
@@ -159,7 +277,7 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
         }
     }
 
-    // Check expiry (compare date only, ignore time/timezone)
+    // Check expiry
     if (coupon.expires_at) {
         const expiryDate = new Date(coupon.expires_at).toISOString().split('T')[0];
         const today = new Date().toISOString().split('T')[0];
@@ -196,16 +314,13 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
     let discountAmount = 0;
     if (coupon.type === 'PERCENTAGE') {
         discountAmount = (cartTotal * parseFloat(coupon.value)) / 100;
-        // Apply max discount cap
         if (coupon.max_discount_amount && discountAmount > parseFloat(coupon.max_discount_amount)) {
             discountAmount = parseFloat(coupon.max_discount_amount);
         }
     } else {
-        // FIXED_AMOUNT
         discountAmount = parseFloat(coupon.value);
     }
 
-    // Discount cannot exceed cart total
     if (discountAmount > cartTotal) {
         discountAmount = cartTotal;
     }
@@ -218,7 +333,7 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
             type: coupon.type,
             value: coupon.value,
         },
-        discountAmount: Math.round(discountAmount * 100) / 100, // Round to 2 decimals
+        discountAmount: Math.round(discountAmount * 100) / 100,
         newTotal: Math.round((cartTotal - discountAmount) * 100) / 100,
     };
 };
@@ -227,9 +342,9 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
  * Apply coupon to order (internal use during checkout)
  */
 const applyCoupon = async (couponId, userId, orderId, discountAmount) => {
-    const coupon = await getCouponById(couponId);
+    const coupon = await Coupon.findByPk(couponId);
+    if (!coupon) throw new AppError('Coupon not found', 404);
 
-    // Record usage
     await CouponUsage.create({
         coupon_id: couponId,
         user_id: userId,
@@ -237,9 +352,7 @@ const applyCoupon = async (couponId, userId, orderId, discountAmount) => {
         discount_amount: discountAmount,
     });
 
-    // Increment usage count
     await coupon.increment('uses_count');
-
     return coupon;
 };
 
@@ -268,6 +381,8 @@ const getCouponStats = async (couponId) => {
 module.exports = {
     getAllCoupons,
     getCouponById,
+    getPublicCoupons,
+    getCouponsForUser,
     createCoupon,
     updateCoupon,
     deleteCoupon,

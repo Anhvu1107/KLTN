@@ -57,6 +57,7 @@ db.Newsletter = require('./newsletter.model')(sequelize, Sequelize.DataTypes);
 db.Review = require('./review.model')(sequelize, Sequelize.DataTypes);
 db.Coupon = require('./coupon.model')(sequelize, Sequelize.DataTypes);
 db.CouponUsage = require('./coupon-usage.model')(sequelize, Sequelize.DataTypes);
+db.CouponAssignment = require('./coupon-assignment.model')(sequelize, Sequelize.DataTypes);
 db.Address = require('./address.model')(sequelize, Sequelize.DataTypes);
 db.Banner = require('./banner.model')(sequelize, Sequelize.DataTypes);
 db.Blog = require('./blog.model')(sequelize, Sequelize.DataTypes);

@@ -816,7 +816,18 @@
             "usageLimitReached": "This coupon has reached its usage limit",
             "alreadyUsed": "You have already used this coupon",
             "minOrderRequired": "Order amount does not meet minimum requirement",
-            "couponNotYetValid": "This coupon is not yet valid"
+            "couponNotYetValid": "This coupon is not yet valid",
+            "visibility": "Visibility",
+            "visibilityPublic": "Public",
+            "visibilityPrivate": "VVIP",
+            "visibilityPersonal": "Personal",
+            "visibilityPublicDesc": "Everyone can see and use this coupon. AI will share it with customers.",
+            "visibilityPrivateDesc": "Only admin can distribute. For VVIP customers. Hidden from AI and public.",
+            "visibilityPersonalDesc": "Assigned to specific users only. Select users below.",
+            "assignUsers": "Assign to users",
+            "searchUsers": "Search by email or name...",
+            "noUsersFound": "No users found",
+            "couponNotForYou": "This coupon is not available for your account"
         },
         "banners": {
             "title": "Banner Management",

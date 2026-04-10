@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Admin Coupons Page
- * AURA ARCHIVE - Manage discount codes
+ * AURA ARCHIVE - Manage discount codes with visibility tiers
  */
 
 import { useDialog } from '~/composables/useDialog'
@@ -24,6 +24,11 @@ const editingCoupon = ref<any>(null)
 const formError = ref('')
 const isSubmitting = ref(false)
 
+// Users for PERSONAL assignment
+const allUsers = ref<any[]>([])
+const userSearchQuery = ref('')
+const isLoadingUsers = ref(false)
+
 // Form data
 const formData = ref({
   code: '',
@@ -38,7 +43,18 @@ const formData = ref({
   starts_at: '',
   expires_at: '',
   is_active: true,
+  visibility: 'PUBLIC',
+  assigned_user_ids: [] as string[],
 })
+
+// Visibility options
+const visibilityOptions = [
+  { value: 'PUBLIC', label: () => t('admin.coupons.visibilityPublic'), color: 'bg-green-100 text-green-700' },
+  { value: 'PRIVATE', label: () => t('admin.coupons.visibilityPrivate'), color: 'bg-amber-100 text-amber-700' },
+  { value: 'PERSONAL', label: () => t('admin.coupons.visibilityPersonal'), color: 'bg-blue-100 text-blue-700' },
+]
+
+const getVisibilityOption = (value: string) => visibilityOptions.find(v => v.value === value) || visibilityOptions[0]
 
 // Fetch coupons
 const fetchCoupons = async () => {
@@ -57,6 +73,45 @@ const fetchCoupons = async () => {
   }
 }
 
+// Fetch users for assignment
+const fetchUsers = async () => {
+  if (allUsers.value.length) return
+  isLoadingUsers.value = true
+  try {
+    const token = getToken()
+    const response = await $fetch<{ success: boolean; data: { users: any[] } }>(
+      `${config.public.apiUrl}/admin/users?limit=200`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    allUsers.value = response.data.users || []
+  } catch (error) {
+    console.error('Failed to fetch users:', error)
+  } finally {
+    isLoadingUsers.value = false
+  }
+}
+
+// Filtered users for search
+const filteredUsers = computed(() => {
+  if (!userSearchQuery.value.trim()) return allUsers.value.slice(0, 20)
+  const q = userSearchQuery.value.toLowerCase()
+  return allUsers.value.filter((u: any) =>
+    (u.email || '').toLowerCase().includes(q) ||
+    `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase().includes(q)
+  ).slice(0, 20)
+})
+
+const toggleUserAssignment = (userId: string) => {
+  const index = formData.value.assigned_user_ids.indexOf(userId)
+  if (index >= 0) {
+    formData.value.assigned_user_ids.splice(index, 1)
+  } else {
+    formData.value.assigned_user_ids.push(userId)
+  }
+}
+
+const isUserAssigned = (userId: string) => formData.value.assigned_user_ids.includes(userId)
+
 // Open create modal
 const openCreateModal = () => {
   editingCoupon.value = null
@@ -73,6 +128,8 @@ const openCreateModal = () => {
     starts_at: '',
     expires_at: '',
     is_active: true,
+    visibility: 'PUBLIC',
+    assigned_user_ids: [],
   }
   showModal.value = true
 }
@@ -93,9 +150,19 @@ const openEditModal = (coupon: any) => {
     starts_at: coupon.starts_at ? coupon.starts_at.split('T')[0] : '',
     expires_at: coupon.expires_at ? coupon.expires_at.split('T')[0] : '',
     is_active: coupon.is_active,
+    visibility: coupon.visibility || 'PUBLIC',
+    assigned_user_ids: (coupon.assignments || []).map((a: any) => a.user_id),
+  }
+  if (coupon.visibility === 'PERSONAL') {
+    fetchUsers()
   }
   showModal.value = true
 }
+
+// Watch visibility for lazy-loading users
+watch(() => formData.value.visibility, (v) => {
+  if (v === 'PERSONAL') fetchUsers()
+})
 
 // Submit form
 const submitForm = async () => {
@@ -118,7 +185,6 @@ const submitForm = async () => {
     await fetchCoupons()
   } catch (error: any) {
     const msg = error.data?.message || ''
-    // Map backend error messages to i18n keys
     const errorMap: Record<string, string> = {
       'Coupon code already exists': t('admin.coupons.codeExists'),
       'Invalid coupon code': t('admin.coupons.invalidCode'),
@@ -163,6 +229,12 @@ const isExpired = (expiresAt: string) => {
   return new Date(expiresAt) < new Date()
 }
 
+// Format user display
+const formatUserName = (user: any) => {
+  const name = `${user.first_name || ''} ${user.last_name || ''}`.trim()
+  return name || user.email
+}
+
 onMounted(fetchCoupons)
 
 useSeoMeta({ title: 'Coupon Management | Admin' })
@@ -191,6 +263,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
             <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.name') }}</th>
             <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.type') }}</th>
             <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.value') }}</th>
+            <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.visibility') }}</th>
             <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.usage') }}</th>
             <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('admin.coupons.expires') }}</th>
             <th class="text-left px-4 py-3 text-caption uppercase tracking-wider text-neutral-500">{{ t('common.status') }}</th>
@@ -208,6 +281,14 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
             </td>
             <td class="px-4 py-3 text-body-sm">
               {{ coupon.type === 'PERCENTAGE' ? `${coupon.value}%` : `$${coupon.value}` }}
+            </td>
+            <td class="px-4 py-3 text-body-sm">
+              <span class="px-2 py-1 rounded text-caption" :class="getVisibilityOption(coupon.visibility || 'PUBLIC').color">
+                {{ getVisibilityOption(coupon.visibility || 'PUBLIC').label() }}
+              </span>
+              <span v-if="coupon.visibility === 'PERSONAL' && coupon.assignments?.length" class="ml-1 text-caption text-neutral-400">
+                ({{ coupon.assignments.length }})
+              </span>
             </td>
             <td class="px-4 py-3 text-body-sm">
               {{ coupon.uses_count }} / {{ coupon.max_uses || '∞' }}
@@ -264,6 +345,77 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
               <div>
                 <label class="input-label">{{ t('admin.coupons.value') }} *</label>
                 <input v-model.number="formData.value" type="number" step="0.01" class="input-field" required />
+              </div>
+            </div>
+
+            <!-- Visibility -->
+            <div>
+              <label class="input-label">{{ t('admin.coupons.visibility') }} *</label>
+              <div class="flex gap-2 mt-1">
+                <button
+                  v-for="opt in visibilityOptions"
+                  :key="opt.value"
+                  type="button"
+                  class="px-4 py-2 rounded text-caption border transition-all"
+                  :class="formData.visibility === opt.value ? opt.color + ' border-current font-medium' : 'bg-neutral-50 text-neutral-500 border-neutral-200 hover:bg-neutral-100'"
+                  @click="formData.visibility = opt.value"
+                >
+                  {{ opt.label() }}
+                </button>
+              </div>
+              <p class="text-caption text-neutral-400 mt-1">
+                <template v-if="formData.visibility === 'PUBLIC'">{{ t('admin.coupons.visibilityPublicDesc') }}</template>
+                <template v-else-if="formData.visibility === 'PRIVATE'">{{ t('admin.coupons.visibilityPrivateDesc') }}</template>
+                <template v-else>{{ t('admin.coupons.visibilityPersonalDesc') }}</template>
+              </p>
+            </div>
+
+            <!-- Personal: User Assignment -->
+            <div v-if="formData.visibility === 'PERSONAL'" class="border border-blue-200 rounded p-4 bg-blue-50/50">
+              <label class="input-label mb-2">{{ t('admin.coupons.assignUsers') }}</label>
+              <input
+                v-model="userSearchQuery"
+                type="text"
+                :placeholder="t('admin.coupons.searchUsers')"
+                class="input-field mb-2"
+              />
+              
+              <!-- Selected users -->
+              <div v-if="formData.assigned_user_ids.length" class="flex flex-wrap gap-1.5 mb-2">
+                <span
+                  v-for="uid in formData.assigned_user_ids"
+                  :key="uid"
+                  class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-caption rounded"
+                >
+                  {{ formatUserName(allUsers.find((u: any) => u.id === uid) || { email: uid }) }}
+                  <button type="button" @click="toggleUserAssignment(uid)" class="hover:text-blue-900">&times;</button>
+                </span>
+              </div>
+              
+              <!-- User list -->
+              <div v-if="isLoadingUsers" class="text-center py-4 text-neutral-400 text-body-sm">
+                {{ t('common.loading') }}...
+              </div>
+              <div v-else class="max-h-40 overflow-y-auto border border-neutral-200 rounded bg-white">
+                <button
+                  v-for="user in filteredUsers"
+                  :key="user.id"
+                  type="button"
+                  class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-neutral-50 text-body-sm border-b border-neutral-100 last:border-0"
+                  @click="toggleUserAssignment(user.id)"
+                >
+                  <span class="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0"
+                    :class="isUserAssigned(user.id) ? 'bg-blue-600 border-blue-600 text-white' : 'border-neutral-300'">
+                    <svg v-if="isUserAssigned(user.id)" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                  <span class="truncate">{{ formatUserName(user) }}</span>
+                  <span class="text-neutral-400 text-caption ml-auto flex-shrink-0">{{ user.email }}</span>
+                </button>
+                <div v-if="!filteredUsers.length" class="px-3 py-4 text-center text-neutral-400 text-body-sm">
+                  {{ t('admin.coupons.noUsersFound') }}
+                </div>
               </div>
             </div>
 
