@@ -78,7 +78,7 @@ watch(() => props.banners.length, resetTimer)
         <img
           :src="resolveUrl(currentBanner.image_url)"
           :alt="currentBanner.title"
-          class="w-full h-full object-cover"
+          class="w-full h-full object-contain"
         />
       </div>
       <slot v-else name="empty" />
@@ -95,7 +95,7 @@ watch(() => props.banners.length, resetTimer)
         <img
           :src="resolveUrl(banner.image_url)"
           :alt="banner.title"
-          class="w-full h-full object-cover"
+          class="w-full h-full object-contain"
         />
       </div>
     </template>
@@ -114,7 +114,7 @@ watch(() => props.banners.length, resetTimer)
           <img
             :src="resolveUrl(banner.image_url)"
             :alt="banner.title"
-            class="w-full h-full object-cover"
+            class="w-full h-full object-contain"
           />
         </div>
       </div>
