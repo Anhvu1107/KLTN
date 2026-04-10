@@ -91,10 +91,10 @@ const getAnimType = (section: string): 'none' | 'slide' | 'fade' => {
 
 onMounted(async () => {
   try {
-    const response = await $fetch<{ success: boolean; data: Record<string, string> }>(
+    const response = await $fetch<{ success: boolean; data: { settings: Record<string, string> } }>(
       `${config.public.apiUrl}/settings`
     )
-    const raw = response.data?.banner_animation_config
+    const raw = response.data?.settings?.banner_animation_config
     if (raw) {
       try { animationConfig.value = JSON.parse(raw) } catch {}
     }
