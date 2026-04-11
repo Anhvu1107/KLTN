@@ -139,11 +139,20 @@ const ensureCouponSchema = async (db, logger = console) => {
 
         logger.info('Coupon schema compatibility check completed');
     }
+    else {
+        await Coupon.sync();
+        logger.info('Coupons table created');
+    }
 
-    // Explicitly sync coupon-related tables in dependency order for legacy databases.
-    await Coupon.sync({ alter: true });
-    await CouponAssignment.sync({ alter: true });
-    await CouponUsage.sync({ alter: true });
+    if (!normalizedTables.has('coupon_assignments')) {
+        await CouponAssignment.sync();
+        logger.info('Coupon assignments table created');
+    }
+
+    if (!normalizedTables.has('coupon_usages')) {
+        await CouponUsage.sync();
+        logger.info('Coupon usages table created');
+    }
 
     logger.info('Coupon support tables synchronized');
 };
