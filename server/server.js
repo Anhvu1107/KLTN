@@ -18,6 +18,7 @@ const routes = require('./src/routes');
 const db = require('./src/models');
 const { errorHandler, notFound } = require('./src/middlewares/error.middleware');
 const logger = require('./src/utils/logger');
+const ensureCouponSchema = require('./src/utils/ensure-coupon-schema');
 const { initSocket } = require('./src/socket');
 
 // Initialize Express app
@@ -158,6 +159,8 @@ const startServer = async () => {
             logger.error('Failed to connect to database. Exiting...');
             process.exit(1);
         }
+
+        await ensureCouponSchema(db.sequelize, logger);
 
         // Sync database in development (creates tables if not exist)
         if (process.env.NODE_ENV === 'development') {
