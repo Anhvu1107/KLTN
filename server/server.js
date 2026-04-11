@@ -10,6 +10,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
 const path = require('path');
 const http = require('http');
 
@@ -20,6 +21,7 @@ const { errorHandler, notFound } = require('./src/middlewares/error.middleware')
 const logger = require('./src/utils/logger');
 const ensureCouponSchema = require('./src/utils/ensure-coupon-schema');
 const { initSocket } = require('./src/socket');
+const { buildOpenApiSpec } = require('./src/docs/openapi');
 
 // Initialize Express app
 const app = express();
@@ -64,7 +66,7 @@ const limiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => process.env.NODE_ENV === 'development', // Skip rate limiting in dev
+    skip: (_req) => process.env.NODE_ENV === 'development', // Skip rate limiting in dev
 });
 app.use('/api/', limiter);
 
@@ -122,6 +124,26 @@ app.get('/health', (req, res) => {
 });
 
 // ===========================================
+// API DOCUMENTATION
+// ===========================================
+
+app.get('/openapi.json', (req, res) => {
+    res.json(buildOpenApiSpec(req));
+});
+
+app.use(
+    '/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(null, {
+        explorer: true,
+        customSiteTitle: 'AURA ARCHIVE API Docs',
+        swaggerOptions: {
+            url: '/openapi.json',
+        },
+    })
+);
+
+// ===========================================
 // API ROUTES
 // ===========================================
 
@@ -133,7 +155,8 @@ app.get('/', (req, res) => {
         success: true,
         message: 'Welcome to AURA ARCHIVE API',
         version: '1.0.0',
-        docs: '/api/v1/health',
+        docs: '/docs',
+        openapi: '/openapi.json',
     });
 });
 
@@ -169,7 +192,7 @@ const startServer = async () => {
                 await db.sequelize.query(
                     `ALTER TYPE "enum_orders_payment_method" ADD VALUE IF NOT EXISTS 'PAYPAL';`
                 );
-            } catch (enumErr) {
+            } catch {
                 // Ignore if already exists or enum doesn't exist yet
             }
 
