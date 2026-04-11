@@ -26,14 +26,14 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
         },
         type: {
-            type: DataTypes.ENUM('PERCENTAGE', 'FIXED_AMOUNT'),
+            type: DataTypes.ENUM('PERCENTAGE', 'FIXED_AMOUNT', 'FREE_SHIPPING'),
             allowNull: false,
-            comment: 'PERCENTAGE = % off, FIXED_AMOUNT = $ off',
+            comment: 'PERCENTAGE = % off, FIXED_AMOUNT = $ off, FREE_SHIPPING = shipping discount',
         },
         value: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
-            comment: 'Discount value (% or $)',
+            comment: 'Discount value (% or fixed amount). FREE_SHIPPING uses 0.',
         },
         min_order_amount: {
             type: DataTypes.DECIMAL(12, 2),

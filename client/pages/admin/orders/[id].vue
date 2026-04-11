@@ -252,6 +252,10 @@ useSeoMeta({ title: 'Order Detail | Admin' })
               <span class="text-neutral-500">{{ t('cart.shipping') }}:</span>
               <span>{{ formatPrice(order.shipping_fee || 0) }}</span>
             </div>
+            <div v-if="order.shipping_discount_amount" class="flex justify-between text-emerald-600">
+              <span>{{ t('cart.shippingDiscount') }}:</span>
+              <span>-{{ formatPrice(order.shipping_discount_amount) }}</span>
+            </div>
             <div v-if="order.discount_amount" class="flex justify-between text-green-600">
               <span>{{ t('cart.discount') }}:</span>
               <span>-{{ formatPrice(order.discount_amount) }}</span>

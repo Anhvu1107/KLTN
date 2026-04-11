@@ -13,7 +13,7 @@ const createOrderValidator = [
         .isUUID()
         .withMessage('Valid variant ID is required'),
     body('paymentMethod')
-        .isIn(['COD', 'BANK_TRANSFER', 'CREDIT_CARD', 'MOMO', 'VNPAY'])
+        .isIn(['COD', 'BANK_TRANSFER', 'CREDIT_CARD', 'MOMO', 'VNPAY', 'PAYPAL'])
         .withMessage('Invalid payment method'),
     body('shippingAddress')
         .isObject()

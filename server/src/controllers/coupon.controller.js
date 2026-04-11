@@ -78,10 +78,21 @@ const deleteCoupon = catchAsync(async (req, res) => {
  * Validate coupon code (public, requires auth for user-specific validation)
  */
 const validateCoupon = catchAsync(async (req, res) => {
-    const { code, cartTotal, cartItems } = req.body;
+    const {
+        code,
+        cartTotal,
+        cartItems,
+        shippingFee,
+        expectedBenefitType,
+        appliedCoupons,
+    } = req.body;
     const userId = req.user?.id;
 
-    const result = await couponService.validateCoupon(code, userId, cartTotal, cartItems);
+    const result = await couponService.validateCoupon(code, userId, cartTotal, cartItems, {
+        shippingFee,
+        expectedBenefitType,
+        appliedCoupons,
+    });
 
     res.status(200).json({
         success: true,

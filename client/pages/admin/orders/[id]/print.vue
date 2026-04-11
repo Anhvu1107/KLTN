@@ -173,6 +173,10 @@ onMounted(fetchOrder)
             <span>{{ t('checkout.shippingFee') }}:</span>
             <span>{{ formatPrice(order.shipping_fee || 0) }}</span>
           </div>
+          <div v-if="order.shipping_discount_amount > 0" class="flex justify-between py-2 border-b text-emerald-600">
+            <span>{{ t('cart.shippingDiscount') }}:</span>
+            <span>-{{ formatPrice(order.shipping_discount_amount) }}</span>
+          </div>
           <div v-if="order.discount_amount > 0" class="flex justify-between py-2 border-b text-green-600">
             <span>{{ t('cart.discount') }}:</span>
             <span>-{{ formatPrice(order.discount_amount) }}</span>

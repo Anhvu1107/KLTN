@@ -552,10 +552,18 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
 
         if (enrichment.coupons && enrichment.coupons.length) {
             const couponLines = enrichment.coupons.map(c => {
-                const typeLabel = c.type === 'PERCENTAGE' ? `${c.value}%` : `${c.value.toLocaleString('vi-VN')}₫`;
+                const typeLabel = c.type === 'PERCENTAGE'
+                    ? `${c.value}%`
+                    : c.type === 'FREE_SHIPPING'
+                        ? 'Miễn phí vận chuyển'
+                        : `${c.value.toLocaleString('vi-VN')}₫`;
                 const expiry = c.expires_at ? new Date(c.expires_at).toLocaleDateString('vi-VN') : 'Không giới hạn';
                 const minOrder = c.min_order_amount > 0 ? ` | Đơn tối thiểu: ${c.min_order_amount.toLocaleString('vi-VN')}₫` : '';
-                const maxDiscount = c.max_discount_amount ? ` | Giảm tối đa: ${c.max_discount_amount.toLocaleString('vi-VN')}₫` : '';
+                const maxDiscount = c.max_discount_amount
+                    ? c.type === 'FREE_SHIPPING'
+                        ? ` | Giảm ship tối đa: ${c.max_discount_amount.toLocaleString('vi-VN')}₫`
+                        : ` | Giảm tối đa: ${c.max_discount_amount.toLocaleString('vi-VN')}₫`
+                    : '';
                 return `• Mã: **${c.code}** — ${c.name || ''} | Giảm: ${typeLabel}${minOrder}${maxDiscount} | HSD: ${expiry}`;
             });
             contextParts.push(`\n🎟️ MÃ GIẢM GIÁ ĐANG HOẠT ĐỘNG:\n${couponLines.join('\n')}`);
@@ -636,7 +644,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         // Remove **Initiating...** / **Thinking...** style blocks
         let cleaned = text.replace(/\*\*[A-Z][a-zA-Z\s]+\*\*\n[\s\S]*?(?=\n\n|$)/g, (match) => {
             // Only strip if it looks like meta-commentary (English procedural text)
-            if (/(?:Initiating|Processing|Analyzing|Searching|I\'ll|I will|My next|Based on|Let me)/i.test(match)) {
+            if (/(?:Initiating|Processing|Analyzing|Searching|I'll|I will|My next|Based on|Let me)/i.test(match)) {
                 return '';
             }
             return match;
@@ -647,7 +655,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             const trimmed = line.trim();
             if (!trimmed) return true;
             // Filter out lines that are clearly internal reasoning in English
-            return !/^(?:\*\*)?(?:Initiating|Processing|Analyzing|I\'m |I will |My (?:next|plan)|Based on|Let me|The user)/.test(trimmed);
+            return !/^(?:\*\*)?(?:Initiating|Processing|Analyzing|I'm |I will |My (?:next|plan)|Based on|Let me|The user)/.test(trimmed);
         }).join('\n');
 
         // Collapse multiple blank lines
@@ -869,9 +877,14 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             if (coupons.length) {
                 let response = 'Có chứ bạn! Shop mình đang có mấy mã giảm giá nè:\n\n';
                 for (const c of coupons) {
-                    const typeLabel = c.type === 'PERCENTAGE' ? `${c.value}%` : `${c.value.toLocaleString('vi-VN')}₫`;
+                    const typeLabel = c.type === 'PERCENTAGE'
+                        ? `${c.value}%`
+                        : c.type === 'FREE_SHIPPING'
+                            ? 'Miễn phí vận chuyển'
+                            : `${c.value.toLocaleString('vi-VN')}₫`;
                     const expiry = c.expires_at ? new Date(c.expires_at).toLocaleDateString('vi-VN') : 'Không giới hạn';
-                    response += `• Mã **${c.code}** — Giảm **${typeLabel}**`;
+                    response += `• Mã **${c.code}** — ${c.type === 'FREE_SHIPPING' ? typeLabel : `Giảm **${typeLabel}**`}`;
+                    if (c.max_discount_amount && c.type === 'FREE_SHIPPING') response += ` (giảm ship tối đa ${c.max_discount_amount.toLocaleString('vi-VN')}₫)`;
                     if (c.min_order_amount > 0) response += ` (đơn tối thiểu ${c.min_order_amount.toLocaleString('vi-VN')}₫)`;
                     response += ` | HSD: ${expiry}\n`;
                 }
@@ -1023,8 +1036,6 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         // Check if we have minimum info: at least height/weight OR explicit size
         const hasBodyInfo = !!(ctx.height_cm || ctx.weight_kg);
         const hasSize = !!(entities.size || ctx.size);
-        const hasStyle = !!(ctx.style && ctx.style.length > 0);
-
         // Need at least body info OR size to give good recommendations
         if (!hasBodyInfo && !hasSize) return true;
 

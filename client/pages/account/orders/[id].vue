@@ -353,6 +353,10 @@ useSeoMeta({
                 <span class="text-neutral-600">{{ t('cart.shipping') }}</span>
                 <span class="font-medium">{{ formatPrice(order.shipping_fee) }}</span>
               </div>
+              <div v-if="order.shipping_discount_amount > 0" class="flex justify-between">
+                <span class="text-neutral-600">{{ t('cart.shippingDiscount') || 'Shipping Discount' }}</span>
+                <span class="font-medium text-green-600">-{{ formatPrice(order.shipping_discount_amount) }}</span>
+              </div>
               <div v-if="order.discount_amount > 0" class="flex justify-between">
                 <span class="text-neutral-600">{{ t('cart.discount') || 'Discount' }}</span>
                 <span class="font-medium text-green-600">-{{ formatPrice(order.discount_amount) }}</span>

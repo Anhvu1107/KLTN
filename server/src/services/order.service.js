@@ -3,13 +3,15 @@
  * AURA ARCHIVE - Business logic for orders with transaction support
  */
 
-const { Order, OrderItem, Variant, Product, User, Coupon, CouponUsage, sequelize } = require('../models');
+const { Order, OrderItem, Variant, Product, User, Coupon, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 const notificationService = require('./notification.service');
 const { sendOrderConfirmation } = require('./email.service');
 const { sendNewOrderAdminEmail } = require('../utils/sendEmail');
 const couponService = require('./coupon.service');
+
+const SHIPPING_BENEFIT_TYPE = 'SHIPPING';
 
 /**
  * Create a new order with transaction support
@@ -74,26 +76,46 @@ const createOrder = async (userId, items, orderData) => {
             });
         }
 
-        const shippingFee = orderData.shippingFee || 0;
+        const shippingFee = Number(orderData.shippingFee || 0);
 
-        // Step 3: Validate coupon and calculate discount (server-side)
+        // Step 3: Validate coupons and calculate discounts (server-side)
         let discountAmount = 0;
-        let validatedCouponId = null;
-        if (orderData.couponId) {
-            try {
-                const coupon = await Coupon.findByPk(orderData.couponId, { transaction });
-                if (coupon) {
-                    const validation = await couponService.validateCoupon(coupon.code, userId, subtotal);
-                    discountAmount = validation.discountAmount;
-                    validatedCouponId = orderData.couponId;
-                }
-            } catch (err) {
-                // Coupon invalid — proceed without discount
-                console.warn('Coupon validation failed during checkout:', err.message);
+        let shippingDiscountAmount = 0;
+        const validatedCoupons = [];
+        const requestedCouponIds = [...new Set([
+            orderData.discountCouponId,
+            orderData.shippingCouponId,
+            orderData.couponId,
+        ].filter(Boolean))];
+
+        for (const couponId of requestedCouponIds) {
+            const coupon = await Coupon.findByPk(couponId, { transaction });
+
+            if (!coupon) {
+                throw new AppError('Coupon not found', 404);
             }
+
+            const validation = await couponService.validateCoupon(coupon.code, userId, subtotal, [], {
+                shippingFee,
+                appliedCoupons: validatedCoupons,
+            });
+
+            if (validation.coupon.benefitType === SHIPPING_BENEFIT_TYPE) {
+                shippingDiscountAmount = validation.shippingDiscountAmount;
+            } else {
+                discountAmount = validation.discountAmount;
+            }
+
+            validatedCoupons.push({
+                id: validation.coupon.id,
+                benefitType: validation.coupon.benefitType,
+                appliedAmount: validation.coupon.benefitType === SHIPPING_BENEFIT_TYPE
+                    ? validation.shippingDiscountAmount
+                    : validation.discountAmount,
+            });
         }
 
-        const totalAmount = subtotal + shippingFee - discountAmount;
+        const totalAmount = subtotal + shippingFee - discountAmount - shippingDiscountAmount;
 
         // Step 3: Generate order number
         const date = new Date();
@@ -109,6 +131,7 @@ const createOrder = async (userId, items, orderData) => {
             subtotal,
             shipping_fee: shippingFee,
             discount_amount: discountAmount,
+            shipping_discount_amount: shippingDiscountAmount,
             total_amount: totalAmount,
             payment_method: orderData.paymentMethod,
             payment_status: 'PENDING',
@@ -141,8 +164,10 @@ const createOrder = async (userId, items, orderData) => {
         await transaction.commit();
 
         // Step 7: Record coupon usage (after commit, fire-and-forget)
-        if (validatedCouponId && discountAmount > 0) {
-            couponService.applyCoupon(validatedCouponId, userId, order.id, discountAmount).catch(err =>
+        for (const coupon of validatedCoupons) {
+            if (coupon.appliedAmount <= 0) continue;
+
+            couponService.applyCoupon(coupon.id, userId, order.id, coupon.appliedAmount).catch(err =>
                 console.error('Failed to record coupon usage:', err.message)
             );
         }

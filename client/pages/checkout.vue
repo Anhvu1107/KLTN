@@ -31,24 +31,37 @@ const shippingFee = ref(30000)
 const isProcessing = ref(false)
 const error = ref('')
 
-// Coupon state
-const couponCode = ref('')
-const couponError = ref('')
-const couponSuccess = ref('')
-const isApplyingCoupon = ref(false)
-const appliedCoupon = ref<{
+type CouponBenefitType = 'DISCOUNT' | 'SHIPPING'
+
+interface AppliedCheckoutCoupon {
   id: string
   code: string
   name: string
+  type: string
+  benefitType: CouponBenefitType
   discountAmount: number
-} | null>(null)
+  shippingDiscountAmount: number
+}
+
+// Coupon state
+const discountCouponCode = ref('')
+const shippingCouponCode = ref('')
+const discountCouponError = ref('')
+const shippingCouponError = ref('')
+const discountCouponSuccess = ref('')
+const shippingCouponSuccess = ref('')
+const isApplyingDiscountCoupon = ref(false)
+const isApplyingShippingCoupon = ref(false)
+const appliedDiscountCoupon = ref<AppliedCheckoutCoupon | null>(null)
+const appliedShippingCoupon = ref<AppliedCheckoutCoupon | null>(null)
 
 // Enabled payment methods from admin settings
 const enabledMethods = ref<Record<string, { enabled: boolean }>>({})
 
 // Computed totals
-const discountAmount = computed(() => appliedCoupon.value?.discountAmount || 0)
-const total = computed(() => cartStore.subtotal + shippingFee.value - discountAmount.value)
+const productDiscountAmount = computed(() => appliedDiscountCoupon.value?.discountAmount || 0)
+const shippingDiscountAmount = computed(() => appliedShippingCoupon.value?.shippingDiscountAmount || 0)
+const total = computed(() => Math.max(cartStore.subtotal + shippingFee.value - productDiscountAmount.value - shippingDiscountAmount.value, 0))
 
 const cities = VIETNAM_CITIES
 
@@ -142,67 +155,133 @@ const groupedItems = computed(() => {
   return Array.from(groups.values())
 })
 
-// Apply coupon
-const applyCoupon = async () => {
-  if (!couponCode.value.trim()) {
-    couponError.value = t('cart.enterCode')
+const appliedCouponsPayload = computed(() => {
+  const coupons: { id: string; benefitType: CouponBenefitType }[] = []
+
+  if (appliedDiscountCoupon.value) {
+    coupons.push({ id: appliedDiscountCoupon.value.id, benefitType: 'DISCOUNT' })
+  }
+
+  if (appliedShippingCoupon.value) {
+    coupons.push({ id: appliedShippingCoupon.value.id, benefitType: 'SHIPPING' })
+  }
+
+  return coupons
+})
+
+const mapCouponErrorMessage = (message: string) => {
+  const errorMap: Record<string, string> = {
+    'Coupon code already exists': t('admin.coupons.codeExists'),
+    'Invalid coupon code': t('admin.coupons.invalidCode'),
+    'This coupon has expired': t('admin.coupons.couponExpired'),
+    'This coupon is no longer active': t('admin.coupons.couponInactive'),
+    'This coupon has reached its usage limit': t('admin.coupons.usageLimitReached'),
+    'You have already used this coupon': t('admin.coupons.alreadyUsed'),
+    'This coupon is not yet valid': t('admin.coupons.couponNotYetValid'),
+    'This coupon is not available for your account': t('admin.coupons.couponNotForYou'),
+    'This code is not a free shipping coupon': t('admin.coupons.notShippingCoupon'),
+    'This code is not a product discount coupon': t('admin.coupons.notDiscountCoupon'),
+    'A free shipping coupon is already applied': t('admin.coupons.shippingCouponAlreadyApplied'),
+    'A product discount coupon is already applied': t('admin.coupons.discountCouponAlreadyApplied'),
+    'Shipping is already free for this order': t('admin.coupons.shippingAlreadyFree'),
+    'Please log in to use this coupon': t('auth.signIn'),
+    'Coupon not found': t('admin.coupons.invalidCode'),
+  }
+
+  return errorMap[message]
+    || (message.includes('Minimum order') ? t('admin.coupons.minOrderRequired') : '')
+    || message
+}
+
+const applyCoupon = async (benefitType: CouponBenefitType) => {
+  const isShippingCoupon = benefitType === 'SHIPPING'
+  const codeRef = isShippingCoupon ? shippingCouponCode : discountCouponCode
+  const errorRef = isShippingCoupon ? shippingCouponError : discountCouponError
+  const successRef = isShippingCoupon ? shippingCouponSuccess : discountCouponSuccess
+  const loadingRef = isShippingCoupon ? isApplyingShippingCoupon : isApplyingDiscountCoupon
+
+  if (!codeRef.value.trim()) {
+    errorRef.value = t('cart.enterCode')
     return
   }
 
-  couponError.value = ''
-  couponSuccess.value = ''
-  isApplyingCoupon.value = true
+  errorRef.value = ''
+  successRef.value = ''
+  loadingRef.value = true
 
   try {
     const token = localStorage.getItem('token')
     const response = await $fetch<{
       success: boolean
       data: {
-        coupon: { id: string; code: string; name: string }
+        coupon: {
+          id: string
+          code: string
+          name: string
+          type: string
+          benefitType: CouponBenefitType
+        }
         discountAmount: number
+        shippingDiscountAmount: number
         newTotal: number
       }
     }>(`${config.public.apiUrl}/coupons/validate`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: {
-        code: couponCode.value,
+        code: codeRef.value,
         cartTotal: cartStore.subtotal,
+        shippingFee: shippingFee.value,
+        expectedBenefitType: benefitType,
+        appliedCoupons: appliedCouponsPayload.value,
       },
     })
 
     if (response.success) {
-      appliedCoupon.value = {
+      const coupon: AppliedCheckoutCoupon = {
         id: response.data.coupon.id,
         code: response.data.coupon.code,
         name: response.data.coupon.name,
+        type: response.data.coupon.type,
+        benefitType: response.data.coupon.benefitType,
         discountAmount: response.data.discountAmount,
+        shippingDiscountAmount: response.data.shippingDiscountAmount,
       }
-      couponSuccess.value = `${t('cart.couponCode')} "${response.data.coupon.code}" - ${t('cart.discount')}: ${formatPrice(response.data.discountAmount)}`
+
+      if (coupon.benefitType === 'SHIPPING') {
+        appliedShippingCoupon.value = coupon
+        shippingCouponSuccess.value = `${t('checkout.freeShippingApplied')} "${coupon.code}" - ${formatPrice(coupon.shippingDiscountAmount)}`
+        shippingCouponError.value = ''
+        shippingCouponCode.value = ''
+      } else {
+        appliedDiscountCoupon.value = coupon
+        discountCouponSuccess.value = `${t('checkout.discountApplied')} "${coupon.code}" - ${formatPrice(coupon.discountAmount)}`
+        discountCouponError.value = ''
+        discountCouponCode.value = ''
+      }
     }
   } catch (err: any) {
     const msg = err.data?.message || ''
-    const errorMap: Record<string, string> = {
-      'Invalid coupon code': t('admin.coupons.invalidCode'),
-      'This coupon has expired': t('admin.coupons.couponExpired'),
-      'This coupon is no longer active': t('admin.coupons.couponInactive'),
-      'This coupon has reached its usage limit': t('admin.coupons.usageLimitReached'),
-      'You have already used this coupon': t('admin.coupons.alreadyUsed'),
-      'This coupon is not yet valid': t('admin.coupons.couponNotYetValid'),
-    }
-    couponError.value = errorMap[msg] || (msg.includes('Minimum order') ? t('admin.coupons.minOrderRequired') : '') || msg || t('admin.coupons.invalidCode')
-    appliedCoupon.value = null
+    errorRef.value = mapCouponErrorMessage(msg) || t('admin.coupons.invalidCode')
   } finally {
-    isApplyingCoupon.value = false
+    loadingRef.value = false
   }
 }
 
 // Remove coupon
-const removeCoupon = () => {
-  appliedCoupon.value = null
-  couponCode.value = ''
-  couponSuccess.value = ''
-  couponError.value = ''
+const removeCoupon = (benefitType: CouponBenefitType) => {
+  if (benefitType === 'SHIPPING') {
+    appliedShippingCoupon.value = null
+    shippingCouponCode.value = ''
+    shippingCouponSuccess.value = ''
+    shippingCouponError.value = ''
+    return
+  }
+
+  appliedDiscountCoupon.value = null
+  discountCouponCode.value = ''
+  discountCouponSuccess.value = ''
+  discountCouponError.value = ''
 }
 // Checkout handler
 const handleCheckout = async () => {
@@ -245,11 +324,12 @@ const handleCheckout = async () => {
       shippingAddress: { ...shippingForm },
       shippingFee: shippingFee.value,
       notes: shippingForm.notes,
-      couponId: appliedCoupon.value?.id || undefined,
+      discountCouponId: appliedDiscountCoupon.value?.id || undefined,
+      shippingCouponId: appliedShippingCoupon.value?.id || undefined,
     })
 
     if (!result.success) {
-      error.value = t('checkout.checkoutFailed')
+      error.value = mapCouponErrorMessage(result.error || '') || t('checkout.checkoutFailed')
       return
     }
 
@@ -447,40 +527,74 @@ useSeoMeta({
             <div class="divider mb-4"></div>
 
             <!-- Coupon Input -->
-            <div class="mb-6">
-              <label class="input-label">{{ $t('cart.couponCode') }}</label>
-              <div v-if="!appliedCoupon" class="flex gap-2">
-                <input
-                  v-model="couponCode"
-                  type="text"
-                  :placeholder="$t('cart.enterCode')"
-                  class="input-field flex-1 uppercase"
-                  @keyup.enter="applyCoupon"
-                />
-                <button
-                  @click="applyCoupon"
-                  :disabled="isApplyingCoupon"
-                  class="px-4 py-2 bg-neutral-800 text-white text-body-sm hover:bg-neutral-700 transition-colors"
-                  :class="{ 'opacity-50 cursor-not-allowed': isApplyingCoupon }"
-                >
-                  {{ isApplyingCoupon ? '...' : $t('cart.apply') }}
-                </button>
-              </div>
-              <!-- Applied coupon display -->
-              <div v-else class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-sm">
-                <div>
-                  <span class="text-body-sm font-medium text-green-700">{{ appliedCoupon.code }}</span>
-                  <span class="text-caption text-green-600 ml-2">-{{ formatPrice(discountAmount) }}</span>
+            <div class="mb-6 space-y-4">
+              <div>
+                <label class="input-label">{{ $t('checkout.discountCoupon') }}</label>
+                <div v-if="!appliedDiscountCoupon" class="flex gap-2">
+                  <input
+                    v-model="discountCouponCode"
+                    type="text"
+                    :placeholder="$t('cart.enterCode')"
+                    class="input-field flex-1 uppercase"
+                    @keyup.enter="applyCoupon('DISCOUNT')"
+                  />
+                  <button
+                    @click="applyCoupon('DISCOUNT')"
+                    :disabled="isApplyingDiscountCoupon"
+                    class="px-4 py-2 bg-neutral-800 text-white text-body-sm hover:bg-neutral-700 transition-colors"
+                    :class="{ 'opacity-50 cursor-not-allowed': isApplyingDiscountCoupon }"
+                  >
+                    {{ isApplyingDiscountCoupon ? '...' : $t('cart.apply') }}
+                  </button>
                 </div>
-                <button @click="removeCoupon" class="text-green-600 hover:text-green-800">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
+                <div v-else class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-sm">
+                  <div>
+                    <span class="text-body-sm font-medium text-green-700">{{ appliedDiscountCoupon.code }}</span>
+                    <span class="text-caption text-green-600 ml-2">-{{ formatPrice(productDiscountAmount) }}</span>
+                  </div>
+                  <button @click="removeCoupon('DISCOUNT')" class="text-green-600 hover:text-green-800">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+                <p v-if="discountCouponError" class="text-caption text-red-600 mt-2">{{ discountCouponError }}</p>
+                <p v-if="discountCouponSuccess" class="text-caption text-green-600 mt-2">{{ discountCouponSuccess }}</p>
               </div>
-              <!-- Error/Success messages -->
-              <p v-if="couponError" class="text-caption text-red-600 mt-2">{{ couponError }}</p>
-              <p v-if="couponSuccess" class="text-caption text-green-600 mt-2">{{ couponSuccess }}</p>
+
+              <div>
+                <label class="input-label">{{ $t('checkout.shippingCoupon') }}</label>
+                <div v-if="!appliedShippingCoupon" class="flex gap-2">
+                  <input
+                    v-model="shippingCouponCode"
+                    type="text"
+                    :placeholder="$t('cart.enterCode')"
+                    class="input-field flex-1 uppercase"
+                    @keyup.enter="applyCoupon('SHIPPING')"
+                  />
+                  <button
+                    @click="applyCoupon('SHIPPING')"
+                    :disabled="isApplyingShippingCoupon"
+                    class="px-4 py-2 bg-neutral-800 text-white text-body-sm hover:bg-neutral-700 transition-colors"
+                    :class="{ 'opacity-50 cursor-not-allowed': isApplyingShippingCoupon }"
+                  >
+                    {{ isApplyingShippingCoupon ? '...' : $t('cart.apply') }}
+                  </button>
+                </div>
+                <div v-else class="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-sm">
+                  <div>
+                    <span class="text-body-sm font-medium text-emerald-700">{{ appliedShippingCoupon.code }}</span>
+                    <span class="text-caption text-emerald-600 ml-2">-{{ formatPrice(shippingDiscountAmount) }}</span>
+                  </div>
+                  <button @click="removeCoupon('SHIPPING')" class="text-emerald-600 hover:text-emerald-800">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+                <p v-if="shippingCouponError" class="text-caption text-red-600 mt-2">{{ shippingCouponError }}</p>
+                <p v-if="shippingCouponSuccess" class="text-caption text-emerald-600 mt-2">{{ shippingCouponSuccess }}</p>
+              </div>
             </div>
 
             <!-- Totals -->
@@ -489,13 +603,17 @@ useSeoMeta({
                 <span class="text-neutral-600">{{ $t('cart.subtotal') }}</span>
                 <span>{{ formatPrice(cartStore.subtotal) }}</span>
               </div>
-              <div v-if="appliedCoupon" class="flex justify-between text-green-600">
-                <span>{{ $t('cart.discount') }} ({{ appliedCoupon.code }})</span>
-                <span>-{{ formatPrice(discountAmount) }}</span>
+              <div v-if="appliedDiscountCoupon" class="flex justify-between text-green-600">
+                <span>{{ $t('cart.discount') }} ({{ appliedDiscountCoupon.code }})</span>
+                <span>-{{ formatPrice(productDiscountAmount) }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-neutral-600">{{ $t('cart.shipping') }}</span>
                 <span>{{ formatPrice(shippingFee) }}</span>
+              </div>
+              <div v-if="appliedShippingCoupon" class="flex justify-between text-emerald-600">
+                <span>{{ $t('cart.shippingDiscount') }} ({{ appliedShippingCoupon.code }})</span>
+                <span>-{{ formatPrice(shippingDiscountAmount) }}</span>
               </div>
             </div>
 

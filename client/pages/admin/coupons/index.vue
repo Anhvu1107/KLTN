@@ -54,7 +54,24 @@ const visibilityOptions = [
   { value: 'PERSONAL', label: () => t('admin.coupons.visibilityPersonal'), color: 'bg-blue-100 text-blue-700' },
 ]
 
+const couponTypeOptions = [
+  { value: 'PERCENTAGE', label: () => t('admin.coupons.percentage'), color: 'bg-blue-100 text-blue-700' },
+  { value: 'FIXED_AMOUNT', label: () => t('admin.coupons.fixedAmount'), color: 'bg-green-100 text-green-700' },
+  { value: 'FREE_SHIPPING', label: () => t('admin.coupons.freeShipping'), color: 'bg-emerald-100 text-emerald-700' },
+]
+
 const getVisibilityOption = (value: string) => visibilityOptions.find(v => v.value === value) || visibilityOptions[0]
+const getCouponTypeOption = (value: string) => couponTypeOptions.find(v => v.value === value) || couponTypeOptions[0]
+
+const formatCouponValue = (coupon: any) => {
+  if (coupon.type === 'PERCENTAGE') return `${coupon.value}%`
+  if (coupon.type === 'FREE_SHIPPING') {
+    return coupon.max_discount_amount
+      ? `${t('admin.coupons.freeShipping')} • ${t('admin.coupons.shippingDiscountCap')}: $${coupon.max_discount_amount}`
+      : t('admin.coupons.freeShipping')
+  }
+  return `$${coupon.value}`
+}
 
 // Fetch coupons
 const fetchCoupons = async () => {
@@ -164,6 +181,12 @@ watch(() => formData.value.visibility, (v) => {
   if (v === 'PERSONAL') fetchUsers()
 })
 
+watch(() => formData.value.type, (type) => {
+  if (type === 'FREE_SHIPPING') {
+    formData.value.value = 0
+  }
+})
+
 // Submit form
 const submitForm = async () => {
   formError.value = ''
@@ -193,6 +216,11 @@ const submitForm = async () => {
       'This coupon has reached its usage limit': t('admin.coupons.usageLimitReached'),
       'You have already used this coupon': t('admin.coupons.alreadyUsed'),
       'This coupon is not yet valid': t('admin.coupons.couponNotYetValid'),
+      'This code is not a free shipping coupon': t('admin.coupons.notShippingCoupon'),
+      'This code is not a product discount coupon': t('admin.coupons.notDiscountCoupon'),
+      'A free shipping coupon is already applied': t('admin.coupons.shippingCouponAlreadyApplied'),
+      'A product discount coupon is already applied': t('admin.coupons.discountCouponAlreadyApplied'),
+      'Shipping is already free for this order': t('admin.coupons.shippingAlreadyFree'),
     }
     formError.value = errorMap[msg] || (msg.includes('Minimum order') ? t('admin.coupons.minOrderRequired') : '') || msg || t('admin.coupons.saveFailed')
   } finally {
@@ -275,12 +303,12 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
             <td class="px-4 py-3 font-mono font-medium">{{ coupon.code }}</td>
             <td class="px-4 py-3 text-body-sm">{{ coupon.name }}</td>
             <td class="px-4 py-3 text-body-sm">
-              <span class="px-2 py-1 rounded text-caption" :class="coupon.type === 'PERCENTAGE' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">
-                {{ coupon.type === 'PERCENTAGE' ? t('admin.coupons.percentage') : t('admin.coupons.fixedAmount') }}
+              <span class="px-2 py-1 rounded text-caption" :class="getCouponTypeOption(coupon.type).color">
+                {{ getCouponTypeOption(coupon.type).label() }}
               </span>
             </td>
             <td class="px-4 py-3 text-body-sm">
-              {{ coupon.type === 'PERCENTAGE' ? `${coupon.value}%` : `$${coupon.value}` }}
+              {{ formatCouponValue(coupon) }}
             </td>
             <td class="px-4 py-3 text-body-sm">
               <span class="px-2 py-1 rounded text-caption" :class="getVisibilityOption(coupon.visibility || 'PUBLIC').color">
@@ -340,11 +368,15 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
                 <select v-model="formData.type" class="input-field">
                   <option value="PERCENTAGE">{{ t('admin.coupons.percentage') }} (%)</option>
                   <option value="FIXED_AMOUNT">{{ t('admin.coupons.fixedAmount') }} ($)</option>
+                  <option value="FREE_SHIPPING">{{ t('admin.coupons.freeShipping') }}</option>
                 </select>
               </div>
-              <div>
+              <div v-if="formData.type !== 'FREE_SHIPPING'">
                 <label class="input-label">{{ t('admin.coupons.value') }} *</label>
                 <input v-model.number="formData.value" type="number" step="0.01" class="input-field" required />
+              </div>
+              <div v-else class="rounded border border-emerald-200 bg-emerald-50/70 p-3 text-body-sm text-emerald-800">
+                {{ t('admin.coupons.freeShippingDesc') }}
               </div>
             </div>
 
@@ -424,8 +456,10 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
                 <label class="input-label">{{ t('admin.form.minOrderAmount') }}</label>
                 <input v-model.number="formData.min_order_amount" type="number" step="0.01" class="input-field" />
               </div>
-              <div v-if="formData.type === 'PERCENTAGE'">
-                <label class="input-label">{{ t('admin.form.maxDiscount') }}</label>
+              <div v-if="formData.type === 'PERCENTAGE' || formData.type === 'FREE_SHIPPING'">
+                <label class="input-label">
+                  {{ formData.type === 'FREE_SHIPPING' ? t('admin.coupons.shippingDiscountCap') : t('admin.form.maxDiscount') }}
+                </label>
                 <input v-model.number="formData.max_discount_amount" type="number" step="0.01" class="input-field" />
               </div>
             </div>

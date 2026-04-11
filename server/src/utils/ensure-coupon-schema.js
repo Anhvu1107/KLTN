@@ -77,6 +77,16 @@ const ensureCouponSchema = async (db, logger = console) => {
             'PRIVATE',
             'PERSONAL',
         ]);
+        await ensureEnumType(sequelize, 'enum_coupons_type', [
+            'PERCENTAGE',
+            'FIXED_AMOUNT',
+            'FREE_SHIPPING',
+        ]);
+        await ensureEnumValues(sequelize, 'enum_coupons_type', [
+            'PERCENTAGE',
+            'FIXED_AMOUNT',
+            'FREE_SHIPPING',
+        ]);
 
         await addColumnIfMissing(
             sequelize,
@@ -152,6 +162,28 @@ const ensureCouponSchema = async (db, logger = console) => {
     if (!normalizedTables.has('coupon_usages')) {
         await CouponUsage.sync();
         logger.info('Coupon usages table created');
+    }
+
+    if (normalizedTables.has('orders')) {
+        await addColumnIfMissing(
+            sequelize,
+            'orders',
+            'shipping_discount_amount',
+            'DECIMAL(12, 2)',
+            '0',
+            true
+        );
+
+        await sequelize.query(`
+            UPDATE "orders"
+            SET "shipping_discount_amount" = COALESCE("shipping_discount_amount", 0);
+        `);
+
+        await sequelize.query(`
+            ALTER TABLE "orders"
+            ALTER COLUMN "shipping_discount_amount" SET DEFAULT 0,
+            ALTER COLUMN "shipping_discount_amount" SET NOT NULL;
+        `);
     }
 
     logger.info('Coupon support tables synchronized');

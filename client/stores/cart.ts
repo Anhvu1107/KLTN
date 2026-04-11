@@ -188,6 +188,8 @@ export const useCartStore = defineStore('cart', {
             shippingFee?: number
             notes?: string
             couponId?: string
+            discountCouponId?: string
+            shippingCouponId?: string
         }): Promise<{ success: boolean; order?: any; error?: string }> {
             if (this.items.length === 0) {
                 return { success: false, error: 'Cart is empty' }
@@ -224,8 +226,9 @@ export const useCartStore = defineStore('cart', {
 
                 return { success: false, error: response.message || 'Checkout failed' }
             } catch (error: any) {
-                console.error('Checkout error:', error?.data?.message || error?.message)
-                return { success: false, error: 'Checkout failed' }
+                const errorMessage = error?.data?.message || error?.message || 'Checkout failed'
+                console.error('Checkout error:', errorMessage)
+                return { success: false, error: errorMessage }
             } finally {
                 this.isLoading = false
             }

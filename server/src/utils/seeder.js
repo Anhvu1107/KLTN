@@ -268,6 +268,7 @@ const seedOrders = async (customer, products) => {
             subtotal: price,
             shipping_fee: shippingFee,
             discount_amount: 0,
+            shipping_discount_amount: 0,
             total_amount: price + shippingFee,
             payment_method: faker.helpers.arrayElement(paymentMethods),
             payment_status: paymentStatus,
@@ -306,7 +307,7 @@ const seed = async () => {
         console.log('✅ Database synchronized (tables recreated)\n');
 
         // Seed data
-        const { admin, customer } = await seedUsers();
+        const { customer } = await seedUsers();
         await seedSystemPrompts();
         const products = await seedProducts();
         await seedOrders(customer, products);

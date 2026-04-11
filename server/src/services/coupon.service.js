@@ -3,9 +3,15 @@
  * AURA ARCHIVE - Business logic for coupons
  */
 
-const { Coupon, CouponUsage, CouponAssignment, User, Order, sequelize } = require('../models');
+const { Coupon, CouponUsage, CouponAssignment, User, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
+
+const SHIPPING_COUPON_TYPE = 'FREE_SHIPPING';
+const BENEFIT_TYPES = {
+    DISCOUNT: 'DISCOUNT',
+    SHIPPING: 'SHIPPING',
+};
 
 const activeConditions = () => ({
     is_active: true,
@@ -14,6 +20,42 @@ const activeConditions = () => ({
         { expires_at: { [Op.gt]: new Date() } },
     ],
 });
+
+const roundCurrency = (value) => Math.round(Number(value || 0) * 100) / 100;
+
+const getCouponBenefitType = (coupon) => (
+    coupon?.type === SHIPPING_COUPON_TYPE
+        ? BENEFIT_TYPES.SHIPPING
+        : BENEFIT_TYPES.DISCOUNT
+);
+
+const normalizeAppliedCoupons = (appliedCoupons = []) => (
+    Array.isArray(appliedCoupons)
+        ? appliedCoupons
+            .filter(Boolean)
+            .map((coupon) => ({
+                id: coupon.id || null,
+                benefitType: coupon.benefitType || BENEFIT_TYPES.DISCOUNT,
+            }))
+        : []
+);
+
+const normalizeCouponPayload = (data = {}) => {
+    const normalized = { ...data };
+
+    if (normalized.code) {
+        normalized.code = normalized.code.toUpperCase();
+    }
+
+    if (normalized.type === SHIPPING_COUPON_TYPE) {
+        normalized.value = 0;
+        if (normalized.max_discount_amount === '' || normalized.max_discount_amount === undefined) {
+            normalized.max_discount_amount = null;
+        }
+    }
+
+    return normalized;
+};
 
 /**
  * Get all coupons (admin)
@@ -132,6 +174,7 @@ const getCouponsForUser = async (userId, limit = 20) => {
  * Create coupon (admin)
  */
 const createCoupon = async (data) => {
+    const normalizedData = normalizeCouponPayload(data);
     const {
         code,
         name,
@@ -149,7 +192,7 @@ const createCoupon = async (data) => {
         category_ids,
         visibility,
         assigned_user_ids,
-    } = data;
+    } = normalizedData;
 
     const existingCoupon = await Coupon.findOne({ where: { code: code.toUpperCase() } });
     if (existingCoupon) {
@@ -189,8 +232,7 @@ const updateCoupon = async (id, data) => {
     const coupon = await Coupon.findByPk(id);
     if (!coupon) throw new AppError('Coupon not found', 404);
 
-    const updateData = { ...data };
-    if (data.code) updateData.code = data.code.toUpperCase();
+    const updateData = normalizeCouponPayload(data);
     delete updateData.assigned_user_ids;
 
     await coupon.update(updateData);
@@ -242,7 +284,13 @@ const deleteCoupon = async (id) => {
 /**
  * Validate coupon code
  */
-const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
+const validateCoupon = async (code, userId, cartTotal, _cartItems = [], options = {}) => {
+    const {
+        shippingFee = 0,
+        expectedBenefitType = null,
+        appliedCoupons = [],
+    } = options;
+
     const coupon = await Coupon.findOne({
         where: { code: code.toUpperCase() },
     });
@@ -253,6 +301,31 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
 
     if (!coupon.is_active) {
         throw new AppError('This coupon is no longer active', 400);
+    }
+
+    const benefitType = getCouponBenefitType(coupon);
+    const normalizedAppliedCoupons = normalizeAppliedCoupons(appliedCoupons);
+
+    if (expectedBenefitType && benefitType !== expectedBenefitType) {
+        throw new AppError(
+            expectedBenefitType === BENEFIT_TYPES.SHIPPING
+                ? 'This code is not a free shipping coupon'
+                : 'This code is not a product discount coupon',
+            400
+        );
+    }
+
+    const conflictingCoupon = normalizedAppliedCoupons.find((appliedCoupon) => (
+        appliedCoupon.benefitType === benefitType && appliedCoupon.id !== coupon.id
+    ));
+
+    if (conflictingCoupon) {
+        throw new AppError(
+            benefitType === BENEFIT_TYPES.SHIPPING
+                ? 'A free shipping coupon is already applied'
+                : 'A product discount coupon is already applied',
+            400
+        );
     }
 
     // Visibility check
@@ -312,7 +385,19 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
 
     // Calculate discount
     let discountAmount = 0;
-    if (coupon.type === 'PERCENTAGE') {
+    let shippingDiscountAmount = 0;
+    const numericShippingFee = Math.max(Number(shippingFee || 0), 0);
+
+    if (coupon.type === SHIPPING_COUPON_TYPE) {
+        if (numericShippingFee <= 0) {
+            throw new AppError('Shipping is already free for this order', 400);
+        }
+
+        shippingDiscountAmount = numericShippingFee;
+        if (coupon.max_discount_amount && shippingDiscountAmount > parseFloat(coupon.max_discount_amount)) {
+            shippingDiscountAmount = parseFloat(coupon.max_discount_amount);
+        }
+    } else if (coupon.type === 'PERCENTAGE') {
         discountAmount = (cartTotal * parseFloat(coupon.value)) / 100;
         if (coupon.max_discount_amount && discountAmount > parseFloat(coupon.max_discount_amount)) {
             discountAmount = parseFloat(coupon.max_discount_amount);
@@ -325,6 +410,15 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
         discountAmount = cartTotal;
     }
 
+    if (shippingDiscountAmount > numericShippingFee) {
+        shippingDiscountAmount = numericShippingFee;
+    }
+
+    const roundedDiscountAmount = roundCurrency(discountAmount);
+    const roundedShippingDiscountAmount = roundCurrency(shippingDiscountAmount);
+    const newShippingFee = roundCurrency(numericShippingFee - roundedShippingDiscountAmount);
+    const newTotal = roundCurrency(cartTotal + numericShippingFee - roundedDiscountAmount - roundedShippingDiscountAmount);
+
     return {
         coupon: {
             id: coupon.id,
@@ -332,9 +426,12 @@ const validateCoupon = async (code, userId, cartTotal, cartItems = []) => {
             name: coupon.name,
             type: coupon.type,
             value: coupon.value,
+            benefitType,
         },
-        discountAmount: Math.round(discountAmount * 100) / 100,
-        newTotal: Math.round((cartTotal - discountAmount) * 100) / 100,
+        discountAmount: roundedDiscountAmount,
+        shippingDiscountAmount: roundedShippingDiscountAmount,
+        newShippingFee,
+        newTotal,
     };
 };
 

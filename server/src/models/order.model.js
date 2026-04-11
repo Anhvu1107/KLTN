@@ -40,6 +40,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DECIMAL(12, 2),
             defaultValue: 0,
         },
+        shipping_discount_amount: {
+            type: DataTypes.DECIMAL(12, 2),
+            defaultValue: 0,
+        },
         total_amount: {
             type: DataTypes.DECIMAL(12, 2),
             allowNull: false,
