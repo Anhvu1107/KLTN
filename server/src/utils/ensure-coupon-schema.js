@@ -25,13 +25,9 @@ const ensureEnumType = async (sequelize, typeName, values) => {
     await sequelize.query(`
         DO $$
         BEGIN
-            IF NOT EXISTS (
-                SELECT 1
-                FROM pg_type
-                WHERE typname = '${escapeSqlString(typeName)}'
-            ) THEN
-                EXECUTE 'CREATE TYPE "${typeName}" AS ENUM (${enumValues})';
-            END IF;
+            CREATE TYPE "${typeName}" AS ENUM (${enumValues});
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
         END $$;
     `);
 };
