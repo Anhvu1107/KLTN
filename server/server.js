@@ -160,7 +160,7 @@ const startServer = async () => {
             process.exit(1);
         }
 
-        await ensureCouponSchema(db.sequelize, logger);
+        await ensureCouponSchema(db, logger);
 
         // Sync database in development (creates tables if not exist)
         if (process.env.NODE_ENV === 'development') {

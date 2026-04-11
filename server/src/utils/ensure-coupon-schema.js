@@ -50,96 +50,102 @@ const addColumnIfMissing = async (sequelize, tableName, columnName, columnType, 
     `);
 };
 
-const ensureCouponSchema = async (sequelize, logger = console) => {
+const ensureCouponSchema = async (db, logger = console) => {
+    const { sequelize, Coupon, CouponAssignment, CouponUsage } = db;
     const queryInterface = sequelize.getQueryInterface();
     const tables = await queryInterface.showAllTables();
     const normalizedTables = new Set(tables.map(normalizeTableName));
 
-    if (!normalizedTables.has('coupons')) {
-        return;
+    if (normalizedTables.has('coupons')) {
+        await ensureEnumType(sequelize, 'enum_coupons_applies_to', [
+            'ALL',
+            'SPECIFIC_PRODUCTS',
+            'SPECIFIC_CATEGORIES',
+        ]);
+        await ensureEnumValues(sequelize, 'enum_coupons_applies_to', [
+            'ALL',
+            'SPECIFIC_PRODUCTS',
+            'SPECIFIC_CATEGORIES',
+        ]);
+        await ensureEnumType(sequelize, 'enum_coupons_visibility', [
+            'PUBLIC',
+            'PRIVATE',
+            'PERSONAL',
+        ]);
+        await ensureEnumValues(sequelize, 'enum_coupons_visibility', [
+            'PUBLIC',
+            'PRIVATE',
+            'PERSONAL',
+        ]);
+
+        await addColumnIfMissing(
+            sequelize,
+            'coupons',
+            'applies_to',
+            '"enum_coupons_applies_to"',
+            `'ALL'`,
+            true
+        );
+        await addColumnIfMissing(
+            sequelize,
+            'coupons',
+            'product_ids',
+            'JSONB',
+            `'[]'::jsonb`,
+            true
+        );
+        await addColumnIfMissing(
+            sequelize,
+            'coupons',
+            'category_ids',
+            'JSONB',
+            `'[]'::jsonb`,
+            true
+        );
+        await addColumnIfMissing(
+            sequelize,
+            'coupons',
+            'visibility',
+            '"enum_coupons_visibility"',
+            `'PUBLIC'`,
+            true
+        );
+
+        await sequelize.query(`
+            UPDATE "coupons"
+            SET
+                "applies_to" = COALESCE("applies_to", 'ALL'),
+                "product_ids" = COALESCE("product_ids", '[]'::jsonb),
+                "category_ids" = COALESCE("category_ids", '[]'::jsonb),
+                "visibility" = COALESCE("visibility", 'PUBLIC');
+        `);
+
+        await sequelize.query(`
+            ALTER TABLE "coupons"
+            ALTER COLUMN "applies_to" SET DEFAULT 'ALL',
+            ALTER COLUMN "product_ids" SET DEFAULT '[]'::jsonb,
+            ALTER COLUMN "category_ids" SET DEFAULT '[]'::jsonb,
+            ALTER COLUMN "visibility" SET DEFAULT 'PUBLIC',
+            ALTER COLUMN "applies_to" SET NOT NULL,
+            ALTER COLUMN "product_ids" SET NOT NULL,
+            ALTER COLUMN "category_ids" SET NOT NULL,
+            ALTER COLUMN "visibility" SET NOT NULL;
+        `);
+
+        await sequelize.query(`
+            CREATE INDEX IF NOT EXISTS "coupons_visibility_idx"
+            ON "coupons" ("visibility");
+        `);
+
+        logger.info('Coupon schema compatibility check completed');
     }
 
-    await ensureEnumType(sequelize, 'enum_coupons_applies_to', [
-        'ALL',
-        'SPECIFIC_PRODUCTS',
-        'SPECIFIC_CATEGORIES',
-    ]);
-    await ensureEnumValues(sequelize, 'enum_coupons_applies_to', [
-        'ALL',
-        'SPECIFIC_PRODUCTS',
-        'SPECIFIC_CATEGORIES',
-    ]);
-    await ensureEnumType(sequelize, 'enum_coupons_visibility', [
-        'PUBLIC',
-        'PRIVATE',
-        'PERSONAL',
-    ]);
-    await ensureEnumValues(sequelize, 'enum_coupons_visibility', [
-        'PUBLIC',
-        'PRIVATE',
-        'PERSONAL',
-    ]);
+    // Explicitly sync coupon-related tables in dependency order for legacy databases.
+    await Coupon.sync({ alter: true });
+    await CouponAssignment.sync({ alter: true });
+    await CouponUsage.sync({ alter: true });
 
-    await addColumnIfMissing(
-        sequelize,
-        'coupons',
-        'applies_to',
-        '"enum_coupons_applies_to"',
-        `'ALL'`,
-        true
-    );
-    await addColumnIfMissing(
-        sequelize,
-        'coupons',
-        'product_ids',
-        'JSONB',
-        `'[]'::jsonb`,
-        true
-    );
-    await addColumnIfMissing(
-        sequelize,
-        'coupons',
-        'category_ids',
-        'JSONB',
-        `'[]'::jsonb`,
-        true
-    );
-    await addColumnIfMissing(
-        sequelize,
-        'coupons',
-        'visibility',
-        '"enum_coupons_visibility"',
-        `'PUBLIC'`,
-        true
-    );
-
-    await sequelize.query(`
-        UPDATE "coupons"
-        SET
-            "applies_to" = COALESCE("applies_to", 'ALL'),
-            "product_ids" = COALESCE("product_ids", '[]'::jsonb),
-            "category_ids" = COALESCE("category_ids", '[]'::jsonb),
-            "visibility" = COALESCE("visibility", 'PUBLIC');
-    `);
-
-    await sequelize.query(`
-        ALTER TABLE "coupons"
-        ALTER COLUMN "applies_to" SET DEFAULT 'ALL',
-        ALTER COLUMN "product_ids" SET DEFAULT '[]'::jsonb,
-        ALTER COLUMN "category_ids" SET DEFAULT '[]'::jsonb,
-        ALTER COLUMN "visibility" SET DEFAULT 'PUBLIC',
-        ALTER COLUMN "applies_to" SET NOT NULL,
-        ALTER COLUMN "product_ids" SET NOT NULL,
-        ALTER COLUMN "category_ids" SET NOT NULL,
-        ALTER COLUMN "visibility" SET NOT NULL;
-    `);
-
-    await sequelize.query(`
-        CREATE INDEX IF NOT EXISTS "coupons_visibility_idx"
-        ON "coupons" ("visibility");
-    `);
-
-    logger.info('Coupon schema compatibility check completed');
+    logger.info('Coupon support tables synchronized');
 };
 
 module.exports = ensureCouponSchema;
