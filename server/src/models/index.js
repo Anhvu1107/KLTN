@@ -66,6 +66,7 @@ db.Popup = require('./popup.model')(sequelize, Sequelize.DataTypes);
 db.AbandonedCart = require('./abandoned-cart.model')(sequelize, Sequelize.DataTypes);
 db.ChatSession = require('./chat-session.model')(sequelize, Sequelize.DataTypes);
 db.Notification = require('./notification.model')(sequelize, Sequelize.DataTypes);
+db.PageContent = require('./page-content.model')(sequelize, Sequelize.DataTypes);
 
 // Set up associations
 Object.keys(db).forEach((modelName) => {

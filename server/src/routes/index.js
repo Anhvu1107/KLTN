@@ -56,6 +56,9 @@ router.use('/settings', settingsRoutes);
 const notificationRoutes = require('./v1/notification.routes');
 router.use('/notifications', notificationRoutes);
 
+const pageContentRoutes = require('./v1/page-content.routes');
+router.use('/page-content', pageContentRoutes);
+
 // Health check
 router.get('/health', (req, res) => {
     res.status(200).json({

@@ -238,4 +238,28 @@ router.post('/upload/banner', uploadBanner.single('banner'), catchAsync(async (r
     res.json({ success: true, data: { url } });
 }));
 
+// Page Content (Page Builder)
+const pageContentService = require('../../services/page-content.service');
+router.get('/page-content/pages', catchAsync(async (req, res) => {
+    const pages = pageContentService.getManageablePages();
+    const blockTypes = pageContentService.getBlockTypes();
+    res.json({ success: true, data: { pages, blockTypes } });
+}));
+router.get('/page-content/:pageKey', catchAsync(async (req, res) => {
+    const content = await pageContentService.getContentByPage(req.params.pageKey);
+    res.json({ success: true, data: { content } });
+}));
+router.put('/page-content/:pageKey', catchAsync(async (req, res) => {
+    const content = await pageContentService.saveContent(req.params.pageKey, req.body.blocks);
+    res.json({ success: true, data: { content } });
+}));
+router.post('/page-content/:pageKey/publish', catchAsync(async (req, res) => {
+    const content = await pageContentService.publishContent(req.params.pageKey);
+    res.json({ success: true, data: { content } });
+}));
+router.post('/page-content/:pageKey/unpublish', catchAsync(async (req, res) => {
+    const content = await pageContentService.unpublishContent(req.params.pageKey);
+    res.json({ success: true, data: { content } });
+}));
+
 module.exports = router;
