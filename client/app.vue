@@ -6,10 +6,6 @@
  * Luxury UX: Fast, elegant loading experience
  */
 
-import AdminLayout from '~/layouts/admin.vue'
-import AuthLayout from '~/layouts/auth.vue'
-import DefaultLayout from '~/layouts/default.vue'
-
 // Use Nuxt's built-in useLoadingIndicator
 const { isLoading } = useLoadingIndicator()
 const route = useRoute()
@@ -64,32 +60,26 @@ watch(isLoading, (loading) => {
 // Provide loading state to layouts
 provide('isPageLoading', isPageLoading)
 
-const layoutMap = {
-  admin: AdminLayout,
-  auth: AuthLayout,
-  default: DefaultLayout,
-} as const
-
-const activeLayout = computed(() => {
+const layoutName = computed(() => {
   const layoutName = route.meta.layout
 
   if (layoutName === false) {
     return null
   }
 
-  if (typeof layoutName === 'string' && layoutName in layoutMap) {
-    return layoutMap[layoutName as keyof typeof layoutMap]
+  if (typeof layoutName === 'string') {
+    return layoutName
   }
 
-  return DefaultLayout
+  return 'default'
 })
 </script>
 
 <template>
-  <NuxtPage v-if="!activeLayout" />
-  <component :is="activeLayout" v-else>
+  <NuxtPage v-if="layoutName === null" />
+  <NuxtLayout v-else :name="layoutName">
     <NuxtPage />
-  </component>
+  </NuxtLayout>
   <!-- Zalo/Messenger Widget (bottom-left) -->
   <ClientOnly>
     <LiveChatWidget />
