@@ -65,8 +65,8 @@ class StylistEngine {
 
                 // Model fallback chain: primary → backup → last resort
                 const modelChain = [
-                    process.env.GEMINI_MODEL_MAIN || 'gemini-2.5-flash',
-                    process.env.GEMINI_MODEL_BACKUP || 'gemini-3.1-flash-lite',
+                    process.env.GEMINI_MODEL_MAIN || 'gemini-3.1-flash-lite',
+                    process.env.GEMINI_MODEL_BACKUP || 'gemini-2.5-flash',
                     'gemini-2.5-flash-lite',
                 ];
 

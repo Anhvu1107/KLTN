@@ -364,14 +364,15 @@ const startVoiceSession = async () => {
     // 1. Get voice config from backend (API key + model + system prompt + tools)
     const configRes = await $fetch<{
       success: boolean
-      data: { apiKey: string; model: string; systemPrompt: string; greetingMessage: string; tools: any[] }
+      data: { apiKey: string; model: string; fallbackModels?: string[]; systemPrompt: string; greetingMessage: string; tools: any[] }
     }>(`${config.public.apiUrl}/chat/voice-token${sessionQuery.value}`)
 
     if (!configRes.success || !configRes.data?.apiKey) {
       throw new Error('Failed to get voice config')
     }
 
-    const { apiKey, model, systemPrompt, greetingMessage, tools } = configRes.data
+    const { apiKey, model, fallbackModels = [], systemPrompt, greetingMessage, tools } = configRes.data
+    console.log('[Voice] Models available:', model, fallbackModels.length ? `fallbacks: ${fallbackModels.join(', ')}` : 'no fallbacks')
 
     // 2. Connect to Gemini Live API via WebSocket (direct API key)
     const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`

@@ -14,6 +14,7 @@ const chatAdminService = require('./chat-admin.service');
 const { emitNewMessage } = require('../socket');
 
 const DEFAULT_GEMINI_LIVE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
+const DEFAULT_GEMINI_LIVE_MODEL_BACKUP = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const PROMPT_CACHE_TTL = 60 * 1000;
 const promptCache = {
     persona: { value: null, expiresAt: 0 },
@@ -539,10 +540,15 @@ const executeToolCall = async (toolName, args = {}, sessionId = null) => {
  */
 const getVoiceConfig = async (sessionId = null) => {
     const apiKey = process.env.GEMINI_API_KEY;
-    const liveModel = process.env.GEMINI_LIVE_MODEL || DEFAULT_GEMINI_LIVE_MODEL;
     if (!apiKey) {
         throw new Error('GEMINI_API_KEY is not configured');
     }
+
+    // Live model fallback chain
+    const liveModels = [
+        process.env.GEMINI_LIVE_MODEL_MAIN || process.env.GEMINI_LIVE_MODEL || DEFAULT_GEMINI_LIVE_MODEL,
+        process.env.GEMINI_LIVE_MODEL_BACKUP || DEFAULT_GEMINI_LIVE_MODEL_BACKUP,
+    ].filter((v, i, a) => a.indexOf(v) === i); // deduplicate
 
     if (sessionId) {
         sessionMemory.ensureSession(sessionId);
@@ -553,7 +559,8 @@ const getVoiceConfig = async (sessionId = null) => {
 
     return {
         apiKey,
-        model: liveModel,
+        model: liveModels[0],
+        fallbackModels: liveModels.slice(1),
         systemPrompt,
         greetingMessage,
         tools: getToolDeclarations(),
