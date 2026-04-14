@@ -56,18 +56,35 @@ class StylistEngine {
         this.mode = process.env.CHATBOT_MODE || 'auto';
         this.sessions = sessionMemory.sessions;
 
-        // Initialize Gemini
+        // Initialize Gemini with fallback model chain
+        this.geminiModels = [];
         if (process.env.GEMINI_API_KEY) {
             try {
                 const { GoogleGenerativeAI } = require('@google/generative-ai');
                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                this.geminiModel = genAI.getGenerativeModel({
-                    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-                    generationConfig: {
-                        thinkingConfig: { thinkingBudget: 0 },
-                    },
-                });
+
+                // Model fallback chain: primary → backup → last resort
+                const modelChain = [
+                    process.env.GEMINI_MODEL_MAIN || 'gemini-2.5-flash',
+                    process.env.GEMINI_MODEL_BACKUP || 'gemini-3.1-flash-lite',
+                    'gemini-2.5-flash-lite',
+                ];
+
+                for (const modelName of modelChain) {
+                    this.geminiModels.push({
+                        name: modelName,
+                        model: genAI.getGenerativeModel({
+                            model: modelName,
+                            generationConfig: {
+                                thinkingConfig: { thinkingBudget: 0 },
+                            },
+                        }),
+                    });
+                }
+
+                this.geminiModel = this.geminiModels[0].model;
                 this.hasApi = true;
+                console.log(`[StylistEngine] Gemini fallback chain: ${modelChain.join(' → ')}`);
             } catch (e) {
                 console.log('[StylistEngine] Failed to init Gemini:', e.message);
             }
@@ -181,7 +198,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
 
         let responseText;
         if (useApi) {
-            responseText = await this._generateApiResponseWithRetry(message, session, intent, entities, enrichment, systemPrompt);
+            responseText = await this._generateApiResponse(message, session, intent, entities, enrichment, systemPrompt);
         } else {
             responseText = await this._generateTrainedResponse(message, session, intent, entities, enrichment);
         }
@@ -603,35 +620,56 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         messages.push(...session.messages.slice(-6));
 
         try {
-            if (this.geminiModel) {
-                return await this._callGemini(messages);
+            if (this.geminiModels.length > 0) {
+                return await this._callGeminiWithFallback(messages);
             } else if (this.openaiClient) {
                 return await this._callOpenai(messages);
             }
             return await this._generateTrainedResponse(messages[messages.length - 1].content, session, intent, entities, enrichment);
         } catch (e) {
-            console.log(`[StylistEngine] API error: ${e.message}`);
+            console.log(`[StylistEngine] All API models failed: ${e.message}`);
             return await this._generateTrainedResponse(message, session, intent, entities, enrichment);
         }
     }
 
-    async _callGemini(messages) {
+    async _callGeminiWithFallback(messages) {
         const systemMsg = messages[0]?.role === 'system' ? messages[0].content : '';
         const history = messages.slice(1).map(msg => ({
             role: msg.role === 'user' ? 'user' : 'model',
             parts: [{ text: msg.content }],
         }));
-
-        const chat = this.geminiModel.startChat({
-            history: history.length > 1 ? history.slice(0, -1) : [],
-        });
-
         const lastMsg = history.length > 0 ? history[history.length - 1].parts[0].text : '';
         const fullPrompt = systemMsg ? `${systemMsg}\n\n---\nUser message: ${lastMsg}` : lastMsg;
 
-        const result = await chat.sendMessage(fullPrompt);
-        const rawText = result.response.text();
-        return this._sanitizeAiOutput(rawText);
+        let lastError = null;
+        for (const { name, model } of this.geminiModels) {
+            try {
+                console.log(`[StylistEngine] Trying model: ${name}`);
+                const chat = model.startChat({
+                    history: history.length > 1 ? history.slice(0, -1) : [],
+                });
+                const result = await chat.sendMessage(fullPrompt);
+                const rawText = result.response.text();
+                console.log(`[StylistEngine] ✓ Success with: ${name}`);
+                return this._sanitizeAiOutput(rawText);
+            } catch (e) {
+                lastError = e;
+                const status = e?.status || e?.code || e?.message || '';
+                const isRateLimit = String(status).includes('429') || String(e.message).includes('429') || String(e.message).toLowerCase().includes('resource exhausted');
+                if (isRateLimit) {
+                    console.log(`[StylistEngine] ⚠ ${name} rate limited (429), trying next...`);
+                    continue;
+                }
+                // Non-rate-limit error — still try next model
+                console.log(`[StylistEngine] ✗ ${name} failed: ${e.message}, trying next...`);
+            }
+        }
+        throw lastError || new Error('All Gemini models exhausted');
+    }
+
+    // Keep backward compat for direct calls
+    async _callGemini(messages) {
+        return this._callGeminiWithFallback(messages);
     }
 
     /**
