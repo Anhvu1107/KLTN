@@ -5,7 +5,7 @@
  */
 
 import draggable from 'vuedraggable'
-import { v4 as uuidv4 } from 'uuid'
+
 
 definePageMeta({
   layout: 'admin',
@@ -234,7 +234,7 @@ const unpublishContent = async () => {
 // Add block
 const addBlock = (type: string) => {
   blocks.value.push({
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     type,
     data: getDefaultBlockData(type),
   })
@@ -251,7 +251,7 @@ const removeBlock = (index: number) => {
 // Duplicate block
 const duplicateBlock = (index: number) => {
   const block = JSON.parse(JSON.stringify(blocks.value[index]))
-  block.id = uuidv4()
+  block.id = crypto.randomUUID()
   blocks.value.splice(index + 1, 0, block)
   hasUnsavedChanges.value = true
 }
