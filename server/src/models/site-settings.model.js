@@ -56,6 +56,14 @@ module.exports = (sequelize, DataTypes) => {
         { key: 'site_tagline', value: 'Luxury Resell Fashion', type: 'text', group: 'general', label: 'Slogan' },
         { key: 'site_logo', value: '', type: 'image', group: 'general', label: 'Logo' },
         { key: 'site_favicon', value: '', type: 'image', group: 'general', label: 'Favicon' },
+        {
+            key: 'homepage_featured_brands',
+            value: JSON.stringify([]),
+            type: 'json',
+            group: 'homepage',
+            label: 'Thuong hieu noi bat trang chu',
+            description: 'Danh sach thuong hieu hien thi o thanh brand trang chu. Chon tu cac brand dang co trong catalog.',
+        },
 
         // Contact
         { key: 'contact_phone', value: '0123 456 789', type: 'text', group: 'contact', label: 'Hotline' },

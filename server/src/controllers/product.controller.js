@@ -116,7 +116,7 @@ const getSaleProducts = catchAsync(async (req, res) => {
 
 /**
  * GET /api/v1/products/new-arrivals
- * Get new arrival products (added in last 14 days)
+ * Get manually flagged new arrival products
  */
 const getNewArrivals = catchAsync(async (req, res) => {
     const limit = parseInt(req.query.limit) || 12;

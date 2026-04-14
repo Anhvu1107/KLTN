@@ -57,6 +57,7 @@ const getPublicSettings = catchAsync(async (req, res) => {
  * Get all settings (admin)
  */
 const getAllSettings = catchAsync(async (req, res) => {
+    await siteSettingsService.seedDefaultSettings();
     const settings = await siteSettingsService.getAllSettings();
 
     res.status(200).json({

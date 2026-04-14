@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * New Arrivals Page
- * AURA ARCHIVE - Products added in last 14 days
+ * AURA ARCHIVE - Products manually flagged as new arrivals
  */
 
 const { t } = useI18n()
@@ -11,7 +11,7 @@ const config = useRuntimeConfig()
 const page = ref(1)
 
 // Fetch new arrivals
-const { data, pending, refresh } = await useFetch<{
+const { data, pending } = await useFetch<{
   success: boolean
   data: {
     products: any[]

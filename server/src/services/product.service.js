@@ -274,21 +274,15 @@ const getSaleProducts = async (limit = 8) => {
 };
 
 /**
- * Get new arrivals (products added in last 14 days)
+ * Get manually flagged new arrivals
  */
 const getNewArrivals = async (limit = 12, page = 1) => {
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
     const offset = (page - 1) * limit;
 
     const { count, rows } = await Product.findAndCountAll({
         where: {
             is_active: true,
-            [Op.or]: [
-                { created_at: { [Op.gte]: fourteenDaysAgo } },
-                { is_new_arrival: true },
-            ],
+            is_new_arrival: true,
         },
         include: [{
             model: Variant,

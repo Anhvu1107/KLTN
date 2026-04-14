@@ -23,9 +23,11 @@ const saveMessage = ref('')
 
 const uploadingStates = ref<Record<string, boolean>>({})
 const fileInputs = ref<Record<string, HTMLInputElement>>({})
+const catalogBrands = ref<Array<{ name: string; count: number }>>([])
 
 const groupLabels = computed((): Record<string, string> => ({
   general: t('admin.settings.general'),
+  homepage: 'Homepage',
   contact: t('admin.settings.contact'),
   social: t('admin.settings.social'),
   seo: t('admin.settings.seo'),
@@ -50,6 +52,50 @@ const settingDescription = (setting: any) => {
   const translated = t(key)
   // If translation exists (not equal to the key itself), use it; otherwise fallback to DB description
   return translated !== key ? translated : setting.description
+}
+
+const parseJsonArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
+  }
+
+  if (typeof value !== 'string' || !value.trim()) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value)
+    if (!Array.isArray(parsed)) return []
+
+    return parsed
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  } catch {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+}
+
+const getFeaturedBrandsValue = (setting: any) => parseJsonArray(setting.value)
+
+const isFeaturedBrandSelected = (setting: any, brandName: string) => {
+  return getFeaturedBrandsValue(setting).includes(brandName)
+}
+
+const toggleFeaturedBrand = (setting: any, brandName: string) => {
+  const current = getFeaturedBrandsValue(setting)
+  const next = current.includes(brandName)
+    ? current.filter((item) => item !== brandName)
+    : [...current, brandName]
+
+  setting.value = JSON.stringify(next)
+}
+
+const clearFeaturedBrands = (setting: any) => {
+  setting.value = JSON.stringify([])
 }
 
 // Fetch settings
@@ -125,6 +171,36 @@ const handleImageUpload = async (event: Event, setting: any) => {
   }
 }
 
+const fetchCatalogBrands = async () => {
+  try {
+    const response = await $fetch<{ success: boolean; data: { brands: Array<string | { brand?: string; count?: number | string }> } }>(
+      `${config.public.apiUrl}/products/brands`
+    )
+
+    const seen = new Set<string>()
+    catalogBrands.value = (response.data?.brands || [])
+      .map((item) => typeof item === 'string'
+        ? { name: item.trim(), count: 0 }
+        : {
+            name: (item?.brand || '').trim(),
+            count: Number(item?.count || 0),
+          }
+      )
+      .filter((item) => {
+        if (!item.name) return false
+
+        const normalized = item.name.toLowerCase()
+        if (seen.has(normalized)) return false
+
+        seen.add(normalized)
+        return true
+      })
+  } catch (error) {
+    console.error('Failed to fetch catalog brands:', error)
+    catalogBrands.value = []
+  }
+}
+
 // Save settings
 const saveSettings = async () => {
   isSaving.value = true
@@ -165,7 +241,10 @@ const seedDefaults = async () => {
   }
 }
 
-onMounted(fetchSettings)
+onMounted(() => {
+  fetchSettings()
+  fetchCatalogBrands()
+})
 
 useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
 </script>
@@ -244,9 +323,61 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
             </label>
             
             <div class="col-span-2">
+              <template v-if="setting.key === 'homepage_featured_brands'">
+                <div class="space-y-4">
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-caption text-neutral-500">
+                      Chon brand dang co trong catalog. Neu de trong, trang chu se tu dong lay 5 brand dau tien.
+                    </p>
+                    <button
+                      type="button"
+                      class="text-caption uppercase tracking-wider text-neutral-500 hover:text-aura-black transition-colors"
+                      @click="clearFeaturedBrands(setting)"
+                    >
+                      Bo chon
+                    </button>
+                  </div>
+
+                  <div v-if="getFeaturedBrandsValue(setting).length > 0" class="flex flex-wrap gap-2">
+                    <button
+                      v-for="selectedBrand in getFeaturedBrandsValue(setting)"
+                      :key="selectedBrand"
+                      type="button"
+                      class="inline-flex items-center gap-2 rounded-full border border-aura-black bg-aura-black px-3 py-1.5 text-caption uppercase tracking-wider text-white"
+                      @click="toggleFeaturedBrand(setting, selectedBrand)"
+                    >
+                      <span>{{ selectedBrand }}</span>
+                      <span aria-hidden="true">x</span>
+                    </button>
+                  </div>
+                  <p v-else class="text-body-sm text-neutral-500">
+                    Chua chon brand nao.
+                  </p>
+
+                  <div v-if="catalogBrands.length > 0" class="flex flex-wrap gap-2">
+                    <button
+                      v-for="brandOption in catalogBrands"
+                      :key="brandOption.name"
+                      type="button"
+                      class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-caption uppercase tracking-wider transition-colors"
+                      :class="isFeaturedBrandSelected(setting, brandOption.name)
+                        ? 'border-aura-black bg-aura-black text-white'
+                        : 'border-neutral-300 text-neutral-600 hover:border-aura-black hover:text-aura-black'"
+                      @click="toggleFeaturedBrand(setting, brandOption.name)"
+                    >
+                      <span>{{ brandOption.name }}</span>
+                      <span class="text-[10px] opacity-70">{{ brandOption.count }}</span>
+                    </button>
+                  </div>
+                  <p v-else class="text-body-sm text-neutral-500">
+                    Chua co brand nao trong catalog de chon.
+                  </p>
+                </div>
+              </template>
+
               <!-- Text input -->
               <input
-                v-if="setting.type === 'text'"
+                v-else-if="setting.type === 'text'"
                 v-model="setting.value"
                 type="text"
                 class="input-field"

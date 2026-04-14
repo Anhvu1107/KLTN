@@ -13,7 +13,20 @@ type BannerResponse = {
 
 type ProductListResponse = {
   success: boolean
-  data: { products: any[] }
+  data: {
+    products: any[]
+    pagination?: { total: number; page: number; limit: number; totalPages: number }
+  }
+}
+
+type SettingsResponse = {
+  success: boolean
+  data: { settings: Record<string, string> }
+}
+
+type ProductBrandsResponse = {
+  success: boolean
+  data: { brands: Array<string | { brand?: string; count?: number | string }> }
 }
 
 const createEmptyBannerResponse = (): BannerResponse => ({
@@ -26,6 +39,16 @@ const createEmptyProductResponse = (): ProductListResponse => ({
   data: { products: [] },
 })
 
+const createEmptySettingsResponse = (): SettingsResponse => ({
+  success: true,
+  data: { settings: {} },
+})
+
+const createEmptyBrandsResponse = (): ProductBrandsResponse => ({
+  success: true,
+  data: { brands: [] },
+})
+
 // Fetch all banners (SSR)
 const { data: bannersData } = await useFetch<BannerResponse>(`${config.public.apiUrl}/banners`, {
   timeout: 5000,
@@ -33,7 +56,7 @@ const { data: bannersData } = await useFetch<BannerResponse>(`${config.public.ap
 })
 
 const { data: featuredProducts } = useFetch<ProductListResponse>(
-  `${config.public.apiUrl}/products?limit=4&sort=newest`,
+  `${config.public.apiUrl}/products/new-arrivals?limit=4`,
   {
     server: false,
     lazy: true,
@@ -62,13 +85,51 @@ const { data: saleProductsData } = useFetch<ProductListResponse>(
   }
 )
 
+const { data: settingsData } = await useFetch<SettingsResponse>(`${config.public.apiUrl}/settings`, {
+  timeout: 5000,
+  default: createEmptySettingsResponse,
+})
+
+const { data: brandsData } = await useFetch<ProductBrandsResponse>(`${config.public.apiUrl}/products/brands`, {
+  timeout: 5000,
+  default: createEmptyBrandsResponse,
+})
+
 // Helper: resolve banner image URL
 const { getImageUrl } = useImageUrl()
+
+const parseJsonSetting = <T>(raw: string | null | undefined, fallback: T): T => {
+  if (!raw) return fallback
+
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
+
+const normalizeBrandNames = (rawBrands: Array<string | { brand?: string; count?: number | string }>) => {
+  const seen = new Set<string>()
+
+  return rawBrands
+    .map((item) => typeof item === 'string' ? item : item?.brand || '')
+    .map((name) => name.trim())
+    .filter((name) => {
+      if (!name) return false
+
+      const normalized = name.toLowerCase()
+      if (seen.has(normalized)) return false
+
+      seen.add(normalized)
+      return true
+    })
+}
 
 // Get banners by section
 const allBanners = computed(() => bannersData.value?.data?.banners || [])
 const getBannersBySection = (section: string) => allBanners.value.filter((b: any) => b.section === section)
 const getBannerBySection = (section: string) => allBanners.value.find((b: any) => b.section === section) || null
+const publicSettings = computed(() => settingsData.value?.data?.settings || {})
 
 const heroBanners = computed(() => getBannersBySection('hero'))
 const heroBanner = computed(() => heroBanners.value[0] || null)
@@ -84,30 +145,43 @@ const collectionMenImage = computed(() => getImageUrl(getBannerBySection('collec
 
 // Dynamic homepage categories
 const homepageCategories = computed(() => getBannersBySection('homepage_categories'))
+const catalogBrands = computed(() => normalizeBrandNames(brandsData.value?.data?.brands || []))
+const configuredFeaturedBrands = computed(() => {
+  const selected = parseJsonSetting<unknown[]>(publicSettings.value.homepage_featured_brands, [])
+  if (!Array.isArray(selected)) return []
+
+  const catalogBrandMap = new Map(catalogBrands.value.map((brandName) => [brandName.toLowerCase(), brandName]))
+  const seen = new Set<string>()
+
+  return selected
+    .map((item) => typeof item === 'string' ? item.trim() : '')
+    .map((brandName) => catalogBrandMap.get(brandName.toLowerCase()) || '')
+    .filter((brandName) => {
+      if (!brandName) return false
+
+      const normalized = brandName.toLowerCase()
+      if (seen.has(normalized)) return false
+
+      seen.add(normalized)
+      return true
+    })
+})
+const featuredBrands = computed(() => {
+  if (configuredFeaturedBrands.value.length > 0) {
+    return configuredFeaturedBrands.value
+  }
+
+  return catalogBrands.value.slice(0, 5)
+})
 
 // Fetch animation config from site settings
-const animationConfig = ref<Record<string, string>>({})
+const animationConfig = computed(() =>
+  parseJsonSetting<Record<string, string>>(publicSettings.value.banner_animation_config, {})
+)
+
 const getAnimType = (section: string): 'none' | 'slide' | 'fade' => {
   return (animationConfig.value[section] as any) || 'none'
 }
-
-onMounted(async () => {
-  try {
-    const response = await $fetch<{ success: boolean; data: { settings: Record<string, string> } }>(
-      `${config.public.apiUrl}/settings`
-    )
-    const raw = response.data?.settings?.banner_animation_config
-    if (raw) {
-      try {
-        animationConfig.value = JSON.parse(raw)
-      } catch {
-        animationConfig.value = {}
-      }
-    }
-  } catch {
-    animationConfig.value = {}
-  }
-})
 
 const products = computed(() => featuredProducts.value?.data?.products || [])
 const bestSellers = computed(() => bestSellersData.value?.data?.products || [])
@@ -213,14 +287,17 @@ useSeoMeta({
     </section>
 
     <!-- Featured Brands Bar -->
-    <section class="py-12 border-y border-neutral-200 bg-white">
+    <section v-if="featuredBrands.length > 0" class="py-12 border-y border-neutral-200 bg-white">
       <div class="container-aura">
         <div class="flex flex-wrap items-center justify-center gap-12 lg:gap-20 text-neutral-400">
-          <span class="font-serif text-xl tracking-wider">Rick Owens</span>
-          <span class="font-serif text-xl tracking-wider">Balenciaga</span>
-          <span class="font-serif text-xl tracking-wider">Prada</span>
-          <span class="font-serif text-xl tracking-wider">Maison Margiela</span>
-          <span class="font-serif text-xl tracking-wider">Acronym</span>
+          <NuxtLink
+            v-for="featuredBrand in featuredBrands"
+            :key="featuredBrand"
+            :to="{ path: '/shop', query: { brand: featuredBrand } }"
+            class="font-serif text-xl tracking-wider transition-colors duration-300 hover:text-aura-black"
+          >
+            {{ featuredBrand }}
+          </NuxtLink>
         </div>
       </div>
     </section>
