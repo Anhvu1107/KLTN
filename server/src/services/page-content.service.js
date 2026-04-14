@@ -21,7 +21,7 @@ const VALID_BLOCK_TYPES = [
     'faq',
 ];
 
-const VALID_PAGES = ['about', 'contact'];
+const VALID_PAGES = ['about', 'contact', 'faqs', 'shipping', 'returns', 'terms', 'privacy'];
 
 /**
  * Validate block structure

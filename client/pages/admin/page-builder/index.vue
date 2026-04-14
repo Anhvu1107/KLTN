@@ -31,6 +31,11 @@ const hasUnsavedChanges = ref(false)
 const pages = [
   { key: 'about', label: 'Giới thiệu', icon: '📖' },
   { key: 'contact', label: 'Liên hệ', icon: '📞' },
+  { key: 'faqs', label: 'FAQ', icon: '❓' },
+  { key: 'shipping', label: 'Vận chuyển', icon: '🚚' },
+  { key: 'returns', label: 'Đổi trả', icon: '🔄' },
+  { key: 'terms', label: 'Điều khoản', icon: '📋' },
+  { key: 'privacy', label: 'Bảo mật', icon: '🔒' },
 ]
 const currentPageKey = ref('about')
 const contentData = ref<any>(null)
