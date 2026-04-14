@@ -1114,6 +1114,52 @@
             "confirmClose": "Bạn có chắc muốn đóng phiên chat này?",
             "sessionClosed": "Phiên chat này đã được đóng",
             "closedBadge": "Đã đóng"
+        },
+        "pageBuilder": {
+            "title": "Thiết kế trang",
+            "desc": "Thiết kế nội dung các trang tĩnh bằng hệ thống block",
+            "published": "Đã xuất bản",
+            "draft": "Bản nháp",
+            "preview": "Xem trước",
+            "editor": "Chỉnh sửa",
+            "saveDraft": "Lưu nháp",
+            "publish": "Xuất bản",
+            "unpublish": "Gỡ xuất bản",
+            "saveSuccess": "Đã lưu thành công!",
+            "saveError": "Lỗi khi lưu",
+            "publishSuccess": "Đã xuất bản thành công!",
+            "publishError": "Lỗi khi xuất bản",
+            "unpublishSuccess": "Đã gỡ xuất bản",
+            "previewMode": "Chế độ xem trước",
+            "addBlock": "Thêm block",
+            "selectBlockType": "Chọn loại block",
+            "noBlocks": "Chưa có block nào",
+            "emptyState": "Trang chưa có nội dung",
+            "blockTitle": "Tiêu đề",
+            "subtitle": "Phụ đề",
+            "content": "Nội dung",
+            "description": "Mô tả",
+            "image": "Hình ảnh",
+            "imagePosition": "Vị trí ảnh",
+            "theme": "Giao diện",
+            "sectionTitle": "Tiêu đề phần",
+            "addItem": "Thêm mục",
+            "addMember": "Thêm thành viên",
+            "buttonText": "Chữ trên nút",
+            "buttonLink": "Đường dẫn nút",
+            "name": "Tên",
+            "role": "Vai trò",
+            "quote": "Lời nhận xét",
+            "photo": "Ảnh",
+            "member": "Thành viên",
+            "value": "Giá trị",
+            "label": "Nhãn",
+            "columns": "Số cột",
+            "height": "Chiều cao",
+            "dividerStyle": "Kiểu phân cách",
+            "question": "Câu hỏi",
+            "answer": "Trả lời",
+            "optional": "tùy chọn"
         }
     },
     "ai": {
@@ -1320,10 +1366,10 @@
         "needHelpText": "Đội ngũ chăm sóc khách hàng luôn sẵn sàng hỗ trợ bạn."
     },
     "chat": {
-        "newConversation": "Cu\u1ed9c tr\u00f2 chuy\u1ec7n m\u1edbi",
-        "inputPlaceholder": "H\u1ecfi v\u1ec1 th\u1eddi trang, phong c\u00e1ch...",
-        "send": "G\u1eedi",
-        "connectionError": "L\u1ed7i k\u1ebft n\u1ed1i. Vui l\u00f2ng th\u1eed l\u1ea1i.",
-        "welcomeFallback": "Ch\u00e0o m\u1eebng b\u1ea1n \u0111\u1ebfn AURA ARCHIVE! M\u00ecnh c\u00f3 th\u1ec3 gi\u00fap g\u00ec cho b\u1ea1n?"
+        "newConversation": "Cuộc trò chuyện mới",
+        "inputPlaceholder": "Hỏi về thời trang, phong cách...",
+        "send": "Gửi",
+        "connectionError": "Lỗi kết nối. Vui lòng thử lại.",
+        "welcomeFallback": "Chào mừng bạn đến AURA ARCHIVE! Mình có thể giúp gì cho bạn?"
     }
 }

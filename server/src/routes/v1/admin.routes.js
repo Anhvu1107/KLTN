@@ -238,4 +238,49 @@ router.post('/upload/banner', uploadBanner.single('banner'), catchAsync(async (r
     res.json({ success: true, data: { url } });
 }));
 
+// Page Content (Page Builder)
+const pageContentService = require('../../services/page-content.service');
+router.get('/page-content/pages', catchAsync(async (req, res) => {
+    const pages = pageContentService.getManageablePages();
+    const blockTypes = pageContentService.getBlockTypes();
+    res.json({ success: true, data: { pages, blockTypes } });
+}));
+router.get('/page-content/:pageKey', catchAsync(async (req, res) => {
+    const content = await pageContentService.getContentByPage(req.params.pageKey);
+    res.json({ success: true, data: { content } });
+}));
+router.put('/page-content/:pageKey', catchAsync(async (req, res) => {
+    const content = await pageContentService.saveContent(req.params.pageKey, req.body.blocks);
+    res.json({ success: true, data: { content } });
+}));
+router.post('/page-content/:pageKey/publish', catchAsync(async (req, res) => {
+    const content = await pageContentService.publishContent(req.params.pageKey);
+    res.json({ success: true, data: { content } });
+}));
+router.post('/page-content/:pageKey/unpublish', catchAsync(async (req, res) => {
+    const content = await pageContentService.unpublishContent(req.params.pageKey);
+    res.json({ success: true, data: { content } });
+}));
+
+// Translation for page builder blocks (using Google Translate library)
+router.post('/page-content/translate', catchAsync(async (req, res) => {
+    const { texts, from = 'vi', to = 'en' } = req.body;
+
+    if (!texts || !Array.isArray(texts) || texts.length === 0) {
+        return res.status(400).json({ success: false, message: 'texts array is required' });
+    }
+
+    const translate = require('google-translate-api-x');
+
+    // Batch translate all texts
+    const results = await translate(texts, { from, to });
+
+    // google-translate-api-x returns array for array input
+    const translated = Array.isArray(results)
+        ? results.map(r => r.text)
+        : [results.text];
+
+    res.json({ success: true, data: { translated } });
+}));
+
 module.exports = router;

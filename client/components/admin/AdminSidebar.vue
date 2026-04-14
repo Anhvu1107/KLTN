@@ -35,6 +35,7 @@ const menuItems = computed(() => [
   { path: '/admin/reviews', label: t('admin.reviews.title'), icon: 'star' },
   { path: '/admin/banners', label: t('admin.banners.title'), icon: 'image', hasSubmenu: true },
   { path: '/admin/blogs', label: t('admin.blogs.title'), icon: 'document' },
+  { path: '/admin/page-builder', label: t('admin.pageBuilder.title'), icon: 'layout' },
   { path: '/admin/popups', label: t('admin.popups.title'), icon: 'popup' },
   { path: '/admin/abandoned-carts', label: t('admin.abandonedCarts.title'), icon: 'cart-abandon' },
   { path: '/admin/settings', label: t('admin.settings.title'), icon: 'cog' },
@@ -146,6 +147,9 @@ const isActive = (path: string) => route.path === path
             </svg>
             <svg v-else-if="item.icon === 'chat'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <svg v-else-if="item.icon === 'layout'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
             </svg>
             <span class="text-body-sm">{{ item.label }}</span>
           </NuxtLink>
