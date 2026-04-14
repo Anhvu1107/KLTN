@@ -329,6 +329,98 @@ onMounted(() => {
   fetchContent()
 })
 
+// Auto-translate all blocks from VI → EN
+const isTranslating = ref(false)
+const translateBlocks = async () => {
+  if (isTranslating.value) return
+  isTranslating.value = true
+
+  try {
+    // Collect all VI text fields with their paths
+    const textsToTranslate: string[] = []
+    const pathMap: { blockIdx: number; path: string }[] = []
+
+    blocks.value.forEach((block: any, blockIdx: number) => {
+      const data = block.data
+      // Block-level vi fields
+      if (data.vi) {
+        Object.keys(data.vi).forEach((field: string) => {
+          const val = data.vi[field]
+          if (typeof val === 'string' && val.trim()) {
+            textsToTranslate.push(val)
+            pathMap.push({ blockIdx, path: `vi.${field}` })
+          }
+        })
+      }
+      // Array-level items (values_grid, testimonial, stats_counter, faq)
+      const arrayFields = ['items', 'members']
+      arrayFields.forEach((arrField: string) => {
+        if (Array.isArray(data[arrField])) {
+          data[arrField].forEach((item: any, itemIdx: number) => {
+            if (item.vi) {
+              Object.keys(item.vi).forEach((field: string) => {
+                const val = item.vi[field]
+                if (typeof val === 'string' && val.trim()) {
+                  textsToTranslate.push(val)
+                  pathMap.push({ blockIdx, path: `${arrField}.${itemIdx}.vi.${field}` })
+                }
+              })
+            }
+          })
+        }
+      })
+    })
+
+    if (!textsToTranslate.length) {
+      saveMessage.value = 'Không có nội dung VI để dịch'
+      saveMessageType.value = 'error'
+      setTimeout(() => { saveMessage.value = '' }, 3000)
+      return
+    }
+
+    const token = getToken()
+    const response = await $fetch<{ success: boolean; data: { translated: string[] } }>(
+      `${config.public.apiUrl}/admin/page-content/translate`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: { texts: textsToTranslate, from: 'vi', to: 'en' },
+      }
+    )
+
+    const translated = response.data.translated
+
+    // Apply translations to EN fields
+    pathMap.forEach((mapping, idx) => {
+      const block = blocks.value[mapping.blockIdx]
+      const parts = mapping.path.split('.')
+      // Convert vi path to en path
+      const enPath = mapping.path.replace(/^vi\./, 'en.').replace(/\.vi\./, '.en.')
+
+      const enParts = enPath.split('.')
+      let obj: any = block.data
+      for (let i = 0; i < enParts.length - 1; i++) {
+        const key = enParts[i]
+        if (obj[key] === undefined) obj[key] = isNaN(Number(enParts[i + 1])) ? {} : obj[key]
+        if (!obj[key]) obj[key] = {}
+        obj = obj[key]
+      }
+      obj[enParts[enParts.length - 1]] = translated[idx] || textsToTranslate[idx]
+    })
+
+    hasUnsavedChanges.value = true
+    saveMessage.value = `✅ Đã dịch ${translated.length} trường sang tiếng Anh`
+    saveMessageType.value = 'success'
+    currentLang.value = 'en' // Switch to EN to show results
+    setTimeout(() => { saveMessage.value = '' }, 4000)
+  } catch (error: any) {
+    saveMessage.value = error.data?.message || 'Dịch thất bại'
+    saveMessageType.value = 'error'
+  } finally {
+    isTranslating.value = false
+  }
+}
+
 useSeoMeta({ title: 'Page Builder | Admin' })
 </script>
 
@@ -398,6 +490,19 @@ useSeoMeta({ title: 'Page Builder | Admin' })
           🇬🇧 EN
         </button>
       </div>
+
+      <!-- Auto-translate button -->
+      <button
+        v-if="blocks.length"
+        @click="translateBlocks"
+        :disabled="isTranslating"
+        class="px-3 py-1.5 text-xs rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        title="Dịch tự động VI → EN bằng AI"
+      >
+        <svg v-if="isTranslating" class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" /></svg>
+        {{ isTranslating ? 'Đang dịch...' : '🤖 VI → EN' }}
+      </button>
     </div>
 
     <!-- Loading -->

@@ -262,4 +262,43 @@ router.post('/page-content/:pageKey/unpublish', catchAsync(async (req, res) => {
     res.json({ success: true, data: { content } });
 }));
 
+// AI Translation for page builder blocks
+router.post('/page-content/translate', catchAsync(async (req, res) => {
+    const { texts, from = 'vi', to = 'en' } = req.body;
+
+    if (!texts || !Array.isArray(texts) || texts.length === 0) {
+        return res.status(400).json({ success: false, message: 'texts array is required' });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ success: false, message: 'Translation service not configured' });
+    }
+
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const langNames = { vi: 'Vietnamese', en: 'English' };
+    const prompt = `Translate the following texts from ${langNames[from] || from} to ${langNames[to] || to}.
+Return a JSON array of translated strings in the same order. Keep the meaning natural and fluent.
+Do NOT add explanations. Return ONLY a valid JSON array of strings.
+
+Input texts:
+${JSON.stringify(texts, null, 2)}`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text().trim();
+
+    // Parse JSON from response (handle markdown code blocks)
+    let translated;
+    try {
+        const jsonStr = responseText.replace(/^```json?\n?/, '').replace(/\n?```$/, '');
+        translated = JSON.parse(jsonStr);
+    } catch {
+        translated = texts; // fallback to original if parsing fails
+    }
+
+    res.json({ success: true, data: { translated } });
+}));
+
 module.exports = router;
