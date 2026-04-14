@@ -5,6 +5,9 @@
 
 import { defineStore } from 'pinia'
 
+const CART_STORAGE_PREFIX = 'aura_cart:'
+const LEGACY_CART_STORAGE_KEY = 'cart'
+
 export interface CartItem {
     id: string // variant ID
     productId: string
@@ -29,6 +32,13 @@ export interface CartState {
     isLoading: boolean
     appliedCoupon: AppliedCoupon | null
 }
+
+type PersistedCartState = Pick<CartState, 'items' | 'appliedCoupon'>
+
+const createEmptyPersistedCart = (): PersistedCartState => ({
+    items: [],
+    appliedCoupon: null,
+})
 
 export const useCartStore = defineStore('cart', {
     state: (): CartState => ({
@@ -77,6 +87,90 @@ export const useCartStore = defineStore('cart', {
     },
 
     actions: {
+        getStorageKey(userId: string): string {
+            return `${CART_STORAGE_PREFIX}${userId}`
+        },
+
+        readPersistedCart(raw: string | null): PersistedCartState {
+            if (!raw) {
+                return createEmptyPersistedCart()
+            }
+
+            try {
+                const parsed = JSON.parse(raw)
+                return {
+                    items: Array.isArray(parsed?.items) ? parsed.items : [],
+                    appliedCoupon: parsed?.appliedCoupon ?? null,
+                }
+            } catch (error) {
+                console.warn('Failed to parse persisted cart:', error)
+                return createEmptyPersistedCart()
+            }
+        },
+
+        persistCartForUser(userId: string | null = useAuthStore().user?.id ?? null): void {
+            if (!process.client || !userId) {
+                return
+            }
+
+            const payload = {
+                items: this.items,
+                appliedCoupon: this.appliedCoupon,
+            }
+
+            const storageKey = this.getStorageKey(userId)
+
+            if (payload.items.length === 0 && !payload.appliedCoupon) {
+                localStorage.removeItem(storageKey)
+                return
+            }
+
+            localStorage.setItem(storageKey, JSON.stringify(payload))
+        },
+
+        migrateLegacyCart(userId: string): void {
+            if (!process.client) {
+                return
+            }
+
+            const storageKey = this.getStorageKey(userId)
+            if (localStorage.getItem(storageKey)) {
+                localStorage.removeItem(LEGACY_CART_STORAGE_KEY)
+                return
+            }
+
+            const legacyCart = this.readPersistedCart(localStorage.getItem(LEGACY_CART_STORAGE_KEY))
+            if (legacyCart.items.length === 0 && !legacyCart.appliedCoupon) {
+                localStorage.removeItem(LEGACY_CART_STORAGE_KEY)
+                return
+            }
+
+            localStorage.setItem(storageKey, JSON.stringify(legacyCart))
+            localStorage.removeItem(LEGACY_CART_STORAGE_KEY)
+        },
+
+        loadCartForUser(userId: string | null): void {
+            if (!process.client || !userId) {
+                this.items = []
+                this.appliedCoupon = null
+                return
+            }
+
+            this.migrateLegacyCart(userId)
+
+            const persistedCart = this.readPersistedCart(localStorage.getItem(this.getStorageKey(userId)))
+            this.items = persistedCart.items
+            this.appliedCoupon = persistedCart.appliedCoupon
+        },
+
+        syncWithUser(userId: string | null, previousUserId: string | null = null): void {
+            if (previousUserId && previousUserId !== userId) {
+                this.persistCartForUser(previousUserId)
+            }
+
+            this.loadCartForUser(userId)
+        },
+
         /**
          * Add item to cart
          * Returns false if item already exists (unique items only)
@@ -94,6 +188,7 @@ export const useCartStore = defineStore('cart', {
                 addedAt: new Date().toISOString(),
             })
 
+            this.persistCartForUser()
             return true
         },
 
@@ -104,6 +199,10 @@ export const useCartStore = defineStore('cart', {
             const index = this.items.findIndex(item => item.id === variantId)
             if (index !== -1) {
                 this.items.splice(index, 1)
+                if (this.items.length === 0) {
+                    this.appliedCoupon = null
+                }
+                this.persistCartForUser()
             }
         },
 
@@ -112,6 +211,8 @@ export const useCartStore = defineStore('cart', {
          */
         clearCart(): void {
             this.items = []
+            this.appliedCoupon = null
+            this.persistCartForUser()
         },
 
         /**
@@ -126,6 +227,7 @@ export const useCartStore = defineStore('cart', {
          */
         setCoupon(coupon: AppliedCoupon): void {
             this.appliedCoupon = coupon
+            this.persistCartForUser()
         },
 
         /**
@@ -133,6 +235,7 @@ export const useCartStore = defineStore('cart', {
          */
         clearCoupon(): void {
             this.appliedCoupon = null
+            this.persistCartForUser()
         },
 
         /**
@@ -165,6 +268,10 @@ export const useCartStore = defineStore('cart', {
                 // Remove unavailable items from cart
                 for (const item of unavailable) {
                     this.removeFromCart(item.variantId)
+                }
+
+                if (unavailable.length > 0) {
+                    this.persistCartForUser()
                 }
 
                 return unavailable.map(item => ({
@@ -234,7 +341,4 @@ export const useCartStore = defineStore('cart', {
             }
         },
     },
-
-    // Enable persistence to localStorage
-    persist: true,
 })

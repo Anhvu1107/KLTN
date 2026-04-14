@@ -28,7 +28,7 @@ function sanitizeAiOutput(text) {
     // Remove **Initiating...** / **Greeting...** / **Thinking...** style blocks and following pure English/reasoning lines
     let cleaned = text.replace(/\*\*[A-Z][a-zA-Z\s]+\*\*\n[\s\S]*?(?=\n\n|$)/g, (match) => {
         // Strip if it looks like meta-commentary instructions
-        if (/(?:Initiating|Processing|Analyzing|Searching|I\'ll|I will|My next|Based on|Let me|Greeting|Approach|Starting|Establishing|focusing)/i.test(match)) {
+        if (/(?:Initiating|Processing|Analyzing|Searching|I'll|I will|My next|Based on|Let me|Greeting|Approach|Starting|Establishing|focusing)/i.test(match)) {
             return '';
         }
         return match;
@@ -39,7 +39,7 @@ function sanitizeAiOutput(text) {
         const trimmed = line.trim();
         if (!trimmed) return true;
         // Filter out lines that are clearly internal reasoning in English
-        return !/^(?:\*\*)?(?:Initiating|Processing|Analyzing|I\'m |I will |My (?:next|plan)|Based on|Let me|The user|Greeting|Approach|Starting)/.test(trimmed);
+        return !/^(?:\*\*)?(?:Initiating|Processing|Analyzing|I'm |I will |My (?:next|plan)|Based on|Let me|The user|Greeting|Approach|Starting)/.test(trimmed);
     }).join('\n');
 
     // Collapse multiple blank lines

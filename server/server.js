@@ -21,10 +21,13 @@ const { errorHandler, notFound } = require('./src/middlewares/error.middleware')
 const logger = require('./src/utils/logger');
 const ensureCouponSchema = require('./src/utils/ensure-coupon-schema');
 const { initSocket } = require('./src/socket');
-const { buildOpenApiSpec } = require('./src/docs/openapi');
+const { buildOpenApiSpec, normalizeDocsScope } = require('./src/docs/openapi');
 
 // Initialize Express app
 const app = express();
+const docsMode = normalizeDocsScope(process.env.API_DOCS_MODE || 'full');
+const docsEnabled = docsMode !== 'off';
+const docsTryItOutEnabled = process.env.API_DOCS_TRY_IT_OUT !== 'false';
 
 // ===========================================
 // SECURITY MIDDLEWARES
@@ -127,21 +130,24 @@ app.get('/health', (req, res) => {
 // API DOCUMENTATION
 // ===========================================
 
-app.get('/openapi.json', (req, res) => {
-    res.json(buildOpenApiSpec(req));
-});
+if (docsEnabled) {
+    app.get('/openapi.json', (req, res) => {
+        res.json(buildOpenApiSpec(req, { scope: docsMode }));
+    });
 
-app.use(
-    '/docs',
-    swaggerUi.serve,
-    swaggerUi.setup(null, {
-        explorer: true,
-        customSiteTitle: 'AURA ARCHIVE API Docs',
-        swaggerOptions: {
-            url: '/openapi.json',
-        },
-    })
-);
+    app.use(
+        '/docs',
+        swaggerUi.serve,
+        swaggerUi.setup(null, {
+            explorer: true,
+            customSiteTitle: 'AURA ARCHIVE API Docs',
+            swaggerOptions: {
+                url: '/openapi.json',
+                supportedSubmitMethods: docsTryItOutEnabled ? undefined : [],
+            },
+        })
+    );
+}
 
 // ===========================================
 // API ROUTES
@@ -151,13 +157,19 @@ app.use('/api/v1', routes);
 
 // Welcome route
 app.get('/', (req, res) => {
-    res.json({
+    const payload = {
         success: true,
         message: 'Welcome to AURA ARCHIVE API',
         version: '1.0.0',
-        docs: '/docs',
-        openapi: '/openapi.json',
-    });
+        docs_mode: docsMode,
+    };
+
+    if (docsEnabled) {
+        payload.docs = '/docs';
+        payload.openapi = '/openapi.json';
+    }
+
+    res.json(payload);
 });
 
 // ===========================================

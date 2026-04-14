@@ -26,6 +26,10 @@ const props = withDefaults(defineProps<{
   overlayContent: false,
 })
 
+const emit = defineEmits<{
+  change: [banner: Banner | null, index: number]
+}>()
+
 const config = useRuntimeConfig()
 
 const currentIndex = ref(0)
@@ -70,6 +74,9 @@ onMounted(resetTimer)
 onUnmounted(() => { if (timer) clearInterval(timer) })
 watch(() => props.animation, resetTimer)
 watch(() => props.banners.length, resetTimer)
+watch([currentBanner, currentIndex], () => {
+  emit('change', currentBanner.value, currentIndex.value)
+}, { immediate: true })
 </script>
 
 <template>

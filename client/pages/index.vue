@@ -5,7 +5,6 @@
  */
 
 const config = useRuntimeConfig()
-const { t } = useI18n()
 
 type BannerResponse = {
   success: boolean
@@ -73,11 +72,14 @@ const getBannerBySection = (section: string) => allBanners.value.find((b: any) =
 
 const heroBanners = computed(() => getBannersBySection('hero'))
 const heroBanner = computed(() => heroBanners.value[0] || null)
-const heroBannerImage = computed(() => getImageUrl(heroBanner.value?.image_url))
+const currentHeroBanner = ref<any | null>(null)
+const displayedHeroBanner = computed(() => currentHeroBanner.value || heroBanner.value)
 
-const collectionWomenBanners = computed(() => getBannersBySection('collection_women'))
+const handleHeroBannerChange = (banner: any) => {
+  currentHeroBanner.value = banner
+}
+
 const collectionWomenImage = computed(() => getImageUrl(getBannerBySection('collection_women')?.image_url))
-const collectionMenBanners = computed(() => getBannersBySection('collection_men'))
 const collectionMenImage = computed(() => getImageUrl(getBannerBySection('collection_men')?.image_url))
 
 // Dynamic homepage categories
@@ -96,9 +98,15 @@ onMounted(async () => {
     )
     const raw = response.data?.settings?.banner_animation_config
     if (raw) {
-      try { animationConfig.value = JSON.parse(raw) } catch {}
+      try {
+        animationConfig.value = JSON.parse(raw)
+      } catch {
+        animationConfig.value = {}
+      }
     }
-  } catch {}
+  } catch {
+    animationConfig.value = {}
+  }
 })
 
 const products = computed(() => featuredProducts.value?.data?.products || [])
@@ -167,13 +175,14 @@ useSeoMeta({
 
           <!-- Right: Featured Image from Banner -->
           <div class="hidden lg:block">
-            <div class="relative">
+            <div class="relative pb-12">
               <div class="bg-white rounded-sm overflow-hidden shadow-elevated group">
                 <!-- Multiple banners: use slider -->
                 <BannerSlider
                   v-if="heroBanners.length > 0"
                   :banners="heroBanners"
                   :animation="getAnimType('hero')"
+                  @change="handleHeroBannerChange"
                 />
                 <!-- Fallback placeholder -->
                 <div v-else class="w-full aspect-[3/4] flex items-center justify-center text-neutral-400">
@@ -186,9 +195,9 @@ useSeoMeta({
                 </div>
               </div>
               <!-- Decorative badge -->
-              <div class="absolute -bottom-6 -left-6 bg-aura-white shadow-medium p-6 rounded-sm">
-                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">{{ heroBanner?.title || $t('home.newArrivals') }}</p>
-                <p class="font-serif text-heading-4 text-aura-black">{{ heroBanner?.subtitle || $t('home.season') }}</p>
+              <div class="absolute bottom-0 left-0 z-30 max-w-[18rem] -translate-x-6 bg-aura-white shadow-medium p-6 rounded-sm">
+                <p class="text-caption uppercase tracking-wider text-neutral-500 mb-1">{{ displayedHeroBanner?.title || $t('home.newArrivals') }}</p>
+                <p class="font-serif text-heading-4 text-aura-black">{{ displayedHeroBanner?.subtitle || $t('home.season') }}</p>
               </div>
             </div>
           </div>

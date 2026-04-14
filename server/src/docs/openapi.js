@@ -3,6 +3,20 @@ const path = require('path');
 
 const ROUTES_INDEX_PATH = path.join(__dirname, '..', 'routes', 'index.js');
 const ROUTES_DIR = path.join(__dirname, '..', 'routes', 'v1');
+const DOCS_SCOPES = new Set(['full', 'public', 'off']);
+const PUBLIC_ROUTE_GROUPS = new Set([
+    'auth',
+    'banner',
+    'blog',
+    'contact',
+    'coupon',
+    'location',
+    'newsletter',
+    'product',
+    'review',
+    'settings',
+    'shipping',
+]);
 
 const TAG_METADATA = {
     address: {
@@ -213,7 +227,12 @@ function getRouteFiles() {
     return fs.readdirSync(ROUTES_DIR).filter((file) => file.endsWith('.routes.js'));
 }
 
-function buildGeneratedPaths() {
+function normalizeDocsScope(scope) {
+    return DOCS_SCOPES.has(scope) ? scope : 'full';
+}
+
+function buildGeneratedPaths(scope = 'full') {
+    const normalizedScope = normalizeDocsScope(scope);
     const mountMap = getMountMap();
     const paths = {};
     const tagsInUse = new Set();
@@ -222,6 +241,9 @@ function buildGeneratedPaths() {
         const baseName = fileName.replace('.routes.js', '');
         const tagInfo = TAG_METADATA[baseName];
         if (!tagInfo) {
+            continue;
+        }
+        if (normalizedScope === 'public' && !PUBLIC_ROUTE_GROUPS.has(baseName)) {
             continue;
         }
 
@@ -245,6 +267,10 @@ function buildGeneratedPaths() {
             const isAdminOnly = globalAdminOnly || /\badminOnly\b/.test(line);
             const isUploadRoute = /\.single\(|\.array\(/.test(line);
             const descriptionParts = [`Source file: ${fileName}.`];
+
+            if (normalizedScope === 'public' && (isProtected || isAdminOnly)) {
+                continue;
+            }
 
             if (isAdminOnly) {
                 descriptionParts.push('Requires an authenticated admin user.');
@@ -375,15 +401,19 @@ function getServerUrl(req) {
     return host ? `${protocol}://${host}` : '/';
 }
 
-function buildOpenApiSpec(req) {
-    const generated = buildGeneratedPaths();
+function buildOpenApiSpec(req, options = {}) {
+    const docsScope = normalizeDocsScope(options.scope);
+    const generated = buildGeneratedPaths(docsScope);
+    const modeDescription = docsScope === 'full'
+        ? 'This document includes both public and protected endpoints.'
+        : 'This document includes only public endpoints intended for demonstration.';
 
     return {
         openapi: '3.0.3',
         info: {
             title: 'AURA ARCHIVE API',
             version: '1.0.0',
-            description: 'OpenAPI documentation for the current Express backend powering AURA ARCHIVE.',
+            description: `OpenAPI documentation for the current Express backend powering AURA ARCHIVE. ${modeDescription}`,
         },
         servers: [
             {
@@ -528,4 +558,5 @@ function buildOpenApiSpec(req) {
 
 module.exports = {
     buildOpenApiSpec,
+    normalizeDocsScope,
 };
