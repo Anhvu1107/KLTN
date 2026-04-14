@@ -17,6 +17,7 @@ const cartStore = useCartStore()
 const navItems = computed(() => [
   { name: t('nav.newArrivals'), href: '/new-arrivals' },
   { name: t('common.shop'), href: '/shop' },
+  { name: 'Blog', href: '/blog' },
   { name: t('common.about'), href: '/about' },
   { name: t('common.contact'), href: '/contact' },
 ])

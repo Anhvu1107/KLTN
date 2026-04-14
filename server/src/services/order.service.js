@@ -10,6 +10,7 @@ const notificationService = require('./notification.service');
 const { sendOrderConfirmation } = require('./email.service');
 const { sendNewOrderAdminEmail } = require('../utils/sendEmail');
 const couponService = require('./coupon.service');
+const abandonedCartService = require('./abandoned-cart.service');
 
 const SHIPPING_BENEFIT_TYPE = 'SHIPPING';
 
@@ -162,6 +163,11 @@ const createOrder = async (userId, items, orderData) => {
 
         // Step 6: Commit transaction
         await transaction.commit();
+
+        // Mark the latest tracked cart as converted after a successful checkout.
+        await abandonedCartService.markLatestCartAsConverted(userId).catch((error) => {
+            console.error('Failed to mark abandoned cart as converted:', error.message);
+        });
 
         // Step 7: Record coupon usage (after commit, fire-and-forget)
         for (const coupon of validatedCoupons) {

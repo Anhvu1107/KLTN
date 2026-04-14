@@ -3,9 +3,40 @@
  * AURA ARCHIVE - Business logic for product reviews
  */
 
-const { Review, User, Product, Order, OrderItem, sequelize } = require('../models');
+const { Review, User, Product, Variant, Order, OrderItem, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
+
+const findDeliveredPurchase = async (userId, productId) => {
+    return OrderItem.findOne({
+        include: [
+            {
+                model: Order,
+                as: 'order',
+                where: {
+                    user_id: userId,
+                    status: 'DELIVERED',
+                },
+                required: true,
+            },
+            {
+                model: Variant,
+                as: 'variant',
+                attributes: ['id'],
+                required: true,
+                include: [{
+                    model: Product,
+                    as: 'product',
+                    attributes: ['id'],
+                    where: {
+                        id: productId,
+                    },
+                    required: true,
+                }],
+            },
+        ],
+    });
+};
 
 /**
  * Get reviews for a product
@@ -133,20 +164,7 @@ const createReview = async (userId, productId, data) => {
     }
 
     // REQUIRE: User must have purchased and received this product
-    const hasPurchased = await OrderItem.findOne({
-        include: [{
-            model: Order,
-            as: 'order',
-            where: {
-                user_id: userId,
-                status: 'DELIVERED',
-            },
-            required: true,
-        }],
-        where: {
-            product_id: productId,
-        },
-    });
+    const hasPurchased = await findDeliveredPurchase(userId, productId);
 
     if (!hasPurchased) {
         throw new AppError('You can only review products you have purchased and received', 403);
@@ -189,18 +207,7 @@ const checkReviewEligibility = async (userId, productId) => {
     }
 
     // Check if user has a DELIVERED order with this product
-    const hasPurchased = await OrderItem.findOne({
-        include: [{
-            model: Order,
-            as: 'order',
-            where: {
-                user_id: userId,
-                status: 'DELIVERED',
-            },
-            required: true,
-        }],
-        where: { product_id: productId },
-    });
+    const hasPurchased = await findDeliveredPurchase(userId, productId);
 
     if (!hasPurchased) {
         return { eligible: false, reason: 'not_purchased' };

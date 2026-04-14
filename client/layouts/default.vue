@@ -46,6 +46,11 @@ const isPageLoading = inject<Ref<boolean>>('isPageLoading', ref(false))
 
     <!-- Global Dialog (for alerts and confirms) -->
     <GlobalDialog />
+
+    <!-- Marketing Popup (from admin config) -->
+    <ClientOnly>
+      <CommonMarketingPopup />
+    </ClientOnly>
   </div>
 </template>
 

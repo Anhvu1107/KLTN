@@ -20,8 +20,10 @@ const reviewRoutes = require('./v1/review.routes');
 const couponRoutes = require('./v1/coupon.routes');
 const addressRoutes = require('./v1/address.routes');
 const bannerRoutes = require('./v1/banner.routes');
+const popupRoutes = require('./v1/popup.routes');
 const locationRoutes = require('./v1/location.routes');
 const paymentRoutes = require('./v1/payment.routes');
+const abandonedCartRoutes = require('./v1/abandoned-cart.routes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -37,8 +39,10 @@ router.use('/', reviewRoutes); // Reviews mounted at root for /products/:id/revi
 router.use('/coupons', couponRoutes);
 router.use('/addresses', addressRoutes);
 router.use('/banners', bannerRoutes);
+router.use('/popups', popupRoutes);
 router.use('/locations', locationRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/abandoned-carts', abandonedCartRoutes);
 
 const blogRoutes = require('./v1/blog.routes');
 router.use('/blogs', blogRoutes);

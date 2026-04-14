@@ -178,10 +178,19 @@ const getBrands = async () => {
     const brands = await Product.findAll({
         attributes: [
             'brand',
-            [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+            [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('Product.id'))), 'count'],
         ],
-        where: { is_active: true },
-        group: ['brand'],
+        where: {
+            is_active: true,
+        },
+        include: [{
+            model: Variant,
+            as: 'variants',
+            attributes: [],
+            where: { status: 'AVAILABLE' },
+            required: true,
+        }],
+        group: ['Product.brand'],
         order: [['brand', 'ASC']],
         raw: true,
     });

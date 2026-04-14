@@ -4,9 +4,14 @@
  */
 
 import { defineStore } from 'pinia'
+import { useAuthStore } from '~/stores/auth'
 
 const CART_STORAGE_PREFIX = 'aura_cart:'
 const LEGACY_CART_STORAGE_KEY = 'cart'
+
+// Debounced abandoned cart tracking
+let trackTimer: ReturnType<typeof setTimeout> | null = null
+const TRACK_DEBOUNCE_MS = 5000 // Wait 5s of inactivity before sending
 
 export interface CartItem {
     id: string // variant ID
@@ -189,6 +194,7 @@ export const useCartStore = defineStore('cart', {
             })
 
             this.persistCartForUser()
+            this.debouncedTrackAbandonedCart()
             return true
         },
 
@@ -203,6 +209,7 @@ export const useCartStore = defineStore('cart', {
                     this.appliedCoupon = null
                 }
                 this.persistCartForUser()
+                this.debouncedTrackAbandonedCart()
             }
         },
 
@@ -338,6 +345,54 @@ export const useCartStore = defineStore('cart', {
                 return { success: false, error: errorMessage }
             } finally {
                 this.isLoading = false
+            }
+        },
+
+        /**
+         * Track abandoned cart - sends cart data to server for recovery
+         */
+        debouncedTrackAbandonedCart(): void {
+            if (!process.client) return
+
+            if (trackTimer) {
+                clearTimeout(trackTimer)
+            }
+
+            trackTimer = setTimeout(() => {
+                this.trackAbandonedCart()
+            }, TRACK_DEBOUNCE_MS)
+        },
+
+        async trackAbandonedCart(): Promise<void> {
+            if (!process.client) return
+
+            const token = localStorage.getItem('token')
+            if (!token || this.items.length === 0) return
+
+            try {
+                const config = useRuntimeConfig()
+                const authStore = useAuthStore()
+
+                await $fetch(`${config.public.apiUrl}/abandoned-carts/track`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: {
+                        items: this.items.map(item => ({
+                            variantId: item.id,
+                            productId: item.productId,
+                            productName: item.productName,
+                            productBrand: item.productBrand,
+                            price: item.price,
+                            variantSize: item.variantSize,
+                            variantColor: item.variantColor,
+                        })),
+                        totalAmount: this.subtotal,
+                        email: authStore.user?.email || null,
+                    },
+                })
+            } catch (error) {
+                // Silent fail - tracking is non-critical
+                console.debug('Abandoned cart tracking failed:', error)
             }
         },
     },

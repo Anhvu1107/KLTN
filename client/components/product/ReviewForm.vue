@@ -31,9 +31,9 @@ const isCheckingEligibility = ref(true)
 const isEligible = ref(false)
 const ineligibleReason = ref('')
 
-// Check if user is logged in
-const token = process.client ? localStorage.getItem('token') : null
-const isLoggedIn = computed(() => !!token)
+// Check if user is logged in (reactive, client-only)
+const token = computed(() => process.client ? localStorage.getItem('token') : null)
+const isLoggedIn = computed(() => !!token.value)
 
 // Check review eligibility on mount
 onMounted(async () => {
@@ -45,7 +45,7 @@ onMounted(async () => {
   try {
     const response = await $fetch<any>(`${config.public.apiUrl}/products/${props.productId}/reviews/eligibility`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token.value}`,
       },
     })
 
@@ -90,7 +90,7 @@ const handleSubmit = async () => {
     await $fetch(`${config.public.apiUrl}/products/${props.productId}/reviews`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token.value}`,
       },
       body: {
         rating: rating.value,

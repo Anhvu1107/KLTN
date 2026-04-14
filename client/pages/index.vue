@@ -29,6 +29,11 @@ type ProductBrandsResponse = {
   data: { brands: Array<string | { brand?: string; count?: number | string }> }
 }
 
+type HomepageBrand = {
+  name: string
+  count: number
+}
+
 const createEmptyBannerResponse = (): BannerResponse => ({
   success: true,
   data: { banners: [] },
@@ -108,21 +113,28 @@ const parseJsonSetting = <T>(raw: string | null | undefined, fallback: T): T => 
   }
 }
 
-const normalizeBrandNames = (rawBrands: Array<string | { brand?: string; count?: number | string }>) => {
-  const seen = new Set<string>()
+const normalizeHomepageBrands = (rawBrands: Array<string | { brand?: string; count?: number | string }>): HomepageBrand[] => {
+  const brandMap = new Map<string, HomepageBrand>()
 
-  return rawBrands
-    .map((item) => typeof item === 'string' ? item : item?.brand || '')
-    .map((name) => name.trim())
-    .filter((name) => {
-      if (!name) return false
+  for (const item of rawBrands) {
+    const name = (typeof item === 'string' ? item : item?.brand || '').trim()
 
-      const normalized = name.toLowerCase()
-      if (seen.has(normalized)) return false
+    if (!name) continue
 
-      seen.add(normalized)
-      return true
-    })
+    const rawCount = typeof item === 'string' ? 0 : Number(item?.count || 0)
+    const count = Number.isFinite(rawCount) ? rawCount : 0
+    const normalized = name.toLowerCase()
+    const existing = brandMap.get(normalized)
+
+    if (existing) {
+      existing.count = Math.max(existing.count, count)
+      continue
+    }
+
+    brandMap.set(normalized, { name, count })
+  }
+
+  return Array.from(brandMap.values())
 }
 
 // Get banners by section
@@ -145,34 +157,7 @@ const collectionMenImage = computed(() => getImageUrl(getBannerBySection('collec
 
 // Dynamic homepage categories
 const homepageCategories = computed(() => getBannersBySection('homepage_categories'))
-const catalogBrands = computed(() => normalizeBrandNames(brandsData.value?.data?.brands || []))
-const configuredFeaturedBrands = computed(() => {
-  const selected = parseJsonSetting<unknown[]>(publicSettings.value.homepage_featured_brands, [])
-  if (!Array.isArray(selected)) return []
-
-  const catalogBrandMap = new Map(catalogBrands.value.map((brandName) => [brandName.toLowerCase(), brandName]))
-  const seen = new Set<string>()
-
-  return selected
-    .map((item) => typeof item === 'string' ? item.trim() : '')
-    .map((brandName) => catalogBrandMap.get(brandName.toLowerCase()) || '')
-    .filter((brandName) => {
-      if (!brandName) return false
-
-      const normalized = brandName.toLowerCase()
-      if (seen.has(normalized)) return false
-
-      seen.add(normalized)
-      return true
-    })
-})
-const featuredBrands = computed(() => {
-  if (configuredFeaturedBrands.value.length > 0) {
-    return configuredFeaturedBrands.value
-  }
-
-  return catalogBrands.value.slice(0, 5)
-})
+const homepageBrands = computed(() => normalizeHomepageBrands(brandsData.value?.data?.brands || []))
 
 // Fetch animation config from site settings
 const animationConfig = computed(() =>
@@ -287,20 +272,7 @@ useSeoMeta({
     </section>
 
     <!-- Featured Brands Bar -->
-    <section v-if="featuredBrands.length > 0" class="py-12 border-y border-neutral-200 bg-white">
-      <div class="container-aura">
-        <div class="flex flex-wrap items-center justify-center gap-12 lg:gap-20 text-neutral-400">
-          <NuxtLink
-            v-for="featuredBrand in featuredBrands"
-            :key="featuredBrand"
-            :to="{ path: '/shop', query: { brand: featuredBrand } }"
-            class="font-serif text-xl tracking-wider transition-colors duration-300 hover:text-aura-black"
-          >
-            {{ featuredBrand }}
-          </NuxtLink>
-        </div>
-      </div>
-    </section>
+    <HomeBrandTicker :brands="homepageBrands" />
 
     <!-- Collection Banners (2-column layout) -->
     <section class="py-20 lg:py-28 bg-white">

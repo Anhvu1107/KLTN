@@ -15,13 +15,19 @@ const getActivePopups = async (pagePath = '*') => {
     const popups = await Popup.findAll({
         where: {
             is_active: true,
-            [Op.or]: [
-                { starts_at: null },
-                { starts_at: { [Op.lte]: now } },
-            ],
-            [Op.or]: [
-                { ends_at: null },
-                { ends_at: { [Op.gte]: now } },
+            [Op.and]: [
+                {
+                    [Op.or]: [
+                        { starts_at: null },
+                        { starts_at: { [Op.lte]: now } },
+                    ],
+                },
+                {
+                    [Op.or]: [
+                        { ends_at: null },
+                        { ends_at: { [Op.gte]: now } },
+                    ],
+                },
             ],
         },
         order: [['created_at', 'DESC']],

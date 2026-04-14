@@ -57,6 +57,7 @@ const customerLinks = computed(() => [
 
 const companyLinks = computed(() => [
   { name: t('footer.about'), href: '/about' },
+  { name: 'Blog', href: '/blog' },
   { name: t('footer.privacy'), href: '/privacy' },
   { name: t('footer.terms'), href: '/terms' },
 ])

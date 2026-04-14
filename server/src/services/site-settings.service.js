@@ -58,7 +58,6 @@ const getSettings = async (keys) => {
 const getPublicSettings = async () => {
     const publicKeys = [
         'site_name', 'site_tagline', 'site_logo', 'site_favicon',
-        'homepage_featured_brands',
         'contact_phone', 'contact_email', 'contact_address',
         'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube',
         'seo_title', 'seo_description', 'seo_keywords',
