@@ -71,6 +71,7 @@ let isPlaying = false
 let playbackSource: AudioBufferSourceNode | null = null
 let micSourceNode: MediaStreamAudioSourceNode | null = null
 let micProcessorNode: ScriptProcessorNode | null = null
+let micMonitorNode: GainNode | null = null
 let currentTurnAudioParts = new Set<string>()
 let currentTurnTextParts = new Set<string>()
 let isStreamingAiResponse = false
@@ -285,6 +286,11 @@ const teardownVoiceSession = ({ emitClose = false } = {}) => {
     micProcessorNode = null
   }
 
+  if (micMonitorNode) {
+    micMonitorNode.disconnect()
+    micMonitorNode = null
+  }
+
   if (micSourceNode) {
     micSourceNode.disconnect()
     micSourceNode = null
@@ -456,24 +462,10 @@ const startVoiceSession = async () => {
           return
         }
 
-        // Handle output audio transcription (what AI actually said)
-        if (data.serverContent?.outputTranscription?.text) {
-          appendUniqueTranscript(data.serverContent.outputTranscription.text)
-          return
-        }
-
-        // Handle input audio transcription (what user actually said)
-        if (data.serverContent?.inputTranscription?.text) {
-          const transcriptText = data.serverContent.inputTranscription.text.trim()
-          if (transcriptText) {
-            transcript.value = transcriptText
-          }
-          return
-        }
-
         // Handle server content (audio response)
         if (data.serverContent) {
-          const parts = data.serverContent.modelTurn?.parts || []
+          const serverContent = data.serverContent
+          const parts = serverContent.modelTurn?.parts || []
           const hasAudioParts = parts.some((part: any) =>
             part.inlineData?.mimeType?.startsWith('audio/')
           )
@@ -483,6 +475,18 @@ const startVoiceSession = async () => {
             resetStreamingResponseTracking({ clearDedup: true })
             isStreamingAiResponse = true
             aiTranscript.value = ''
+          }
+
+          // Gemini 3.1 Live can deliver transcript + audio in the same event.
+          if (serverContent.outputTranscription?.text) {
+            appendUniqueTranscript(serverContent.outputTranscription.text)
+          }
+
+          if (serverContent.inputTranscription?.text) {
+            const transcriptText = serverContent.inputTranscription.text.trim()
+            if (transcriptText) {
+              transcript.value = transcriptText
+            }
           }
 
           if (hasAudioParts) {
@@ -502,7 +506,7 @@ const startVoiceSession = async () => {
           }
 
           // Check if response is complete
-          if (data.serverContent.turnComplete) {
+          if (serverContent.turnComplete) {
             const isGreetingTurn = isInitialGreetingTurn
             if (isGreetingTurn) {
               isInitialGreetingTurn = false
@@ -534,7 +538,7 @@ const startVoiceSession = async () => {
           }
 
           // Handle interrupted (barge-in)
-          if (data.serverContent.interrupted) {
+          if (serverContent.interrupted) {
             console.log('[Voice] Interrupted by user')
             clearAudioQueue()
             resetStreamingResponseTracking({ clearDedup: true })
@@ -941,6 +945,8 @@ const startMicCapture = async () => {
   // Use ScriptProcessor for PCM capture (wider browser support than AudioWorklet)
   const bufferSize = 2048
   micProcessorNode = audioContext.createScriptProcessor(bufferSize, 1, 1)
+  micMonitorNode = audioContext.createGain()
+  micMonitorNode.gain.value = 0
 
   micProcessorNode.onaudioprocess = (e) => {
     if (state.value !== 'listening') return
@@ -987,7 +993,9 @@ const startMicCapture = async () => {
   }
 
   micSourceNode.connect(micProcessorNode)
-  micProcessorNode.connect(audioContext.destination)
+  // Keep the processor alive without routing the mic back to the speakers.
+  micProcessorNode.connect(micMonitorNode)
+  micMonitorNode.connect(audioContext.destination)
 }
 
 /**
