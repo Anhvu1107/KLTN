@@ -14,14 +14,13 @@ const props = defineProps<{
   size?: number
 }>()
 
+const SNAPSHOT_CACHE_VERSION = 'v2'
+
 const canvasSize = computed(() => props.size || 200)
 const snapshotUrl = ref<string | null>(null)
 const isRendering = ref(false)
 const hasError = ref(false)
 
-const cacheKey = computed(() => `live2d_snap_${props.modelUrl}`)
-
-/** Resolve /uploads/... URLs to the backend server origin */
 const resolvedUrl = computed(() => {
   const url = props.modelUrl
   if (url.startsWith('/uploads/')) {
@@ -32,10 +31,13 @@ const resolvedUrl = computed(() => {
   return url
 })
 
+const cacheKey = computed(() => `${SNAPSHOT_CACHE_VERSION}:live2d_snap_${resolvedUrl.value}`)
+
 // ---------------------------------------------------------------------------
 // Global sequential render queue (shared across all instances)
 // ---------------------------------------------------------------------------
 const QUEUE_KEY = '__live2d_snapshot_queue__'
+let latestRequestId = 0
 
 function getQueue(): Array<() => Promise<void>> {
   if (!(window as any)[QUEUE_KEY]) {
@@ -65,115 +67,185 @@ function enqueueRender(task: () => Promise<void>) {
   processQueue()
 }
 
+const waitFrames = async (count = 2) => {
+  for (let i = 0; i < count; i++) {
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+  }
+}
+
+const readCachedSnapshot = (key: string) => {
+  try {
+    return sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+const writeCachedSnapshot = (key: string, value: string) => {
+  try {
+    sessionStorage.setItem(key, value)
+  } catch {
+    // Ignore quota / storage errors.
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Core render logic
 // ---------------------------------------------------------------------------
-const doRender = async () => {
-  // Check sessionStorage cache first
-  try {
-    const cached = sessionStorage.getItem(cacheKey.value)
-    if (cached) {
-      snapshotUrl.value = cached
-      return
-    }
-  } catch { /* sessionStorage may be unavailable */ }
+type RenderRequest = {
+  requestId: number
+  cacheKey: string
+  modelUrl: string
+  resolvedUrl: string
+  size: number
+}
+
+const doRender = async (request: RenderRequest) => {
+  if (request.requestId !== latestRequestId) return
 
   isRendering.value = true
+  hasError.value = false
+
+  let canvas: HTMLCanvasElement | null = null
+  let app: any = null
 
   try {
     // Wait for Cubism Core
     let retries = 0
     while (!(window as any).Live2DCubismCore && retries < 40) {
       await new Promise(r => setTimeout(r, 150))
+      if (request.requestId !== latestRequestId) return
       retries++
     }
+
     if (!(window as any).Live2DCubismCore) {
       hasError.value = true
       return
     }
 
     const PIXI = await import('pixi.js')
+    if (request.requestId !== latestRequestId) return
     ;(window as any).PIXI = PIXI
 
     const { Live2DModel } = await import('pixi-live2d-display/cubism4')
+    if (request.requestId !== latestRequestId) return
 
     // Create a temporary DOM-attached canvas (required for WebGL)
-    const canvas = document.createElement('canvas')
-    const dpr = window.devicePixelRatio || 1
-    const sz = canvasSize.value * dpr
-    canvas.width = sz
-    canvas.height = sz
+    canvas = document.createElement('canvas')
     canvas.style.cssText = 'position:fixed;top:-9999px;left:-9999px;pointer-events:none;opacity:0;'
+    canvas.style.width = `${request.size}px`
+    canvas.style.height = `${request.size}px`
     document.body.appendChild(canvas)
 
-    const app = new PIXI.Application({
+    app = new PIXI.Application({
       view: canvas,
       backgroundAlpha: 0,
-      width: sz,
-      height: sz,
-      resolution: 1,
+      autoStart: false,
+      width: request.size,
+      height: request.size,
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true,
       antialias: true,
+      preserveDrawingBuffer: true,
     })
 
-    const model = await Live2DModel.from(resolvedUrl.value, {
+    const model = await Live2DModel.from(request.resolvedUrl, {
       autoInteract: false,
     })
+    if (request.requestId !== latestRequestId) return
+
+    const screenW = app.renderer.screen.width
+    const screenH = app.renderer.screen.height
 
     // Scale model to fit canvas
     const modelH = model.internalModel.height
     const modelW = model.internalModel.width
-    const scale = (sz / modelH) * 1.6
+    const scale = (screenH / modelH) * 1.6
     model.scale.set(scale)
-    model.x = (sz - modelW * scale) / 2
-    model.y = sz * 0.05
+    model.x = (screenW - modelW * scale) / 2
+    model.y = screenH * 0.05
 
     app.stage.addChild(model)
 
-    // Wait for model to fully render
-    await new Promise(r => setTimeout(r, 500))
+    // Give WebGL one full paint cycle before reading the canvas buffer.
+    await waitFrames(2)
     app.render()
+    await waitFrames(1)
 
     // Capture canvas to data URL
     const dataUrl = canvas.toDataURL('image/png')
+    if (request.requestId !== latestRequestId) return
+
     snapshotUrl.value = dataUrl
+    hasError.value = false
 
     // Cache in sessionStorage
-    try {
-      sessionStorage.setItem(cacheKey.value, dataUrl)
-    } catch { /* quota exceeded */ }
-
-    // Cleanup
-    model.destroy()
-    app.destroy(true, { children: true })
-    if (canvas.parentNode) canvas.parentNode.removeChild(canvas)
+    writeCachedSnapshot(request.cacheKey, dataUrl)
   } catch (err) {
-    console.warn('[Live2DSnapshot] Failed to render:', props.modelUrl, err)
+    if (request.requestId !== latestRequestId) return
+    console.warn('[Live2DSnapshot] Failed to render:', request.modelUrl, err)
     hasError.value = true
+    snapshotUrl.value = null
   } finally {
-    isRendering.value = false
+    try {
+      app?.destroy(true, { children: true })
+    } catch {
+      // Ignore renderer teardown errors.
+    }
+
+    if (canvas?.parentNode) {
+      canvas.parentNode.removeChild(canvas)
+    }
+
+    if (request.requestId === latestRequestId) {
+      isRendering.value = false
+    }
   }
 }
 
-onMounted(() => {
-  if (!import.meta.client) return
+const requestRender = () => {
+  if (!import.meta.client || !props.modelUrl) return
 
-  // Check cache synchronously first (instant display)
-  try {
-    const cached = sessionStorage.getItem(cacheKey.value)
-    if (cached) {
-      snapshotUrl.value = cached
-      return
-    }
-  } catch { /* ignore */ }
+  const request: RenderRequest = {
+    requestId: ++latestRequestId,
+    cacheKey: cacheKey.value,
+    modelUrl: props.modelUrl,
+    resolvedUrl: resolvedUrl.value,
+    size: canvasSize.value,
+  }
+
+  const cached = readCachedSnapshot(request.cacheKey)
+  if (cached) {
+    snapshotUrl.value = cached
+    hasError.value = false
+    isRendering.value = false
+    return
+  }
+
+  snapshotUrl.value = null
+  hasError.value = false
+  isRendering.value = true
 
   // Enqueue for sequential rendering
-  isRendering.value = true
-  enqueueRender(doRender)
+  enqueueRender(() => doRender(request))
+}
+
+watch([resolvedUrl, canvasSize], () => {
+  requestRender()
+})
+
+onMounted(() => {
+  if (!import.meta.client) return
+  requestRender()
+})
+
+onBeforeUnmount(() => {
+  latestRequestId++
 })
 </script>
 
 <template>
-  <div class="live2d-snapshot" :style="{ width: canvasSize + 'px', height: canvasSize + 'px' }">
+  <div class="live2d-snapshot w-full h-full">
     <!-- Captured snapshot -->
     <img
       v-if="snapshotUrl"
@@ -192,9 +264,12 @@ onMounted(() => {
 
     <!-- Error / fallback -->
     <div v-else-if="hasError" class="w-full h-full flex items-center justify-center bg-neutral-50 text-neutral-400 rounded">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
+      <div class="flex flex-col items-center gap-1.5 px-3 text-center">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <span class="text-[10px] uppercase tracking-[0.12em]">Preview unavailable</span>
+      </div>
     </div>
   </div>
 </template>

@@ -1056,17 +1056,19 @@ useSeoMeta({
 
             <div class="px-6 py-5">
               <div class="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.24),_transparent_55%),linear-gradient(180deg,_rgba(255,255,255,0.03),_rgba(255,255,255,0.01))] min-h-[280px] px-5 py-6 flex flex-col items-center justify-center">
-                <!-- Character thumbnail in preview -->
-                <div class="w-24 h-24 rounded-full border border-white/15 bg-white/5 overflow-hidden flex items-center justify-center">
-                  <AiLive2DSnapshot
+                <!-- Character live preview -->
+                <div class="w-full max-w-[220px] h-[240px] rounded-[28px] border border-white/10 bg-white/[0.04] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <AiLive2DCanvasPreview
                     v-if="selectedCharacterPreset.modelUrl"
+                    :key="selectedCharacterPreset.modelUrl"
                     :model-url="selectedCharacterPreset.modelUrl"
-                    :size="96"
-                    class="w-full h-full object-cover"
+                    class="w-full h-full"
                   />
-                  <span v-else class="text-3xl font-serif">{{ voiceConfig.characterName.slice(0, 1) || 'A' }}</span>
+                  <div v-else class="w-full h-full flex items-center justify-center">
+                    <span class="text-5xl font-serif">{{ voiceConfig.characterName.slice(0, 1) || 'A' }}</span>
+                  </div>
                 </div>
-                <p class="mt-3 text-sm font-medium text-white/85">{{ selectedCharacterPreset.label }}</p>
+                <p class="mt-4 text-sm font-medium text-white/85">{{ selectedCharacterPreset.label }}</p>
                 <p class="mt-0.5 text-[11px] text-white/45 text-center">{{ selectedCharacterPreset.description }}</p>
 
                 <!-- Tags -->
