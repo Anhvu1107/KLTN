@@ -6,11 +6,9 @@ import { toValue } from 'vue'
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
 
-// Motion group names matching model3.json
-const MOTION_GROUP = {
-  DEFAULT: '', // M01-M10 motions
-  IDLE: 'Idle', // W01-W02 idle motions
-}
+// Preference order for gesture (non-idle) motion groups.
+const GESTURE_GROUP_CANDIDATES = ['', 'Tap', 'Flick', 'Tap@Head', 'Tap@Body', 'Flick@Body']
+const IDLE_GROUP = 'Idle'
 
 const EXPRESSION_BY_MOOD: Record<string, string> = {
   neutral: 'exp_00',
@@ -53,6 +51,11 @@ export function useLive2D(
   let currentLipLevel = 0
   let lastGestureAt = 0
   let lastGestureKey = ''
+
+  // Detected at runtime from the loaded model's motion definitions.
+  let detectedGestureGroup = ''
+  let gestureMotionCount = 0
+  let idleMotionCount = 0
 
   const destroyCurrentModel = () => {
     if (model) {
@@ -176,7 +179,14 @@ export function useLive2D(
       isLoading.value = false
 
       const motionMgr = model.internalModel.motionManager
-      console.log('[Live2D] Motion groups:', Object.keys(motionMgr.definitions))
+      const availableGroups = Object.keys(motionMgr.definitions)
+      console.log('[Live2D] Motion groups:', availableGroups)
+
+      // Auto-detect best gesture group for this model.
+      detectedGestureGroup = GESTURE_GROUP_CANDIDATES.find(g => availableGroups.includes(g)) || availableGroups.find(g => g !== IDLE_GROUP) || ''
+      gestureMotionCount = (motionMgr.definitions[detectedGestureGroup] || []).length
+      idleMotionCount = (motionMgr.definitions[IDLE_GROUP] || []).length
+      console.log(`[Live2D] Gesture group: '${detectedGestureGroup}' (${gestureMotionCount} motions), Idle: ${idleMotionCount} motions`)
 
       setTimeout(() => {
         if (!isUnmounted && token === initToken) {
@@ -247,21 +257,23 @@ export function useLive2D(
       setMood(options.mood)
     }
 
-    playMotion(MOTION_GROUP.DEFAULT, pickGestureIndex(gesture), options.priority ?? 3)
+    const rawIndex = pickGestureIndex(gesture)
+    const safeIndex = gestureMotionCount > 0 ? rawIndex % gestureMotionCount : 0
+    playMotion(detectedGestureGroup, safeIndex, options.priority ?? 3)
   }
 
   const playRandomMotion = (priority = 3) => {
-    if (!model) return
-    const candidates = [1, 2, 5, 8]
-    const index = candidates[Math.floor(Math.random() * candidates.length)]
-    playMotion(MOTION_GROUP.DEFAULT, index, priority)
+    if (!model || gestureMotionCount === 0) return
+    const index = Math.floor(Math.random() * gestureMotionCount)
+    playMotion(detectedGestureGroup, index, priority)
   }
 
   const playIdle = () => {
     if (!model) return
-    const index = Math.floor(Math.random() * 2)
+    const count = idleMotionCount || 1
+    const index = Math.floor(Math.random() * count)
     setMood('soft')
-    playMotion(MOTION_GROUP.IDLE, index, 1)
+    playMotion(IDLE_GROUP, index, 1)
   }
 
   const playGreeting = () => {
@@ -285,8 +297,9 @@ export function useLive2D(
   }
 
   const playMotionByNumber = (num: number) => {
-    if (num < 1 || num > 10) return
-    playMotion(MOTION_GROUP.DEFAULT, num - 1, 3)
+    if (num < 1 || gestureMotionCount === 0) return
+    const index = (num - 1) % gestureMotionCount
+    playMotion(detectedGestureGroup, index, 3)
   }
 
   const setExpression = (index: number) => {
