@@ -695,13 +695,12 @@ useSeoMeta({
               : 'border-neutral-200 hover:border-neutral-400 hover:shadow-md'"
             @click="applyCharacterPreset(preset.value)"
           >
-            <!-- Thumbnail -->
+            <!-- Thumbnail (auto-rendered from actual model) -->
             <div class="aspect-square overflow-hidden bg-gradient-to-b from-neutral-100 to-neutral-50 relative">
-              <img
-                :src="preset.thumbnail"
-                :alt="preset.label"
+              <AiLive2DSnapshot
+                :model-url="preset.modelUrl"
+                :size="200"
                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                loading="lazy"
               />
               <!-- Selected Badge -->
               <div
@@ -878,10 +877,10 @@ useSeoMeta({
               <div class="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.24),_transparent_55%),linear-gradient(180deg,_rgba(255,255,255,0.03),_rgba(255,255,255,0.01))] min-h-[280px] px-5 py-6 flex flex-col items-center justify-center">
                 <!-- Character thumbnail in preview -->
                 <div class="w-24 h-24 rounded-full border border-white/15 bg-white/5 overflow-hidden flex items-center justify-center">
-                  <img
-                    v-if="selectedCharacterPreset.thumbnail"
-                    :src="selectedCharacterPreset.thumbnail"
-                    :alt="selectedCharacterPreset.label"
+                  <AiLive2DSnapshot
+                    v-if="selectedCharacterPreset.modelUrl"
+                    :model-url="selectedCharacterPreset.modelUrl"
+                    :size="96"
                     class="w-full h-full object-cover"
                   />
                   <span v-else class="text-3xl font-serif">{{ voiceConfig.characterName.slice(0, 1) || 'A' }}</span>

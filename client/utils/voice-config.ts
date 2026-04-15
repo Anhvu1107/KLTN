@@ -15,7 +15,6 @@ export type CharacterPreset = {
   label: string
   description: string
   modelUrl: string
-  thumbnail: string
   tags: string[]
 }
 
@@ -28,7 +27,6 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     label: 'AURA Classic',
     description: 'Nhân viên tư vấn thời trang thanh lịch, hiện đại',
     modelUrl: DEFAULT_LIVE2D_MODEL_URL,
-    thumbnail: '/live2d/previews/aura-classic.png',
     tags: ['default', 'elegant', 'office'],
   },
   {
@@ -36,7 +34,6 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     label: 'Chitose',
     description: 'Cô gái dễ thương, thân thiện với nhiều biểu cảm',
     modelUrl: '/live2d/chitose/chitose.model3.json',
-    thumbnail: '/live2d/previews/chitose.png',
     tags: ['cute', 'friendly', 'expressions'],
   },
   {
@@ -44,7 +41,6 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     label: 'Haru',
     description: 'Chàng trai năng động với nhiều cử chỉ sống động',
     modelUrl: '/live2d/haru_greeter/haru_greeter_t05.model3.json',
-    thumbnail: '/live2d/previews/haru.png',
     tags: ['male', 'energetic', 'greeter'],
   },
   {
@@ -52,7 +48,6 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     label: 'Hiyori',
     description: 'Cô gái học sinh trẻ trung, nhiều hành động sinh động',
     modelUrl: '/live2d/hiyori/hiyori_pro_t11.model3.json',
-    thumbnail: '/live2d/previews/hiyori.png',
     tags: ['youthful', 'student', 'active'],
   },
   {
@@ -60,7 +55,6 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     label: 'Miku',
     description: 'Nhân vật iconic với chuyển động uyển chuyển',
     modelUrl: '/live2d/miku/miku_sample_t04.model3.json',
-    thumbnail: '/live2d/previews/miku.png',
     tags: ['iconic', 'graceful', 'idol'],
   },
   {
@@ -68,7 +62,6 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     label: 'Natori',
     description: 'Nhân vật chuyên nghiệp với nhiều biểu cảm phong phú',
     modelUrl: '/live2d/natori/natori_pro_t06.model3.json',
-    thumbnail: '/live2d/previews/natori.png',
     tags: ['professional', 'expressive', 'detailed'],
   },
   {
@@ -76,7 +69,6 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     label: 'Kei',
     description: 'Cậu bé dễ mến với MotionSync và khẩu hình chuyển động',
     modelUrl: '/live2d/kei/kei_vowels_pro.model3.json',
-    thumbnail: '/live2d/previews/kei.png',
     tags: ['male', 'boy', 'motionsync'],
   },
 ]
