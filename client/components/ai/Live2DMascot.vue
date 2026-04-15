@@ -5,12 +5,29 @@
  * Click to open chat, hover for interaction
  */
 
+import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
+
 const emit = defineEmits<{
   click: []
 }>()
 
 const mascotCanvas = ref<HTMLCanvasElement | null>(null)
 const isHovered = ref(false)
+
+// Fetch admin-configured model URL from voice settings
+const { $api } = useNuxtApp()
+const configuredModelUrl = ref(DEFAULT_LIVE2D_MODEL_URL)
+
+onMounted(async () => {
+  try {
+    const res = await $api('/chat/voice-token')
+    if (res?.voiceSettings?.live2dModelUrl) {
+      configuredModelUrl.value = res.voiceSettings.live2dModelUrl
+    }
+  } catch {
+    // Fallback to default on error
+  }
+})
 
 const {
   isModelReady,
@@ -20,7 +37,7 @@ const {
   playMotionByNumber,
   handlePointerMove,
   handleTap,
-} = useLive2D(mascotCanvas)
+} = useLive2D(mascotCanvas, { modelUrl: configuredModelUrl })
 
 // Play greeting when model is ready
 watch(isModelReady, (ready) => {
