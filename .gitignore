@@ -68,3 +68,33 @@ client/voicechat_diff.txt
 chrome-headless/
 standby_screen.jpg
 push_error.txt
+
+# Live2D source models (runtime copies in client/public/live2d/ are tracked)
+/chitose/
+/haru_greeter_pro_jp/
+/hiyori_movie_pro_en/
+/hiyori_pro_en/
+/kei_en/
+/miku_pro_jp/
+/natori_pro_en/
+/office_f_vts_20241203/
+
+# Misc temp/analysis files
+待機画面1920_1080.jpg
+model_icon.png
+thesis_presentation.html
+create_survey_docx.py
+scan-i18n.js
+clean.txt
+issues.json
+audit.json
+audit.log
+audit.txt
+audit_new.json
+checklist.log
+SRS.md
+CONTRIBUTING.md
+docker-compose.yml
+tmp-home.png
+setup-project.ps1
+nginx.conf

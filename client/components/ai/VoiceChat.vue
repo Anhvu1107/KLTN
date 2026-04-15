@@ -7,6 +7,8 @@
  */
 
 import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
+import type { VoiceConfig } from '~/utils/voice-config'
+import { cloneDefaultVoiceConfig, normalizeVoiceConfig } from '~/utils/voice-config'
 
 const config = useRuntimeConfig()
 const router = useRouter()
@@ -39,6 +41,12 @@ const aiTranscript = ref('')
 const suggestedProducts = ref<any[]>([])
 const sessionId = ref('')
 const isMinimized = ref(props.startMinimized)
+const voiceSettings = ref<VoiceConfig>(cloneDefaultVoiceConfig())
+const live2dModelUrl = computed(() => voiceSettings.value.live2dModelUrl)
+const voiceCharacterName = computed(() => voiceSettings.value.characterName || 'AURA')
+const voiceCharacterSubtitle = computed(() => voiceSettings.value.characterSubtitle || 'AI Stylist Voice Call')
+const voiceHintText = computed(() => voiceSettings.value.hintText || 'Nói bất cứ điều gì để bắt đầu tư vấn')
+const speakingLabel = computed(() => `${voiceCharacterName.value} đang trả lời...`)
 let isInitialGreetingTurn = false
 let hasSentInitialGreetingPrompt = false
 
@@ -59,7 +67,7 @@ const {
   playGoodbye,
   handlePointerMove: onLive2DPointerMove,
   handleTap: onLive2DTap,
-} = useLive2D(live2dCanvas)
+} = useLive2D(live2dCanvas, { modelUrl: live2dModelUrl })
 
 // Audio refs
 let websocket: WebSocket | null = null
@@ -171,7 +179,7 @@ const sendInitialGreetingPrompt = (greetingMessage: string) => {
   if (hasSentInitialGreetingPrompt) return
 
   const fallbackGreeting = 'Chào bạn! Mình là AURA. Hôm nay bạn đang muốn tìm món đồ nào vậy?'
-  const openingLine = greetingMessage?.trim() || fallbackGreeting
+  const openingLine = greetingMessage?.trim() || fallbackGreeting.replace('AURA', voiceCharacterName.value)
 
   const cueText = `[He thong: Day la loi mo dau cua cuoc goi. Hay noi tu nhien va chi chao mot lan, khong lap lai y chao. Neu phu hop, hay dung sat cau nay: "${openingLine}". Sau do lang nghe khach.]`
 
@@ -366,14 +374,23 @@ const startVoiceSession = async () => {
     // 1. Get voice config from backend (API key + model + system prompt + tools)
     const configRes = await $fetch<{
       success: boolean
-      data: { apiKey: string; model: string; fallbackModels?: string[]; systemPrompt: string; greetingMessage: string; tools: any[] }
+      data: {
+        apiKey: string
+        model: string
+        fallbackModels?: string[]
+        systemPrompt: string
+        greetingMessage: string
+        tools: any[]
+        voiceSettings?: Partial<VoiceConfig>
+      }
     }>(`${config.public.apiUrl}/chat/voice-token${sessionQuery.value}`)
 
     if (!configRes.success || !configRes.data?.apiKey) {
       throw new Error('Failed to get voice config')
     }
 
-    const { apiKey, model, fallbackModels = [], systemPrompt, greetingMessage, tools } = configRes.data
+    const { apiKey, model, fallbackModels = [], systemPrompt, greetingMessage, tools, voiceSettings: fetchedVoiceSettings } = configRes.data
+    voiceSettings.value = normalizeVoiceConfig(fetchedVoiceSettings)
     console.log('[Voice] Models available:', model, fallbackModels.length ? `fallbacks: ${fallbackModels.join(', ')}` : 'no fallbacks')
 
     // 2. Connect to Gemini Live API via WebSocket (direct API key)
@@ -388,14 +405,15 @@ const startVoiceSession = async () => {
       // Start idle tracking interval (Context-Awareness)
       if (idleCheckInterval) clearInterval(idleCheckInterval)
       resetActivity() // Start counting from connection
-      idleCheckInterval = setInterval(() => {
+      if (voiceSettings.value.idleReminderSeconds > 0) {
+        idleCheckInterval = setInterval(() => {
         if (!websocket || websocket.readyState !== WebSocket.OPEN) return
         if (state.value !== 'listening') return
         
         const idleTime = Date.now() - lastActivityAt
-        if (idleTime > 60000 && !hasCheckedIn) {
+        if (idleTime > voiceSettings.value.idleReminderSeconds * 1000 && !hasCheckedIn) {
           hasCheckedIn = true
-          console.log('[Voice] User is idle for 60s. Sending context cue to AI.')
+          console.log(`[Voice] User is idle for ${voiceSettings.value.idleReminderSeconds}s. Sending context cue to AI.`)
           
           const contextMsg = {
             realtimeInput: {
@@ -404,7 +422,8 @@ const startVoiceSession = async () => {
           }
           websocket.send(JSON.stringify(contextMsg))
         }
-      }, 1000)
+        }, 1000)
+      }
 
       // 3. Send full setup config
       const setupMessage = {
@@ -412,11 +431,11 @@ const startVoiceSession = async () => {
           model: `models/${model}`,
           generationConfig: {
             responseModalities: ['AUDIO'],
-            temperature: 0.2,
+            temperature: voiceSettings.value.temperature,
             speechConfig: {
               voiceConfig: {
                 prebuiltVoiceConfig: {
-                  voiceName: 'Aoede',
+                  voiceName: voiceSettings.value.voiceName,
                 },
               },
             },
@@ -1292,6 +1311,12 @@ const stateLabel = computed(() => {
   }
 })
 
+const dynamicStateLabel = computed(() =>
+  state.value === 'speaking'
+    ? speakingLabel.value
+    : stateLabel.value
+)
+
 watch(() => route.path, (path, previousPath) => {
   if (!previousPath || path === previousPath) return
   minimizeVoiceWidget()
@@ -1333,10 +1358,10 @@ onMounted(() => {
         : 'w-full max-w-md mx-4 gap-6 py-8'"
     >
 
-      <!-- AURA Brand -->
+      <!-- Voice Header -->
       <div v-if="!isMinimized" class="text-center">
-        <h2 class="text-2xl font-serif text-white tracking-widest">AURA</h2>
-        <p class="text-sm text-white/60 mt-1">AI Stylist Voice Call</p>
+        <h2 class="text-2xl font-serif text-white tracking-widest">{{ voiceCharacterName }}</h2>
+        <p class="text-sm text-white/60 mt-1">{{ voiceCharacterSubtitle }}</p>
       </div>
 
       <!-- Live2D Model Container -->
@@ -1465,7 +1490,7 @@ onMounted(() => {
       </div>
 
       <!-- State Label -->
-      <p v-if="!isMinimized" class="text-white/80 text-sm tracking-wide">{{ stateLabel }}</p>
+      <p v-if="!isMinimized" class="text-white/80 text-sm tracking-wide">{{ dynamicStateLabel }}</p>
 
       <!-- AI transcript (shows what AI is saying) -->
       <div
@@ -1562,7 +1587,7 @@ onMounted(() => {
 
       <!-- Hint -->
       <p v-if="!isMinimized" class="text-white/30 text-xs">
-        Nói bất cứ điều gì để bắt đầu tư vấn
+        {{ voiceHintText }}
       </p>
     </div>
   </div>

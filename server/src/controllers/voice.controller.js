@@ -19,9 +19,11 @@ const getVoiceToken = catchAsync(async (req, res) => {
         data: {
             apiKey: config.apiKey,
             model: config.model,
+            fallbackModels: config.fallbackModels,
             systemPrompt: config.systemPrompt,
             greetingMessage: config.greetingMessage,
             tools: config.tools,
+            voiceSettings: config.voiceSettings,
         },
     });
 });

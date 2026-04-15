@@ -1,16 +1,15 @@
 /**
  * useLive2D Composable
- * Manages Live2D model lifecycle, LipSync, motions, expressions, and mouse tracking
+ * Manages Live2D model lifecycle, LipSync, motions, expressions, and mouse tracking.
  */
-import type { Ref } from 'vue'
-
-// Model URL for the office_f character
-const MODEL_URL = '/live2d/office_f/office_f.model3.json'
+import { toValue } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
+import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
 
 // Motion group names matching model3.json
 const MOTION_GROUP = {
-  DEFAULT: '',      // M01-M10 motions
-  IDLE: 'Idle',     // W01-W02 idle motions
+  DEFAULT: '', // M01-M10 motions
+  IDLE: 'Idle', // W01-W02 idle motions
 }
 
 const EXPRESSION_BY_MOOD: Record<string, string> = {
@@ -32,35 +31,78 @@ const GESTURE_VARIANTS: Record<string, number[]> = {
   subtleTalk: [1, 8],
 }
 
-export function useLive2D(canvasRef: Ref<HTMLCanvasElement | null>) {
+type UseLive2DOptions = {
+  modelUrl?: MaybeRefOrGetter<string | null | undefined>
+}
+
+export function useLive2D(
+  canvasRef: Ref<HTMLCanvasElement | null>,
+  options: UseLive2DOptions = {},
+) {
   const isModelReady = ref(false)
   const isLoading = ref(true)
+  const resolvedModelUrl = computed(() => toValue(options.modelUrl) || DEFAULT_LIVE2D_MODEL_URL)
 
   let app: any = null
   let model: any = null
-  let destroyed = false
+  let isUnmounted = false
+  let activeModelUrl = ''
+  let initToken = 0
 
-  // Track current lipsync target level — applied every frame via beforeModelUpdate
+  // Track current lipsync target level; applied every frame via beforeModelUpdate.
   let currentLipLevel = 0
   let lastGestureAt = 0
   let lastGestureKey = ''
 
+  const destroyCurrentModel = () => {
+    if (model) {
+      try {
+        model.destroy()
+      } catch {
+        // Ignore model destroy errors during teardown.
+      }
+      model = null
+    }
+
+    if (app) {
+      try {
+        app.destroy(false, { children: true })
+      } catch {
+        // Ignore renderer teardown errors.
+      }
+      app = null
+    }
+
+    isModelReady.value = false
+  }
+
   /**
-   * Initialize PixiJS Application + Load Live2D Model
+   * Initialize PixiJS Application + load the selected Live2D model.
    */
-  const init = async () => {
-    if (destroyed) return
+  const init = async ({ force = false } = {}) => {
+    if (isUnmounted) return
 
     const canvas = canvasRef.value
-    if (!canvas) {
-      console.warn('[Live2D] Canvas ref not available')
+    const modelUrl = resolvedModelUrl.value
+
+    if (!canvas || !modelUrl) {
+      isLoading.value = false
       return
     }
 
-    // Wait for Cubism Core to be available
+    if (!force && isModelReady.value && activeModelUrl === modelUrl) {
+      return
+    }
+
+    const token = ++initToken
+    isLoading.value = true
+    destroyCurrentModel()
+
+    // Wait for Cubism Core to be available.
     let retries = 0
     while (!(window as any).Live2DCubismCore && retries < 50) {
-      await new Promise(r => setTimeout(r, 100))
+      await new Promise(resolve => setTimeout(resolve, 100))
+      if (isUnmounted || token !== initToken) return
       retries++
     }
 
@@ -71,15 +113,15 @@ export function useLive2D(canvasRef: Ref<HTMLCanvasElement | null>) {
     }
 
     try {
-      // Dynamic imports to avoid SSR issues
       const PIXI = await import('pixi.js')
+      if (isUnmounted || token !== initToken) return
 
-      // Expose PIXI to window (required by pixi-live2d-display)
+      // Expose PIXI globally; required by pixi-live2d-display.
       ;(window as any).PIXI = PIXI
 
       const { Live2DModel, MotionPreloadStrategy } = await import('pixi-live2d-display/cubism4')
+      if (isUnmounted || token !== initToken) return
 
-      // Create PixiJS application
       app = new PIXI.Application({
         view: canvas,
         backgroundAlpha: 0,
@@ -91,68 +133,64 @@ export function useLive2D(canvasRef: Ref<HTMLCanvasElement | null>) {
         antialias: true,
       })
 
-      if (destroyed) { app.destroy(); return }
+      if (isUnmounted || token !== initToken) {
+        destroyCurrentModel()
+        return
+      }
 
-      // Load model — preload ALL motions so they're ready instantly
-      console.log('[Live2D] Loading model with motion preload...')
-      model = await Live2DModel.from(MODEL_URL, {
+      console.log('[Live2D] Loading model:', modelUrl)
+      model = await Live2DModel.from(modelUrl, {
         autoInteract: false,
         motionPreload: MotionPreloadStrategy.ALL,
       })
 
-      if (destroyed) { app.destroy(); return }
+      if (isUnmounted || token !== initToken) {
+        destroyCurrentModel()
+        return
+      }
 
-      // Size & position model to fill canvas (Bust-up / Upper body focus)
       const screenW = app.renderer.screen.width
       const screenH = app.renderer.screen.height
-
-      // Scale vertically so her height is 1.8x the canvas height, zooming into her upper body
       const scale = (screenH / model.internalModel.height) * 1.8
 
       model.scale.set(scale)
-
-      // Center horizontally
       model.x = (screenW - model.internalModel.width * scale) / 2
-      // Anchor top to show her face, with a slight 5% top padding
       model.y = screenH * 0.05
 
-      // Hook LipSync — apply mouth level every single frame before model update
       model.internalModel.on('beforeModelUpdate', () => {
         if (!model?.internalModel?.coreModel) return
+
         try {
           model.internalModel.coreModel.setParameterValueById(
             'ParamMouthOpenY',
             currentLipLevel,
           )
         } catch {
-          // Parameter not found — ignore
+          // Ignore missing mouth parameter on third-party models.
         }
       })
 
       app.stage.addChild(model)
-
+      activeModelUrl = modelUrl
       isModelReady.value = true
       isLoading.value = false
-      console.log('[Live2D] Model loaded and ready')
 
-      // Log available motions for debugging
       const motionMgr = model.internalModel.motionManager
       console.log('[Live2D] Motion groups:', Object.keys(motionMgr.definitions))
-      for (const [group, defs] of Object.entries(motionMgr.definitions)) {
-        console.log(`[Live2D]   Group "${group}": ${(defs as any[]).length} motions`)
-      }
 
-      // Start idle animation after a brief delay to allow preload to complete
-      setTimeout(() => playIdle(), 500)
-    } catch (err) {
-      console.error('[Live2D] Init error:', err)
+      setTimeout(() => {
+        if (!isUnmounted && token === initToken) {
+          playIdle()
+        }
+      }, 500)
+    } catch (error) {
+      console.error('[Live2D] Init error:', error)
       isLoading.value = false
     }
   }
 
   /**
-   * LipSync — Set mouth open level (0.0 to 1.0)
-   * This is applied every frame via the beforeModelUpdate hook
+   * LipSync - set mouth open level (0.0 to 1.0).
    */
   const setLipSync = (level: number) => {
     currentLipLevel = Math.max(0, Math.min(1, level))
@@ -164,17 +202,17 @@ export function useLive2D(canvasRef: Ref<HTMLCanvasElement | null>) {
   }
 
   /**
-   * Play a motion by group and index
-   * Uses internalModel.motionManager.startMotion for reliable playback
+   * Play a motion by group and index.
    */
-  const playMotion = async (group: string, index: number = 0, priority: number = 3) => {
+  const playMotion = async (group: string, index = 0, priority = 3) => {
     if (!model?.internalModel?.motionManager) return
+
     try {
-      const mgr = model.internalModel.motionManager
-      const success = await mgr.startMotion(group, index, priority)
-      console.log(`[Live2D] Motion group='${group}', index=${index}, priority=${priority} → ${success}`)
-    } catch (err) {
-      console.warn('[Live2D] Motion error:', err)
+      const motionManager = model.internalModel.motionManager
+      const success = await motionManager.startMotion(group, index, priority)
+      console.log(`[Live2D] Motion group='${group}', index=${index}, priority=${priority} -> ${success}`)
+    } catch (error) {
+      console.warn('[Live2D] Motion error:', error)
     }
   }
 
@@ -190,14 +228,16 @@ export function useLive2D(canvasRef: Ref<HTMLCanvasElement | null>) {
 
   const playGesture = (
     gesture: keyof typeof GESTURE_VARIANTS | string,
-    options: { priority?: number; cooldownMs?: number; mood?: string; force?: boolean } = {}
+    options: { priority?: number; cooldownMs?: number; mood?: string; force?: boolean } = {},
   ) => {
     if (!model) return
 
     const now = Date.now()
     const cooldownMs = options.cooldownMs ?? 900
     if (!options.force && now - lastGestureAt < cooldownMs) {
-      if (options.mood) setMood(options.mood)
+      if (options.mood) {
+        setMood(options.mood)
+      }
       return
     }
 
@@ -210,122 +250,85 @@ export function useLive2D(canvasRef: Ref<HTMLCanvasElement | null>) {
     playMotion(MOTION_GROUP.DEFAULT, pickGestureIndex(gesture), options.priority ?? 3)
   }
 
-  /**
-   * Play a random motion from the default group (M01-M10)
-   */
-  const playRandomMotion = (priority: number = 3) => {
+  const playRandomMotion = (priority = 3) => {
     if (!model) return
     const candidates = [1, 2, 5, 8]
     const index = candidates[Math.floor(Math.random() * candidates.length)]
     playMotion(MOTION_GROUP.DEFAULT, index, priority)
   }
 
-  /**
-   * Play idle animation (W01 or W02 — loops automatically)
-   */
   const playIdle = () => {
     if (!model) return
     const index = Math.floor(Math.random() * 2)
     setMood('soft')
-    playMotion(MOTION_GROUP.IDLE, index, 1) // IDLE priority
+    playMotion(MOTION_GROUP.IDLE, index, 1)
   }
 
-  /**
-   * Play a greeting/wave motion
-   */
   const playGreeting = () => {
     playGesture('greeting', { mood: 'smile', priority: 3, cooldownMs: 200, force: true })
   }
 
-  /**
-   * Play a nod motion (use M01 — short head movement)
-   */
   const playNod = () => {
     playGesture('nod', { mood: 'soft', priority: 3, cooldownMs: 250, force: true })
   }
 
-  /**
-   * Play a thinking motion
-   */
   const playThinking = () => {
     playGesture('think', { mood: 'curious', priority: 3, cooldownMs: 400, force: true })
   }
 
-  /**
-   * Play a happy/excited motion
-   */
   const playHappy = () => {
     playGesture('happy', { mood: 'delighted', priority: 3, cooldownMs: 250, force: true })
   }
 
-  /**
-   * Play goodbye wave
-   */
   const playGoodbye = () => {
     playGesture('goodbye', { mood: 'smile', priority: 3, cooldownMs: 250, force: true })
   }
 
-  /**
-   * Play a specific default motion by number (1-10 for M01-M10)
-   */
   const playMotionByNumber = (num: number) => {
     if (num < 1 || num > 10) return
     playMotion(MOTION_GROUP.DEFAULT, num - 1, 3)
   }
 
-  /**
-   * Set expression by index (0-11 for exp_00 to exp_11)
-   */
   const setExpression = (index: number) => {
     if (!model) return
+
     try {
       model.expression(index)
-    } catch (err) {
-      console.warn('[Live2D] Expression error:', err)
+    } catch (error) {
+      console.warn('[Live2D] Expression error:', error)
     }
   }
 
-  /**
-   * Set expression by name (exp_00, exp_01, etc.)
-   */
   const setExpressionByName = (name: string) => {
     if (!model) return
+
     try {
       model.expression(name)
-    } catch (err) {
-      console.warn('[Live2D] Expression error:', err)
+    } catch (error) {
+      console.warn('[Live2D] Expression error:', error)
     }
   }
 
-  /**
-   * Enable mouse/touch tracking — eyes and head follow pointer
-   */
-  const handlePointerMove = (e: PointerEvent) => {
+  const handlePointerMove = (event: PointerEvent) => {
     if (!model || !canvasRef.value) return
 
     const rect = canvasRef.value.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / rect.width
-    const y = (e.clientY - rect.top) / rect.height
+    const x = (event.clientX - rect.left) / rect.width
+    const y = (event.clientY - rect.top) / rect.height
 
     model.focus(x * 2 - 1, y * 2 - 1)
   }
 
-  /**
-   * Handle tap/click on model
-   */
-  const handleTap = (e: PointerEvent) => {
+  const handleTap = (event: PointerEvent) => {
     if (!model || !canvasRef.value) return
 
     const rect = canvasRef.value.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
 
     model.tap(x, y)
   }
 
-  /**
-   * Resize model to fit new canvas size
-   */
   const resize = () => {
     if (!model || !canvasRef.value || !app) return
 
@@ -334,33 +337,28 @@ export function useLive2D(canvasRef: Ref<HTMLCanvasElement | null>) {
 
     const screenW = app.renderer.screen.width
     const screenH = app.renderer.screen.height
-
     const scale = (screenH / model.internalModel.height) * 1.8
+
     model.scale.set(scale)
     model.x = (screenW - model.internalModel.width * scale) / 2
     model.y = screenH * 0.05
   }
 
-  /**
-   * Cleanup
-   */
   const destroy = () => {
-    destroyed = true
-
-    if (model) {
-      try { model.destroy() } catch { /* ignore */ }
-      model = null
-    }
-
-    if (app) {
-      try { app.destroy(false, { children: true }) } catch { /* ignore */ }
-      app = null
-    }
-
-    isModelReady.value = false
+    isUnmounted = true
+    destroyCurrentModel()
   }
 
-  // Lifecycle
+  watch(
+    resolvedModelUrl,
+    (nextUrl, previousUrl) => {
+      if (!import.meta.client || isUnmounted) return
+      if (nextUrl === previousUrl && isModelReady.value) return
+
+      nextTick(() => init({ force: true }))
+    },
+  )
+
   onMounted(() => {
     nextTick(() => init())
   })

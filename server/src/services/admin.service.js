@@ -329,7 +329,14 @@ const updateSystemPrompt = async (key, content, name = null, description = null)
     const prompt = await SystemPrompt.findOne({ where: { key } });
 
     if (!prompt) {
-        throw new AppError('System prompt not found', 404);
+        return SystemPrompt.create({
+            key,
+            name: name || key,
+            content,
+            description,
+            is_active: true,
+            version: 1,
+        });
     }
 
     const updateData = {

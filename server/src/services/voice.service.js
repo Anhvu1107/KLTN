@@ -19,6 +19,78 @@ const PROMPT_CACHE_TTL = 60 * 1000;
 const promptCache = {
     persona: { value: null, expiresAt: 0 },
 };
+const DEFAULT_VOICE_SETTINGS = Object.freeze({
+    voiceName: 'Aoede',
+    liveModel: '',
+    temperature: 0.2,
+    characterId: 'aura-classic',
+    characterName: 'AURA',
+    characterSubtitle: 'AI Stylist Voice Call',
+    hintText: 'Nói bất cứ điều gì để bắt đầu tư vấn',
+    live2dModelUrl: '/live2d/office_f/office_f.model3.json',
+    idleReminderSeconds: 60,
+});
+
+function normalizeVoiceString(value, fallback) {
+    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+function clampVoiceNumber(value, min, max, fallback) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return fallback;
+    }
+
+    return Math.min(max, Math.max(min, value));
+}
+
+function normalizeVoiceSettings(config = {}) {
+    return {
+        voiceName: normalizeVoiceString(config.voiceName, DEFAULT_VOICE_SETTINGS.voiceName),
+        liveModel: typeof config.liveModel === 'string' ? config.liveModel.trim() : DEFAULT_VOICE_SETTINGS.liveModel,
+        temperature: clampVoiceNumber(
+            config.temperature,
+            0,
+            1,
+            DEFAULT_VOICE_SETTINGS.temperature
+        ),
+        characterId: normalizeVoiceString(config.characterId, DEFAULT_VOICE_SETTINGS.characterId),
+        characterName: normalizeVoiceString(config.characterName, DEFAULT_VOICE_SETTINGS.characterName),
+        characterSubtitle: normalizeVoiceString(
+            config.characterSubtitle,
+            DEFAULT_VOICE_SETTINGS.characterSubtitle
+        ),
+        hintText: normalizeVoiceString(config.hintText, DEFAULT_VOICE_SETTINGS.hintText),
+        live2dModelUrl: normalizeVoiceString(
+            config.live2dModelUrl,
+            DEFAULT_VOICE_SETTINGS.live2dModelUrl
+        ),
+        idleReminderSeconds: Math.round(
+            clampVoiceNumber(
+                config.idleReminderSeconds,
+                0,
+                600,
+                DEFAULT_VOICE_SETTINGS.idleReminderSeconds
+            )
+        ),
+    };
+}
+
+async function getStoredVoiceSettings() {
+    try {
+        const prompt = await SystemPrompt.findOne({
+            where: { key: 'VOICE_CONFIG', is_active: true },
+        });
+
+        if (!prompt?.content) {
+            return { ...DEFAULT_VOICE_SETTINGS };
+        }
+
+        return normalizeVoiceSettings(JSON.parse(prompt.content));
+    } catch (error) {
+        logger.warn('Failed to load VOICE_CONFIG, using defaults:', error?.message || error);
+        return { ...DEFAULT_VOICE_SETTINGS };
+    }
+}
 
 /**
  * Strip thinking/meta-commentary blocks from AI output.
@@ -545,8 +617,11 @@ const getVoiceConfig = async (sessionId = null) => {
         throw new Error('GEMINI_API_KEY is not configured');
     }
 
+    const voiceSettings = await getStoredVoiceSettings();
+
     // Live model fallback chain
     const liveModels = [
+        voiceSettings.liveModel,
         process.env.GEMINI_LIVE_MODEL_MAIN || process.env.GEMINI_LIVE_MODEL || DEFAULT_GEMINI_LIVE_MODEL,
         process.env.GEMINI_LIVE_MODEL_BACKUP || DEFAULT_GEMINI_LIVE_MODEL_BACKUP,
     ].filter((v, i, a) => a.indexOf(v) === i); // deduplicate
@@ -565,6 +640,7 @@ const getVoiceConfig = async (sessionId = null) => {
         systemPrompt,
         greetingMessage,
         tools: getToolDeclarations(),
+        voiceSettings,
     };
 };
 
