@@ -801,7 +801,7 @@ useSeoMeta({
           >
             <!-- Thumbnail (auto-rendered from actual model) -->
             <div class="aspect-square overflow-hidden bg-gradient-to-b from-neutral-100 to-neutral-50 relative">
-              <AiLive2DSnapshot
+              <Live2DSnapshot
                 :model-url="preset.modelUrl"
                 :size="200"
                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -1058,7 +1058,7 @@ useSeoMeta({
               <div class="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.24),_transparent_55%),linear-gradient(180deg,_rgba(255,255,255,0.03),_rgba(255,255,255,0.01))] min-h-[280px] px-5 py-6 flex flex-col items-center justify-center">
                 <!-- Character live preview -->
                 <div class="w-full max-w-[220px] h-[240px] rounded-[28px] border border-white/10 bg-white/[0.04] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  <AiLive2DCanvasPreview
+                  <Live2DCanvasPreview
                     v-if="selectedCharacterPreset.modelUrl"
                     :key="selectedCharacterPreset.modelUrl"
                     :model-url="selectedCharacterPreset.modelUrl"
