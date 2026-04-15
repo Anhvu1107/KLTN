@@ -6,7 +6,8 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { authenticate, isAdmin } = require('../../middlewares/auth.middleware');
+const { protect } = require('../../middlewares/auth.middleware');
+const { adminOnly } = require('../../middlewares/admin.middleware');
 const live2dService = require('../../services/live2d.service');
 
 // Multer – accept ZIP up to 50 MB in memory
@@ -46,7 +47,7 @@ router.get('/characters', async (req, res) => {
  * Upload a new Live2D character (admin only).
  * Expects multipart/form-data with fields: label, description, tags (comma-separated), model (ZIP file).
  */
-router.post('/characters', authenticate, isAdmin, (req, res) => {
+router.post('/characters', protect, adminOnly, (req, res) => {
     uploadZip(req, res, async (err) => {
         if (err) {
             return res.status(400).json({ success: false, message: err.message });
@@ -82,7 +83,7 @@ router.post('/characters', authenticate, isAdmin, (req, res) => {
  * DELETE /api/v1/live2d/characters/:id
  * Delete a custom character and its files (admin only).
  */
-router.delete('/characters/:id', authenticate, isAdmin, async (req, res) => {
+router.delete('/characters/:id', protect, adminOnly, async (req, res) => {
     try {
         const result = await live2dService.deleteCharacter(req.params.id);
         res.json({ success: true, ...result });
