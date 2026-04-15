@@ -15,14 +15,28 @@ const mascotCanvas = ref<HTMLCanvasElement | null>(null)
 const isHovered = ref(false)
 
 // Fetch admin-configured model URL from voice settings
-const { $api } = useNuxtApp()
+const config = useRuntimeConfig()
 const configuredModelUrl = ref(DEFAULT_LIVE2D_MODEL_URL)
 
 onMounted(async () => {
   try {
-    const res = await $api('/chat/voice-token')
-    if (res?.voiceSettings?.live2dModelUrl) {
-      configuredModelUrl.value = res.voiceSettings.live2dModelUrl
+    const res = await $fetch<{
+      success?: boolean
+      data?: {
+        voiceSettings?: {
+          live2dModelUrl?: string
+        }
+      }
+      voiceSettings?: {
+        live2dModelUrl?: string
+      }
+    }>(`${config.public.apiUrl}/chat/voice-token`)
+
+    const nextModelUrl = res?.data?.voiceSettings?.live2dModelUrl
+      || res?.voiceSettings?.live2dModelUrl
+
+    if (nextModelUrl) {
+      configuredModelUrl.value = nextModelUrl
     }
   } catch {
     // Fallback to default on error

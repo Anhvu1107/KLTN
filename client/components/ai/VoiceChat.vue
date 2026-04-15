@@ -1346,16 +1346,16 @@ onMounted(() => {
 <template>
   <!-- Voice Chat Overlay -->
   <div
-    class="fixed inset-0 z-[60] flex transition-[background-color,backdrop-filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+    class="fixed inset-0 z-[60] flex overflow-y-auto overscroll-contain transition-[background-color,backdrop-filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
     :class="isMinimized
       ? 'pointer-events-none items-end justify-end bg-transparent backdrop-blur-0'
-      : 'pointer-events-auto items-center justify-center bg-black/80 backdrop-blur-sm'"
+      : 'pointer-events-auto items-center justify-center bg-black/80 px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-6'"
   >
     <div
       class="relative flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
       :class="isMinimized
         ? 'pointer-events-auto mr-4 mb-4 w-40 overflow-visible bg-transparent p-0 shadow-none'
-        : 'w-full max-w-md mx-4 gap-6 py-8'"
+        : 'pointer-events-auto mx-auto w-full max-w-md max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto overscroll-contain rounded-[32px] border border-white/10 bg-neutral-950/95 px-4 py-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-6 sm:py-6'"
     >
 
       <!-- Voice Header -->
@@ -1367,7 +1367,7 @@ onMounted(() => {
       <!-- Live2D Model Container -->
       <div
         class="relative flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-        :class="isMinimized ? 'h-56 w-40 cursor-pointer' : ''"
+        :class="isMinimized ? 'h-56 w-40 cursor-pointer' : 'w-full'"
         @pointermove="handleCanvasPointerMove"
         @pointerdown="handleCanvasPointerDown"
       >
@@ -1430,7 +1430,7 @@ onMounted(() => {
           :class="[
             isMinimized
               ? 'h-56 w-40 rounded-2xl border-0 bg-none shadow-none'
-              : 'h-[520px] w-[440px] max-w-full rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50',
+              : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50',
             {
               'border-white/10 opacity-40': !isMinimized && (state === 'connecting' || state === 'idle'),
               'border-emerald-400/40': !isMinimized && state === 'listening',
@@ -1503,7 +1503,7 @@ onMounted(() => {
       <!-- Suggested Products -->
       <div
         v-if="suggestedProducts.length && !isMinimized"
-        class="w-full max-w-sm px-4"
+        class="w-full max-w-sm"
       >
         <p class="text-white/40 text-xs text-center mb-2">Sản phẩm gợi ý</p>
         <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -1559,8 +1559,14 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Hint -->
+      <p v-if="!isMinimized" class="text-center text-white/30 text-xs">
+        {{ voiceHintText }}
+      </p>
+
       <!-- Controls -->
-      <div v-if="!isMinimized" class="flex items-center gap-6">
+      <div v-if="!isMinimized" class="sticky bottom-0 z-10 flex w-full justify-center bg-gradient-to-t from-neutral-950 via-neutral-950/95 to-transparent pb-1 pt-4">
+        <div class="flex items-center gap-6 rounded-full border border-white/10 bg-black/35 px-5 py-3 backdrop-blur-sm">
         <!-- End Call button -->
         <button
           @click="stopVoiceSession"
@@ -1583,12 +1589,8 @@ onMounted(() => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
+        </div>
       </div>
-
-      <!-- Hint -->
-      <p v-if="!isMinimized" class="text-white/30 text-xs">
-        {{ voiceHintText }}
-      </p>
     </div>
   </div>
 </template>

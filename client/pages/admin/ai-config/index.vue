@@ -286,10 +286,14 @@ const handleAvatarUpload = async (event: Event) => {
   }
 }
 
-const applyCharacterPreset = (characterId: string) => {
-  const preset = allPresets.value.find(option => option.value === characterId)
-  if (!preset) return
+const getPresetUiKey = (preset: CharacterPreset) =>
+  `${preset.isCustom ? 'custom' : 'builtin'}:${preset.value}:${preset.modelUrl}`
 
+const isPresetSelected = (preset: CharacterPreset) =>
+  voiceConfig.value.characterId === preset.value
+  && voiceConfig.value.live2dModelUrl === preset.modelUrl
+
+const applyCharacterPreset = (preset: CharacterPreset) => {
   voiceConfig.value = normalizeVoiceConfig({
     ...voiceConfig.value,
     characterId: preset.value,
@@ -330,7 +334,10 @@ const allPresets = computed<CharacterPreset[]>(() => [
 ])
 
 const selectedCharacterPreset = computed(() =>
-  allPresets.value.find(option => option.value === voiceConfig.value.characterId) || CHARACTER_PRESETS[0],
+  allPresets.value.find(isPresetSelected)
+  || allPresets.value.find(option => option.modelUrl === voiceConfig.value.live2dModelUrl)
+  || allPresets.value.find(option => option.value === voiceConfig.value.characterId)
+  || CHARACTER_PRESETS[0],
 )
 
 const fetchCustomCharacters = async () => {
@@ -385,18 +392,22 @@ const uploadNewCharacter = async () => {
   }
 }
 
-const deleteCustomCharacter = async (charId: string) => {
+const deleteCustomCharacter = async (preset: CharacterPreset) => {
   if (!confirm('Xóa nhân vật này?')) return
 
   try {
-    await $fetch(`${config.public.apiUrl}/live2d/characters/${charId}`, {
+    await $fetch(`${config.public.apiUrl}/live2d/characters/${preset.value}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${getToken()}` },
     })
 
     // If the deleted char was selected, revert to default
-    if (voiceConfig.value.characterId === charId) {
-      applyCharacterPreset(CHARACTER_PRESETS[0].value)
+    if (isPresetSelected(preset)) {
+      const fallbackPreset = CHARACTER_PRESETS.find(option =>
+        option.value === preset.value && option.modelUrl !== preset.modelUrl,
+      ) || CHARACTER_PRESETS[0]
+
+      applyCharacterPreset(fallbackPreset)
     }
 
     await fetchCustomCharacters()
@@ -789,15 +800,18 @@ useSeoMeta({
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-          <button
+          <div
             v-for="preset in allPresets"
-            :key="preset.value"
-            type="button"
+            :key="getPresetUiKey(preset)"
+            role="button"
+            tabindex="0"
             class="character-card group relative rounded-xl border-2 overflow-hidden transition-all duration-300 text-left"
-            :class="voiceConfig.characterId === preset.value
+            :class="isPresetSelected(preset)
               ? 'border-aura-black shadow-elevated ring-1 ring-aura-black/20 scale-[1.02]'
               : 'border-neutral-200 hover:border-neutral-400 hover:shadow-md'"
-            @click="applyCharacterPreset(preset.value)"
+            @click="applyCharacterPreset(preset)"
+            @keydown.enter.prevent="applyCharacterPreset(preset)"
+            @keydown.space.prevent="applyCharacterPreset(preset)"
           >
             <!-- Thumbnail (auto-rendered from actual model) -->
             <div class="aspect-square overflow-hidden bg-gradient-to-b from-neutral-100 to-neutral-50 relative">
@@ -808,7 +822,7 @@ useSeoMeta({
               />
               <!-- Selected Badge -->
               <div
-                v-if="voiceConfig.characterId === preset.value"
+                v-if="isPresetSelected(preset)"
                 class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-aura-black text-white flex items-center justify-center shadow-sm"
               >
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -818,9 +832,10 @@ useSeoMeta({
               <!-- Delete button for custom characters -->
               <button
                 v-if="preset.isCustom"
+                type="button"
                 class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Xóa nhân vật"
-                @click.stop="deleteCustomCharacter(preset.value)"
+                @click.stop.prevent="deleteCustomCharacter(preset)"
               >
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
@@ -852,7 +867,7 @@ useSeoMeta({
                 </span>
               </div>
             </div>
-          </button>
+          </div>
         </div>
       </div>
 

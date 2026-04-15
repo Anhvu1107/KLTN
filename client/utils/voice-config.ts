@@ -134,17 +134,18 @@ export const cloneDefaultVoiceConfig = (): VoiceConfig => ({ ...DEFAULT_VOICE_CO
 
 export const normalizeVoiceConfig = (input?: Partial<VoiceConfig> | null): VoiceConfig => {
   const requestedCharacterId = normalizeString(input?.characterId, DEFAULT_CHARACTER_ID)
-  const preset = CHARACTER_PRESETS.find(option => option.value === requestedCharacterId) || CHARACTER_PRESETS[0]
+  const preset = CHARACTER_PRESETS.find(option => option.value === requestedCharacterId)
+  const fallbackPreset = preset || CHARACTER_PRESETS[0]
 
   return {
     voiceName: normalizeString(input?.voiceName, DEFAULT_VOICE_CONFIG.voiceName),
     liveModel: typeof input?.liveModel === 'string' ? input.liveModel.trim() : DEFAULT_VOICE_CONFIG.liveModel,
     temperature: clampNumber(input?.temperature, 0, 1, DEFAULT_VOICE_CONFIG.temperature),
-    characterId: preset.value,
+    characterId: requestedCharacterId,
     characterName: normalizeString(input?.characterName, DEFAULT_VOICE_CONFIG.characterName),
     characterSubtitle: normalizeString(input?.characterSubtitle, DEFAULT_VOICE_CONFIG.characterSubtitle),
     hintText: normalizeString(input?.hintText, DEFAULT_VOICE_CONFIG.hintText),
-    live2dModelUrl: normalizeString(input?.live2dModelUrl, preset.modelUrl),
+    live2dModelUrl: normalizeString(input?.live2dModelUrl, fallbackPreset.modelUrl),
     idleReminderSeconds: clampInteger(
       input?.idleReminderSeconds,
       0,

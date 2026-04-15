@@ -14,6 +14,7 @@ const { SystemPrompt } = require('../models');
 
 const DB_KEY = 'CUSTOM_LIVE2D_CHARACTERS';
 const UPLOAD_BASE = path.join(__dirname, '../../uploads/live2d');
+const CUSTOM_ID_PREFIX = 'custom';
 
 // Ensure base directory exists
 if (!fs.existsSync(UPLOAD_BASE)) {
@@ -54,6 +55,23 @@ const saveCustomCharacters = async (characters) => {
         await row.save();
     }
     return characters;
+};
+
+const toCharacterSlug = (label = '') =>
+    label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || 'character';
+
+const createCustomCharacterId = (label, characters) => {
+    const baseId = `${CUSTOM_ID_PREFIX}-${toCharacterSlug(label)}`;
+    const hasConflict = characters.some(character =>
+        character.value === baseId || character.value.startsWith(`${baseId}-`)
+    );
+
+    return hasConflict
+        ? `${baseId}-${Date.now()}`
+        : baseId;
 };
 
 /**
@@ -137,14 +155,7 @@ const extractModelZip = async (zipBuffer, characterId) => {
 const addCharacter = async ({ label, description, tags, zipBuffer }) => {
     const characters = await getCustomCharacters();
 
-    // Generate unique ID from label
-    const baseId = label
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-    const id = characters.some(c => c.value === baseId)
-        ? `${baseId}-${Date.now()}`
-        : baseId;
+    const id = createCustomCharacterId(label, characters);
 
     const modelUrl = await extractModelZip(zipBuffer, id);
 

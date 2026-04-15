@@ -5,29 +5,13 @@
 import { toValue } from 'vue'
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
-
-// Preference order for gesture (non-idle) motion groups.
-const GESTURE_GROUP_CANDIDATES = ['', 'Tap', 'Flick', 'Tap@Head', 'Tap@Body', 'Flick@Body']
-const IDLE_GROUP = 'Idle'
-
-const EXPRESSION_BY_MOOD: Record<string, string> = {
-  neutral: 'exp_00',
-  smile: 'exp_01',
-  serious: 'exp_02',
-  soft: 'exp_04',
-  curious: 'exp_05',
-  delighted: 'exp_06',
-}
-
-const GESTURE_VARIANTS: Record<string, number[]> = {
-  greeting: [4, 5],
-  nod: [0, 8],
-  think: [2, 9],
-  happy: [5, 6],
-  closing: [0, 5],
-  goodbye: [7, 4],
-  subtleTalk: [1, 8],
-}
+import {
+  buildCommonLive2DBehaviorProfile,
+  loadLive2DModelDefinition,
+  type CommonGesture,
+  type CommonLive2DBehaviorProfile,
+  type CommonMood,
+} from '~/utils/live2d-common'
 
 type UseLive2DOptions = {
   modelUrl?: MaybeRefOrGetter<string | null | undefined>
@@ -54,6 +38,7 @@ export function useLive2D(
 ) {
   const isModelReady = ref(false)
   const isLoading = ref(true)
+  const behaviorProfile = ref<CommonLive2DBehaviorProfile>(buildCommonLive2DBehaviorProfile())
   const resolvedModelUrl = computed(() => resolveModelUrl(toValue(options.modelUrl) || DEFAULT_LIVE2D_MODEL_URL))
 
   let app: any = null
@@ -66,11 +51,14 @@ export function useLive2D(
   let currentLipLevel = 0
   let lastGestureAt = 0
   let lastGestureKey = ''
+  let resolvedLipSyncParamId: string | false | null = null
 
-  // Detected at runtime from the loaded model's motion definitions.
-  let detectedGestureGroup = ''
-  let gestureMotionCount = 0
-  let idleMotionCount = 0
+  const resetBehaviorProfile = () => {
+    behaviorProfile.value = buildCommonLive2DBehaviorProfile()
+    resolvedLipSyncParamId = null
+    lastGestureAt = 0
+    lastGestureKey = ''
+  }
 
   const destroyCurrentModel = () => {
     if (model) {
@@ -91,6 +79,7 @@ export function useLive2D(
       app = null
     }
 
+    resetBehaviorProfile()
     isModelReady.value = false
   }
 
@@ -115,6 +104,7 @@ export function useLive2D(
     const token = ++initToken
     isLoading.value = true
     destroyCurrentModel()
+    const modelDefinitionPromise = loadLive2DModelDefinition(modelUrl)
 
     // Wait for Cubism Core to be available.
     let retries = 0
@@ -178,14 +168,23 @@ export function useLive2D(
       model.internalModel.on('beforeModelUpdate', () => {
         if (!model?.internalModel?.coreModel) return
 
-        try {
-          model.internalModel.coreModel.setParameterValueById(
-            'ParamMouthOpenY',
-            currentLipLevel,
-          )
-        } catch {
-          // Ignore missing mouth parameter on third-party models.
+        if (resolvedLipSyncParamId === false) return
+
+        const lipSyncParamCandidates = resolvedLipSyncParamId
+          ? [resolvedLipSyncParamId]
+          : behaviorProfile.value.lipSyncParamIds
+
+        for (const paramId of lipSyncParamCandidates) {
+          try {
+            model.internalModel.coreModel.setParameterValueById(paramId, currentLipLevel)
+            resolvedLipSyncParamId = paramId
+            return
+          } catch {
+            // Probe until we find the mouth parameter that this model actually uses.
+          }
         }
+
+        resolvedLipSyncParamId = false
       })
 
       app.stage.addChild(model)
@@ -194,14 +193,29 @@ export function useLive2D(
       isLoading.value = false
 
       const motionMgr = model.internalModel.motionManager
-      const availableGroups = Object.keys(motionMgr.definitions)
-      console.log('[Live2D] Motion groups:', availableGroups)
+      const runtimeMotionDefinitions = motionMgr?.definitions || {}
+      const modelDefinition = await modelDefinitionPromise
+      if (isUnmounted || token !== initToken) {
+        destroyCurrentModel()
+        return
+      }
 
-      // Auto-detect best gesture group for this model.
-      detectedGestureGroup = GESTURE_GROUP_CANDIDATES.find(g => availableGroups.includes(g)) || availableGroups.find(g => g !== IDLE_GROUP) || ''
-      gestureMotionCount = (motionMgr.definitions[detectedGestureGroup] || []).length
-      idleMotionCount = (motionMgr.definitions[IDLE_GROUP] || []).length
-      console.log(`[Live2D] Gesture group: '${detectedGestureGroup}' (${gestureMotionCount} motions), Idle: ${idleMotionCount} motions`)
+      behaviorProfile.value = buildCommonLive2DBehaviorProfile({
+        modelDefinition,
+        runtimeMotionDefinitions,
+      })
+      resolvedLipSyncParamId = null
+
+      const availableGroups = Object.keys(runtimeMotionDefinitions)
+      console.log('[Live2D] Motion groups:', availableGroups)
+      console.log('[Live2D] Behavior profile:', {
+        idleGroup: behaviorProfile.value.idleGroup,
+        idleMotionCount: behaviorProfile.value.idleMotionCount,
+        primaryGestureGroup: behaviorProfile.value.primaryGestureGroup,
+        primaryGestureMotionCount: behaviorProfile.value.primaryGestureMotionCount,
+        lipSyncParamIds: behaviorProfile.value.lipSyncParamIds,
+        expressionByMood: behaviorProfile.value.expressionByMood,
+      })
 
       setTimeout(() => {
         if (!isUnmounted && token === initToken) {
@@ -221,8 +235,12 @@ export function useLive2D(
     currentLipLevel = Math.max(0, Math.min(1, level))
   }
 
-  const setMood = (mood: keyof typeof EXPRESSION_BY_MOOD | string = 'neutral') => {
-    const expressionName = EXPRESSION_BY_MOOD[mood] || EXPRESSION_BY_MOOD.neutral
+  const setMood = (mood: CommonMood | string = 'neutral') => {
+    const normalizedMood = (mood in behaviorProfile.value.expressionByMood ? mood : 'neutral') as CommonMood
+    const expressionName = behaviorProfile.value.expressionByMood[normalizedMood]
+      || behaviorProfile.value.expressionByMood.neutral
+
+    if (!expressionName) return
     setExpressionByName(expressionName)
   }
 
@@ -241,8 +259,8 @@ export function useLive2D(
     }
   }
 
-  const pickGestureIndex = (gesture: string) => {
-    const candidates = GESTURE_VARIANTS[gesture] || GESTURE_VARIANTS.subtleTalk
+  const pickGestureIndex = (gesture: string, candidates: number[]) => {
+    if (!candidates.length) return 0
     if (candidates.length === 1) return candidates[0]
 
     const pool = candidates.filter(index => `${gesture}:${index}` !== lastGestureKey)
@@ -252,7 +270,7 @@ export function useLive2D(
   }
 
   const playGesture = (
-    gesture: keyof typeof GESTURE_VARIANTS | string,
+    gesture: CommonGesture | string,
     options: { priority?: number; cooldownMs?: number; mood?: string; force?: boolean } = {},
   ) => {
     if (!model) return
@@ -272,23 +290,38 @@ export function useLive2D(
       setMood(options.mood)
     }
 
-    const rawIndex = pickGestureIndex(gesture)
-    const safeIndex = gestureMotionCount > 0 ? rawIndex % gestureMotionCount : 0
-    playMotion(detectedGestureGroup, safeIndex, options.priority ?? 3)
+    const semanticGesture = (gesture in behaviorProfile.value.gestureMap ? gesture : 'subtleTalk') as CommonGesture
+    const plan = behaviorProfile.value.gestureMap[semanticGesture]
+      || behaviorProfile.value.gestureMap.subtleTalk
+
+    if (!plan || plan.group === undefined || plan.group === null || !plan.indexes.length) return
+
+    const rawIndex = pickGestureIndex(semanticGesture, plan.indexes)
+    playMotion(plan.group, rawIndex, options.priority ?? 3)
   }
 
   const playRandomMotion = (priority = 3) => {
-    if (!model || gestureMotionCount === 0) return
-    const index = Math.floor(Math.random() * gestureMotionCount)
-    playMotion(detectedGestureGroup, index, priority)
+    const primaryGroup = behaviorProfile.value.primaryGestureGroup
+    const count = behaviorProfile.value.primaryGestureMotionCount
+    if (!model || primaryGroup === undefined || primaryGroup === null || count === 0) return
+
+    const index = Math.floor(Math.random() * count)
+    playMotion(primaryGroup, index, priority)
   }
 
   const playIdle = () => {
-    if (!model) return
-    const count = idleMotionCount || 1
+    const idleGroup = behaviorProfile.value.idleGroup
+    const idleCount = behaviorProfile.value.idleMotionCount
+    const fallbackGroup = behaviorProfile.value.primaryGestureGroup
+    const fallbackCount = behaviorProfile.value.primaryGestureMotionCount
+    const group = idleCount > 0 ? idleGroup : fallbackGroup
+    const count = idleCount > 0 ? idleCount : fallbackCount
+
+    if (!model || group === undefined || group === null || count === 0) return
+
     const index = Math.floor(Math.random() * count)
     setMood('soft')
-    playMotion(IDLE_GROUP, index, 1)
+    playMotion(group, index, 1)
   }
 
   const playGreeting = () => {
@@ -312,9 +345,12 @@ export function useLive2D(
   }
 
   const playMotionByNumber = (num: number) => {
-    if (num < 1 || gestureMotionCount === 0) return
-    const index = (num - 1) % gestureMotionCount
-    playMotion(detectedGestureGroup, index, 3)
+    const primaryGroup = behaviorProfile.value.primaryGestureGroup
+    const count = behaviorProfile.value.primaryGestureMotionCount
+    if (num < 1 || primaryGroup === undefined || primaryGroup === null || count === 0) return
+
+    const index = (num - 1) % count
+    playMotion(primaryGroup, index, 3)
   }
 
   const setExpression = (index: number) => {
@@ -328,7 +364,7 @@ export function useLive2D(
   }
 
   const setExpressionByName = (name: string) => {
-    if (!model) return
+    if (!model || !name) return
 
     try {
       model.expression(name)
@@ -398,6 +434,7 @@ export function useLive2D(
   return {
     isModelReady,
     isLoading,
+    behaviorProfile,
     setLipSync,
     setMood,
     playMotion,
