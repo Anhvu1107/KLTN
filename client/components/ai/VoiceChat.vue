@@ -177,12 +177,8 @@ const sendInitialGreetingPrompt = (greetingMessage: string) => {
   hasSentInitialGreetingPrompt = true
 
   websocket.send(JSON.stringify({
-    clientContent: {
-      turns: [{
-        role: 'user',
-        parts: [{ text: cueText }],
-      }],
-      turnComplete: true,
+    realtimeInput: {
+      text: cueText,
     },
   }))
 
@@ -396,14 +392,8 @@ const startVoiceSession = async () => {
           console.log('[Voice] User is idle for 60s. Sending context cue to AI.')
           
           const contextMsg = {
-            clientContent: {
-              turns: [{
-                role: 'user',
-                parts: [{ 
-                  text: '[Hệ thống: Khách hàng dường như không có bất kỳ tương tác trên màn hình hay giọng nói nào trong khoảng 1 phút qua. Hãy chủ động lên tiếng hỏi thăm ngắn gọn tự nhiên xem họ còn ở đó không hoặc có cần tư vấn thêm gì không.]' 
-                }]
-              }],
-              turnComplete: true
+            realtimeInput: {
+              text: '[Hệ thống: Khách hàng dường như không có bất kỳ tương tác trên màn hình hay giọng nói nào trong khoảng 1 phút qua. Hãy chủ động lên tiếng hỏi thăm ngắn gọn tự nhiên xem họ còn ở đó không hoặc có cần tư vấn thêm gì không.]',
             }
           }
           websocket.send(JSON.stringify(contextMsg))
