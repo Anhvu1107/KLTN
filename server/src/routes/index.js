@@ -59,6 +59,9 @@ router.use('/notifications', notificationRoutes);
 const pageContentRoutes = require('./v1/page-content.routes');
 router.use('/page-content', pageContentRoutes);
 
+const live2dRoutes = require('./v1/live2d.routes');
+router.use('/live2d', live2dRoutes);
+
 // Health check
 router.get('/health', (req, res) => {
     res.status(200).json({

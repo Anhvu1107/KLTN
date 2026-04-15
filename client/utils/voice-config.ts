@@ -16,11 +16,13 @@ export type CharacterPreset = {
   description: string
   modelUrl: string
   tags: string[]
+  isCustom?: boolean
 }
 
 export const DEFAULT_CHARACTER_ID = 'aura-classic'
 export const DEFAULT_LIVE2D_MODEL_URL = '/live2d/office_f/office_f.model3.json'
 
+/** Built-in presets bundled with the codebase */
 export const CHARACTER_PRESETS: CharacterPreset[] = [
   {
     value: DEFAULT_CHARACTER_ID,

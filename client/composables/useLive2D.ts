@@ -33,13 +33,28 @@ type UseLive2DOptions = {
   modelUrl?: MaybeRefOrGetter<string | null | undefined>
 }
 
+/**
+ * Resolve model URL: custom models served from /uploads/ need
+ * the backend server origin prefix; built-in models are served
+ * from the Nuxt public dir and stay relative.
+ */
+function resolveModelUrl(url: string): string {
+  if (url.startsWith('/uploads/')) {
+    const config = useRuntimeConfig()
+    // apiUrl = "https://backend.example.com/api/v1" → strip "/api/v1"
+    const backendOrigin = (config.public.apiUrl as string).replace(/\/api\/v\d+\/?$/, '')
+    return `${backendOrigin}${url}`
+  }
+  return url
+}
+
 export function useLive2D(
   canvasRef: Ref<HTMLCanvasElement | null>,
   options: UseLive2DOptions = {},
 ) {
   const isModelReady = ref(false)
   const isLoading = ref(true)
-  const resolvedModelUrl = computed(() => toValue(options.modelUrl) || DEFAULT_LIVE2D_MODEL_URL)
+  const resolvedModelUrl = computed(() => resolveModelUrl(toValue(options.modelUrl) || DEFAULT_LIVE2D_MODEL_URL))
 
   let app: any = null
   let model: any = null

@@ -287,7 +287,7 @@ const handleAvatarUpload = async (event: Event) => {
 }
 
 const applyCharacterPreset = (characterId: string) => {
-  const preset = CHARACTER_PRESETS.find(option => option.value === characterId)
+  const preset = allPresets.value.find(option => option.value === characterId)
   if (!preset) return
 
   voiceConfig.value = normalizeVoiceConfig({
@@ -313,15 +313,109 @@ const selectedLiveModel = computed(() =>
   LIVE_MODEL_OPTIONS.find(option => option.value === voiceConfig.value.liveModel) || LIVE_MODEL_OPTIONS[0],
 )
 
+// ---------------------------------------------------------------------------
+// Custom characters management (admin-uploaded via ZIP)
+// ---------------------------------------------------------------------------
+const customCharacters = ref<CharacterPreset[]>([])
+const showAddCharDialog = ref(false)
+const isUploadingChar = ref(false)
+const newCharForm = ref({ label: '', description: '', tags: '' })
+const newCharFile = ref<File | null>(null)
+const charFileInput = ref<HTMLInputElement | null>(null)
+
+/** Merged list: built-in + custom */
+const allPresets = computed<CharacterPreset[]>(() => [
+  ...CHARACTER_PRESETS,
+  ...customCharacters.value,
+])
+
 const selectedCharacterPreset = computed(() =>
-  CHARACTER_PRESETS.find(option => option.value === voiceConfig.value.characterId) || CHARACTER_PRESETS[0],
+  allPresets.value.find(option => option.value === voiceConfig.value.characterId) || CHARACTER_PRESETS[0],
 )
+
+const fetchCustomCharacters = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; characters: CharacterPreset[] }>(
+      `${config.public.apiUrl}/live2d/characters`,
+    )
+    if (res?.characters) {
+      customCharacters.value = res.characters.map(c => ({ ...c, isCustom: true }))
+    }
+  } catch {
+    // Silently fail – built-in presets always available
+  }
+}
+
+const handleCharFileSelect = (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) newCharFile.value = file
+}
+
+const uploadNewCharacter = async () => {
+  if (!newCharForm.value.label || !newCharFile.value) return
+
+  isUploadingChar.value = true
+  try {
+    const formData = new FormData()
+    formData.append('label', newCharForm.value.label)
+    formData.append('description', newCharForm.value.description)
+    formData.append('tags', newCharForm.value.tags)
+    formData.append('model', newCharFile.value)
+
+    await $fetch(`${config.public.apiUrl}/live2d/characters`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: formData,
+    })
+
+    // Reset form
+    newCharForm.value = { label: '', description: '', tags: '' }
+    newCharFile.value = null
+    showAddCharDialog.value = false
+
+    // Reload list
+    await fetchCustomCharacters()
+    saveMessage.value = '✅ Đã thêm nhân vật mới!'
+    clearSaveMessageLater()
+  } catch (err: any) {
+    saveMessage.value = `❌ ${err?.data?.message || 'Upload thất bại'}`
+    clearSaveMessageLater()
+  } finally {
+    isUploadingChar.value = false
+  }
+}
+
+const deleteCustomCharacter = async (charId: string) => {
+  if (!confirm('Xóa nhân vật này?')) return
+
+  try {
+    await $fetch(`${config.public.apiUrl}/live2d/characters/${charId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+
+    // If the deleted char was selected, revert to default
+    if (voiceConfig.value.characterId === charId) {
+      applyCharacterPreset(CHARACTER_PRESETS[0].value)
+    }
+
+    await fetchCustomCharacters()
+    saveMessage.value = '✅ Đã xóa nhân vật'
+    clearSaveMessageLater()
+  } catch (err: any) {
+    saveMessage.value = `❌ ${err?.data?.message || 'Xóa thất bại'}`
+    clearSaveMessageLater()
+  }
+}
 
 const voicePreviewGreeting = computed(() =>
   promptData.value.greetingMessage || t('admin.aiConfig.greetingPlaceholder'),
 )
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  fetchCustomCharacters()
+})
 
 useSeoMeta({
   title: `${t('admin.aiConfig.title')} | Admin`,
@@ -679,14 +773,24 @@ useSeoMeta({
             <h3 class="text-body-sm font-semibold text-aura-black">{{ t('admin.aiConfig.voiceCharacterPreset') }}</h3>
             <p class="text-caption text-neutral-400 mt-0.5">Chọn nhân vật Live2D để đại diện AI Stylist</p>
           </div>
-          <span class="text-caption text-neutral-400 bg-neutral-100 px-2.5 py-1 rounded-full">
-            {{ CHARACTER_PRESETS.length }} nhân vật
-          </span>
+          <div class="flex items-center gap-2">
+            <span class="text-caption text-neutral-400 bg-neutral-100 px-2.5 py-1 rounded-full">
+              {{ allPresets.length }} nhân vật
+            </span>
+            <button
+              type="button"
+              class="text-caption font-medium text-white bg-aura-black hover:bg-neutral-800 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+              @click="showAddCharDialog = true"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+              Thêm nhân vật
+            </button>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
           <button
-            v-for="preset in CHARACTER_PRESETS"
+            v-for="preset in allPresets"
             :key="preset.value"
             type="button"
             class="character-card group relative rounded-xl border-2 overflow-hidden transition-all duration-300 text-left"
@@ -710,6 +814,21 @@ useSeoMeta({
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                 </svg>
+              </div>
+              <!-- Delete button for custom characters -->
+              <button
+                v-if="preset.isCustom"
+                class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Xóa nhân vật"
+                @click.stop="deleteCustomCharacter(preset.value)"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <!-- Custom badge -->
+              <div v-if="preset.isCustom" class="absolute bottom-1.5 left-1.5 text-[8px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded-full">
+                CUSTOM
               </div>
               <!-- Hover overlay -->
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -736,6 +855,68 @@ useSeoMeta({
           </button>
         </div>
       </div>
+
+      <!-- Add Character Dialog -->
+      <Teleport to="body">
+        <div v-if="showAddCharDialog" class="fixed inset-0 z-[100] flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showAddCharDialog = false" />
+          <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 animate-in">
+            <h3 class="text-lg font-serif font-semibold text-aura-black mb-4">Thêm nhân vật Live2D</h3>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Tên nhân vật *</label>
+                <input v-model="newCharForm.label" type="text" class="input-field" placeholder="Ví dụ: Sakura" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Mô tả</label>
+                <input v-model="newCharForm.description" type="text" class="input-field" placeholder="Mô tả ngắn về nhân vật" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Tags (cách nhau bằng dấu phẩy)</label>
+                <input v-model="newCharForm.tags" type="text" class="input-field" placeholder="cute, female, anime" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">File model (.zip) *</label>
+                <p class="text-xs text-neutral-400 mb-2">
+                  ZIP chứa thư mục model Live2D (bao gồm .model3.json, .moc3, textures, motions)
+                </p>
+                <input
+                  ref="charFileInput"
+                  type="file"
+                  accept=".zip"
+                  class="block w-full text-sm text-neutral-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-neutral-100 file:text-neutral-700 hover:file:bg-neutral-200 file:cursor-pointer file:transition-colors"
+                  @change="handleCharFileSelect"
+                />
+                <p v-if="newCharFile" class="mt-1 text-xs text-emerald-600">
+                  ✓ {{ newCharFile.name }} ({{ (newCharFile.size / 1024 / 1024).toFixed(1) }} MB)
+                </p>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                class="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-neutral-800 transition-colors"
+                @click="showAddCharDialog = false"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                class="px-5 py-2 text-sm font-medium text-white bg-aura-black hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-40"
+                :disabled="!newCharForm.label || !newCharFile || isUploadingChar"
+                @click="uploadNewCharacter"
+              >
+                {{ isUploadingChar ? 'Đang tải lên...' : 'Thêm nhân vật' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
 
       <!-- Voice Settings + Preview -->
       <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_360px] gap-6">

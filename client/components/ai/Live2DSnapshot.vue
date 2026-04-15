@@ -20,6 +20,17 @@ const hasError = ref(false)
 
 const cacheKey = computed(() => `live2d_snap_${props.modelUrl}`)
 
+/** Resolve /uploads/... URLs to the backend server origin */
+const resolvedUrl = computed(() => {
+  const url = props.modelUrl
+  if (url.startsWith('/uploads/')) {
+    const config = useRuntimeConfig()
+    const backendOrigin = (config.public.apiUrl as string).replace(/\/api\/v\d+\/?$/, '')
+    return `${backendOrigin}${url}`
+  }
+  return url
+})
+
 const renderSnapshot = async () => {
   // Check sessionStorage cache first
   if (import.meta.client) {
@@ -66,7 +77,7 @@ const renderSnapshot = async () => {
       antialias: true,
     })
 
-    const model = await Live2DModel.from(props.modelUrl, {
+    const model = await Live2DModel.from(resolvedUrl.value, {
       autoInteract: false,
     })
 
