@@ -106,7 +106,7 @@ const onClick = () => {
   >
     <!-- Mascot container -->
     <div
-      class="relative w-40 h-56 transition-all duration-300"
+      class="relative w-56 h-80 transition-all duration-300"
       :class="{
         'scale-105': isHovered,
       }"
@@ -116,7 +116,7 @@ const onClick = () => {
           v-if="!hasVisibleFrame"
           :key="`mascot-static-${configuredModelUrl}`"
           :model-url="configuredModelUrl"
-          :size="320"
+          :size="448"
           class="live2d-mascot__snapshot w-full h-full bg-transparent"
         />
       </div>
@@ -124,8 +124,8 @@ const onClick = () => {
       <!-- Canvas -->
       <canvas
         ref="mascotCanvas"
-        width="320"
-        height="448"
+        width="448"
+        height="640"
         class="live2d-mascot__canvas relative z-10 w-full h-full bg-transparent"
         :class="{
           'opacity-0': isLoading || !hasVisibleFrame,

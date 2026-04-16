@@ -1456,7 +1456,7 @@ onMounted(() => {
     <div
       class="relative flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
       :class="isMinimized
-        ? 'pointer-events-auto mr-4 mb-4 w-40 overflow-visible bg-transparent p-0 shadow-none'
+        ? 'pointer-events-auto mr-4 mb-4 w-56 overflow-visible bg-transparent p-0 shadow-none'
         : [
           'pointer-events-auto mx-auto w-full max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto overscroll-contain rounded-[32px] border border-white/10 bg-neutral-950/95 px-4 py-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-6 sm:py-6',
           suggestedProducts.length ? 'max-w-2xl' : 'max-w-md',
@@ -1472,7 +1472,7 @@ onMounted(() => {
       <!-- Live2D Model Container -->
       <div
         class="relative flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-        :class="isMinimized ? 'h-56 w-40 cursor-pointer' : 'w-full'"
+        :class="isMinimized ? 'h-80 w-56 cursor-pointer' : 'w-full'"
         @pointermove="handleCanvasPointerMove"
         @pointerdown="handleCanvasPointerDown"
       >
@@ -1530,7 +1530,7 @@ onMounted(() => {
           v-if="!hasVisibleFrame"
           class="voice-live2d-layer pointer-events-none absolute z-0 flex items-center justify-center overflow-visible bg-transparent"
           :class="isMinimized
-            ? 'h-56 w-40'
+            ? 'h-80 w-56'
             : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px]'"
         >
           <Live2DSnapshot
@@ -1549,7 +1549,7 @@ onMounted(() => {
           class="voice-live2d-canvas relative z-10 outline-none transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           :class="[
             isMinimized
-              ? 'h-56 w-40 border-0 bg-transparent shadow-none'
+              ? 'h-80 w-56 border-0 bg-transparent shadow-none'
               : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] border-0 bg-transparent',
             {
               'opacity-0': !hasVisibleFrame,
@@ -1630,7 +1630,7 @@ onMounted(() => {
           <article
             v-for="(p, i) in suggestedProducts"
             :key="i"
-            class="flex-shrink-0 snap-start w-40 bg-white/10 hover:bg-white/15 rounded-lg p-3 transition-colors border border-white/10"
+            class="flex-shrink-0 snap-start w-56 bg-white/10 hover:bg-white/15 rounded-lg p-3 transition-colors border border-white/10"
           >
             <div v-if="p.image" class="mb-2 h-20 w-full overflow-hidden rounded-md bg-white/5">
               <img :src="getImageUrl(p.image) || p.image" :alt="p.name" class="h-full w-full object-cover" />
