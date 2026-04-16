@@ -113,6 +113,7 @@ const onClick = () => {
     >
       <div class="live2d-mascot__stage absolute inset-0 overflow-visible bg-transparent">
         <Live2DSnapshot
+          v-if="!hasVisibleFrame"
           :key="`mascot-static-${configuredModelUrl}`"
           :model-url="configuredModelUrl"
           :size="320"

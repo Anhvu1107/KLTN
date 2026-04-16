@@ -36,7 +36,7 @@ onMounted(async () => {
           isVerifying.value = false
           return
         }
-      } catch (e) {
+      } catch {
         // Invalid JSON
       }
     }
@@ -54,7 +54,7 @@ onMounted(async () => {
       if (payload.role === 'ADMIN') {
         isAuthorized.value = true
       }
-    } catch (e) {
+    } catch {
       // Invalid token
     }
     

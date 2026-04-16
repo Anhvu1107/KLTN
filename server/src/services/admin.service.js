@@ -5,7 +5,7 @@
 
 const { Order, User, Product, Variant, SystemPrompt, sequelize, OrderItem } = require('../models');
 const AppError = require('../utils/AppError');
-const { Op, fn, col, literal } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 const notificationService = require('./notification.service');
 const { sendShippingUpdate } = require('./email.service');
 const {

@@ -4,8 +4,6 @@
  * AURA ARCHIVE - User profile settings
  */
 
-import { useAuthStore } from '~/stores/auth'
-
 definePageMeta({
   middleware: ['auth'],
 })
@@ -13,8 +11,7 @@ definePageMeta({
 const { t } = useI18n()
 
 const config = useRuntimeConfig()
-const authStore = useAuthStore()
-const { getToken, getAuthHeaders } = useAuthToken()
+const { getAuthHeaders } = useAuthToken()
 
 // Fetch profile
 const { data: profileData, refresh } = await useFetch<{

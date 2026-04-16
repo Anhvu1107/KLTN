@@ -34,6 +34,14 @@ const GENERIC_RECOMMENDATION_PHRASES = [
     'whatever',
 ];
 
+const PRODUCT_DATA_INTENTS = new Set([
+    'PRODUCT_SEARCH',
+    'CATEGORY_BROWSE',
+    'PRICE_INQUIRY',
+    'STYLE_ADVICE',
+    'INVENTORY_CHECK',
+]);
+
 function escapeRegex(value = '') {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -194,7 +202,9 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         this._updateSalesState(session, message, intent, entities, enrichment, salesSignals);
 
         // Step 4: Generate response — always prefer API for richer responses
-        const useApi = this.hasApi && this.mode !== 'trained_only';
+        const useApi = this.hasApi
+            && this.mode !== 'trained_only'
+            && !['GREETING', 'FAREWELL'].includes(intent);
 
         let responseText;
         if (useApi) {
@@ -245,7 +255,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         const genericSuggestionRequest = this._isGenericSuggestionRequest(message);
 
         const shouldSearchProducts = (
-            ['PRODUCT_SEARCH', 'CATEGORY_BROWSE', 'PRICE_INQUIRY', 'STYLE_ADVICE', 'INVENTORY_CHECK'].includes(intent)
+            PRODUCT_DATA_INTENTS.has(intent)
             || !!category
             || !!brand
             || !!color
@@ -461,6 +471,10 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         };
     }
 
+    _isProductFocusedIntent(intent) {
+        return PRODUCT_DATA_INTENTS.has(intent) || intent === 'DISCOVERY';
+    }
+
     _buildSalesDirective(session, intent, enrichment) {
         const ctx = session.context || {};
         const salesState = session.salesState || {};
@@ -536,6 +550,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
     async _generateApiResponse(message, session, intent, entities, enrichment, customSystemPrompt) {
         const prompt = this._composeSystemPrompt(customSystemPrompt, session, intent, enrichment);
         const contextParts = [prompt, '\n\n--- CONTEXT DATA ---'];
+        const productFocusedIntent = this._isProductFocusedIntent(intent);
 
         if (enrichment.current_product_context) {
             contextParts.push(`\nCURRENT PRODUCT PAGE:\n${enrichment.current_product_context}`);
@@ -545,11 +560,16 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         if (enrichment.products && enrichment.products.length) {
             contextParts.push(`\n📦 SẢN PHẨM TÌM ĐƯỢC:\n${enrichment.product_context}`);
             contextParts.push('\n⚠️ NHẮC LẠI: Bạn CHỈ ĐƯỢC giới thiệu các sản phẩm ở danh sách trên. KHÔNG ĐƯỢC bịa thêm sản phẩm nào khác.');
-        } else {
+        } else if (productFocusedIntent) {
             contextParts.push(
                 '\n📦 SẢN PHẨM TÌM ĐƯỢC: KHÔNG CÓ sản phẩm nào phù hợp trong kho hàng.\n' +
                 '⛔ NGHIÊM CẤM: KHÔNG ĐƯỢC bịa ra sản phẩm. Hãy nói với khách rằng hiện tại shop chưa có sản phẩm phù hợp, ' +
                 'và hỏi khách có muốn thử tiêu chí khác không (ví dụ: brand khác, loại khác, giá khác).'
+            );
+        } else {
+            contextParts.push(
+                '\nCONTEXT: Khách chưa yêu cầu tìm sản phẩm trong lượt này. ' +
+                'Không được nói rằng shop chưa tìm thấy sản phẩm phù hợp; hãy trả lời đúng chủ đề khách vừa hỏi.'
             );
         }
 

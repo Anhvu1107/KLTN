@@ -16,7 +16,7 @@ const { getAuthHeaders } = useAuthToken()
 
 const page = ref(1)
 
-const { data, pending, refresh } = await useFetch<{
+const { data, pending } = await useFetch<{
   success: boolean
   data: { orders: any[]; pagination: any }
 }>(() => `${config.public.apiUrl}/users/orders?page=${page.value}&limit=10`, {

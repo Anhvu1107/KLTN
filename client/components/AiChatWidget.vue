@@ -10,6 +10,7 @@ const isVoiceActive = ref(false)
 const shouldHideChatWindow = computed(() => isVoiceActive.value)
 
 const openVoiceChat = () => {
+  isOpen.value = false
   isVoiceActive.value = true
 }
 </script>

@@ -64,7 +64,7 @@ const getGreeting = async () => {
         };
 
         return greeting;
-    } catch (_error) {
+    } catch {
         return DEFAULT_GREETING;
     }
 };

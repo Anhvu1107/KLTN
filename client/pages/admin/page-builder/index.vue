@@ -12,7 +12,7 @@ definePageMeta({
   middleware: 'admin',
 })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const config = useRuntimeConfig()
 const getToken = () => process.client ? localStorage.getItem('token') : null
 
@@ -393,7 +393,6 @@ const translateBlocks = async () => {
     // Apply translations to EN fields
     pathMap.forEach((mapping, idx) => {
       const block = blocks.value[mapping.blockIdx]
-      const parts = mapping.path.split('.')
       // Convert vi path to en path
       const enPath = mapping.path.replace(/^vi\./, 'en.').replace(/\.vi\./, '.en.')
 

@@ -9,7 +9,6 @@
 
 const path = require('path');
 const fs = require('fs');
-const { promisify } = require('util');
 const { SystemPrompt } = require('../models');
 
 const DB_KEY = 'CUSTOM_LIVE2D_CHARACTERS';
@@ -45,7 +44,7 @@ const getCustomCharacters = async () => {
  */
 const saveCustomCharacters = async (characters) => {
     const payload = JSON.stringify(
-        characters.map(({ isAvailable, ...character }) => character)
+        characters.map(({ isAvailable: _isAvailable, ...character }) => character)
     );
     const [row, created] = await SystemPrompt.findOrCreate({
         where: { key: DB_KEY },
@@ -125,7 +124,6 @@ const extractModelZip = async (zipBuffer, characterId) => {
 
     // Detect common root folder inside ZIP (e.g. "model_name/")
     let commonPrefix = '';
-    const dirs = entries.filter(e => e.isDirectory).map(e => e.entryName);
     const files = entries.filter(e => !e.isDirectory).map(e => e.entryName);
 
     if (files.length > 0) {

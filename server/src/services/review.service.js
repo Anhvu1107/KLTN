@@ -5,7 +5,6 @@
 
 const { Review, User, Product, Variant, Order, OrderItem, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
-const { Op } = require('sequelize');
 
 const findDeliveredPurchase = async (userId, productId) => {
     return OrderItem.findOne({

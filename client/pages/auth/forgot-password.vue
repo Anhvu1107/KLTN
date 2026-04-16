@@ -31,7 +31,7 @@ const handleSubmit = async () => {
     })
 
     isSubmitted.value = true
-  } catch (err: any) {
+  } catch {
     // Don't reveal if email exists (security best practice)
     // Show success message regardless
     isSubmitted.value = true

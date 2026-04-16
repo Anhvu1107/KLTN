@@ -6,7 +6,7 @@
  * This prevents layout glitches when switching between different layouts
  */
 
-export default defineNuxtRouteMiddleware((to, from) => {
+export default defineNuxtRouteMiddleware((to) => {
     // Skip on server
     if (process.server) return
 
@@ -26,7 +26,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
             if (parsed.user?.role) {
                 userRole = parsed.user.role
             }
-        } catch (e) {
+        } catch {
             // Invalid JSON, ignore
         }
     }
@@ -48,7 +48,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
             // Not admin - redirect to homepage with full page reload
             return navigateTo('/', { external: true })
         }
-    } catch (error) {
+    } catch {
         // Invalid token - clear storage and redirect to login with full page reload
         localStorage.removeItem('token')
         localStorage.removeItem('auth')

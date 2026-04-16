@@ -4,7 +4,7 @@
  * AURA ARCHIVE - Fixed bottom buy button for mobile product detail
  */
 
-const props = defineProps<{
+defineProps<{
   product: any
   selectedVariant: any
   isAvailable: boolean

@@ -129,10 +129,6 @@ const groupedBanners = computed(() => {
   return groups
 })
 
-// Sections that have banners (for display)
-const activeSections = computed(() => SECTIONS.value.filter(s => groupedBanners.value[s.key]?.length > 0)) // Changed SECTIONS to SECTIONS.value
-const emptySections = computed(() => SECTIONS.value.filter(s => !groupedBanners.value[s.key]?.length)) // Changed SECTIONS to SECTIONS.value
-
 // Fetch banners
 const fetchBanners = async () => {
   isLoading.value = true
@@ -323,8 +319,6 @@ const getStatusClass = (banner: any) => {
   if (banner.starts_at && new Date(banner.starts_at) > new Date()) return 'bg-yellow-50 text-yellow-700'
   return 'bg-green-50 text-green-700'
 }
-
-const getSectionLabel = (key: string) => SECTIONS.value.find(s => s.key === key)?.label || key // Changed SECTIONS to SECTIONS.value
 
 onMounted(async () => {
   await Promise.all([fetchBanners(), fetchAnimationConfig()])

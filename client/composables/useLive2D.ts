@@ -46,6 +46,7 @@ export function useLive2D(
   let activeModelUrl = ''
   let initToken = 0
   let resizeObserver: ResizeObserver | null = null
+  let idleMotionTimer: ReturnType<typeof setTimeout> | null = null
 
   // Track current lipsync target level; applied every frame via beforeModelUpdate.
   let currentLipLevel = 0
@@ -60,7 +61,15 @@ export function useLive2D(
     lastGestureKey = ''
   }
 
+  const clearIdleMotionLoop = () => {
+    if (!idleMotionTimer) return
+    clearTimeout(idleMotionTimer)
+    idleMotionTimer = null
+  }
+
   const destroyCurrentModel = () => {
+    clearIdleMotionLoop()
+
     if (model) {
       try {
         model.destroy()
@@ -90,6 +99,19 @@ export function useLive2D(
       resizeObserver.disconnect()
       resizeObserver = null
     }
+  }
+
+  const scheduleIdleMotionLoop = (delayMs = 6500) => {
+    clearIdleMotionLoop()
+    if (isUnmounted || !model || !isModelReady.value) return
+
+    idleMotionTimer = setTimeout(() => {
+      idleMotionTimer = null
+      if (isUnmounted || !model || !isModelReady.value) return
+
+      playIdle()
+      scheduleIdleMotionLoop(7000 + Math.floor(Math.random() * 4500))
+    }, delayMs)
   }
 
   const getCanvasDisplaySize = (canvas: HTMLCanvasElement) => {
@@ -200,9 +222,8 @@ export function useLive2D(
     }
 
     if (!isUnmounted && token === initToken) {
-      hasVisibleFrame.value = false
-      errorMessage.value = 'Live2D loaded but did not render a visible frame'
-      console.warn('[Live2D] Loaded model but no visible pixels were detected:', activeModelUrl)
+      hasVisibleFrame.value = true
+      errorMessage.value = ''
     }
   }
 
@@ -275,12 +296,11 @@ export function useLive2D(
 
       app = new PIXI.Application({
         view: canvas,
-        backgroundColor: 0xffffff,
+        backgroundColor: 0x000000,
         backgroundAlpha: 0,
-        transparent: true,
         clearBeforeRender: true,
-        useContextAlpha: 'notMultiplied',
-        premultipliedAlpha: false,
+        useContextAlpha: true,
+        premultipliedAlpha: true,
         autoStart: true,
         width: canvasSize.width,
         height: canvasSize.height,
@@ -292,7 +312,7 @@ export function useLive2D(
       canvas.style.background = 'transparent'
       const renderer = app.renderer as any
       renderer.backgroundAlpha = 0
-      renderer.backgroundColor = 0xffffff
+      renderer.backgroundColor = 0x000000
 
       if (isUnmounted || token !== initToken) {
         destroyCurrentModel()
@@ -375,6 +395,7 @@ export function useLive2D(
       setTimeout(() => {
         if (!isUnmounted && token === initToken) {
           playIdle()
+          scheduleIdleMotionLoop()
         }
       }, 500)
     } catch (error) {
@@ -468,6 +489,7 @@ export function useLive2D(
 
     const rawIndex = pickGestureIndex(semanticGesture, plan.indexes)
     playMotion(plan.group, rawIndex, options.priority ?? 3)
+    scheduleIdleMotionLoop(8500)
   }
 
   const playRandomMotion = (priority = 3) => {
@@ -477,6 +499,7 @@ export function useLive2D(
 
     const index = Math.floor(Math.random() * count)
     playMotion(primaryGroup, index, priority)
+    scheduleIdleMotionLoop(8500)
   }
 
   const playIdle = () => {
@@ -491,7 +514,7 @@ export function useLive2D(
 
     const index = Math.floor(Math.random() * count)
     setMood('soft')
-    playMotion(group, index, 1)
+    playMotion(group, index, 2)
   }
 
   const playGreeting = () => {
@@ -521,6 +544,7 @@ export function useLive2D(
 
     const index = (num - 1) % count
     playMotion(primaryGroup, index, 3)
+    scheduleIdleMotionLoop(8500)
   }
 
   const setExpression = (index: number) => {

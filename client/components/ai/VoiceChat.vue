@@ -49,6 +49,9 @@ const voiceCharacterName = computed(() => voiceSettings.value.characterName || '
 const voiceCharacterSubtitle = computed(() => voiceSettings.value.characterSubtitle || 'AI Stylist Voice Call')
 const voiceHintText = computed(() => voiceSettings.value.hintText || 'Nói bất cứ điều gì để bắt đầu tư vấn')
 const speakingLabel = computed(() => `${voiceCharacterName.value} đang trả lời...`)
+const hasActiveVoiceSession = computed(() =>
+  ['connecting', 'listening', 'processing', 'speaking'].includes(state.value),
+)
 let isInitialGreetingTurn = false
 let hasSentInitialGreetingPrompt = false
 
@@ -71,7 +74,6 @@ const live2dCanvas = ref<HTMLCanvasElement | null>(null)
 const {
   isModelReady,
   hasVisibleFrame,
-  isLoading: isModelLoading,
   setLipSync,
   setMood,
   playGesture,
@@ -1401,7 +1403,7 @@ const stateLabel = computed(() => {
   switch (state.value) {
     case 'connecting': return 'Đang kết nối...'
     case 'listening': return 'Đang nghe bạn...'
-    case 'processing': return 'Đang tìm kiếm...'
+    case 'processing': return 'Đang xử lý...'
     case 'speaking': return 'AURA đang trả lời...'
     case 'error': return errorMessage.value
     default: return 'Sẵn sàng'
@@ -1429,7 +1431,7 @@ onUnmounted(() => {
   window.removeEventListener('wheel', resetActivity)
 })
 
-// Auto-start when mounted
+// Prepare voice UI; the actual Gemini session starts only after an explicit click.
 onMounted(() => {
   window.addEventListener('pointermove', resetActivity, { passive: true })
   window.addEventListener('keydown', resetActivity, { passive: true })
@@ -1437,7 +1439,6 @@ onMounted(() => {
   window.addEventListener('wheel', resetActivity, { passive: true })
 
   sessionId.value = getOrCreateSessionId()
-  startVoiceSession()
 })
 </script>
 
@@ -1523,7 +1524,8 @@ onMounted(() => {
         />
 
         <div
-          class="absolute z-0 flex items-center justify-center overflow-visible bg-transparent"
+          v-if="!hasVisibleFrame"
+          class="voice-live2d-layer pointer-events-none absolute z-0 flex items-center justify-center overflow-visible bg-transparent"
           :class="isMinimized
             ? 'h-56 w-40'
             : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px]'"
@@ -1541,7 +1543,7 @@ onMounted(() => {
           ref="live2dCanvas"
           width="440"
           height="520"
-          class="relative z-10 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          class="voice-live2d-canvas relative z-10 outline-none transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           :class="[
             isMinimized
               ? 'h-56 w-40 border-0 bg-transparent shadow-none'
@@ -1555,7 +1557,7 @@ onMounted(() => {
 
         <!-- Loading overlay -->
         <div
-          v-if="state === 'connecting' || isModelLoading"
+          v-if="state === 'connecting'"
           class="absolute inset-0 z-20 flex flex-col items-center justify-center"
           :class="isMinimized ? 'bg-transparent' : 'bg-transparent'"
         >
@@ -1682,8 +1684,23 @@ onMounted(() => {
       <!-- Controls -->
       <div v-if="!isMinimized" class="sticky bottom-0 z-10 flex w-full justify-center bg-gradient-to-t from-neutral-950 via-neutral-950/95 to-transparent pb-1 pt-4">
         <div class="flex items-center gap-6 rounded-full border border-white/10 bg-black/35 px-5 py-3 backdrop-blur-sm">
+        <!-- Start Call button -->
+        <button
+          v-if="state === 'idle'"
+          @click="startVoiceSession"
+          class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-all shadow-lg hover:shadow-emerald-500/25 hover:scale-105 active:scale-95"
+          aria-label="Bắt đầu cuộc gọi"
+          title="Bắt đầu cuộc gọi"
+        >
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 18.5a5.5 5.5 0 0 0 5.5-5.5V7a5.5 5.5 0 0 0-11 0v6a5.5 5.5 0 0 0 5.5 5.5Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 12.5a7 7 0 0 0 14 0M12 19v4m-4 0h8" />
+          </svg>
+        </button>
+
         <!-- End Call button -->
         <button
+          v-if="hasActiveVoiceSession"
           @click="stopVoiceSession"
           class="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-lg hover:shadow-red-500/30 hover:scale-105 active:scale-95"
           aria-label="Kết thúc cuộc gọi"
@@ -1709,3 +1726,20 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.voice-live2d-layer,
+.voice-live2d-layer :deep(.live2d-snapshot),
+.voice-live2d-layer :deep(img),
+.voice-live2d-canvas {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+.voice-live2d-canvas:focus,
+.voice-live2d-canvas:focus-visible {
+  outline: 0 !important;
+}
+</style>

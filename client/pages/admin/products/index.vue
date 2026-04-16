@@ -11,7 +11,7 @@ definePageMeta({
   middleware: ['admin'],
 })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const config = useRuntimeConfig()
 const { confirm: showConfirm } = useDialog()
 

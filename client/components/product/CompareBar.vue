@@ -7,7 +7,6 @@
 import { useCompare } from '~/composables/useCompare'
 
 const { products, count, clear, removeProduct } = useCompare()
-const { t } = useI18n()
 
 // Format price
 const { formatPrice } = useCurrency()

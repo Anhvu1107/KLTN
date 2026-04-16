@@ -3,7 +3,7 @@
  * AURA ARCHIVE - User profile and account logic
  */
 
-const { User, Order, Wishlist, Product, Variant } = require('../models');
+const { User, Order, Wishlist, Product } = require('../models');
 const AppError = require('../utils/AppError');
 const bcrypt = require('bcryptjs');
 

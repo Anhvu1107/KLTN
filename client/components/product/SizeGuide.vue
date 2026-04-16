@@ -17,8 +17,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
 
-const { t } = useI18n()
-
 const isOpen = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value),

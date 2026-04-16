@@ -13,8 +13,6 @@ const props = withDefaults(defineProps<Props>(), {
   limit: 6,
 })
 
-const { t } = useI18n()
-
 import { useRecentlyViewed } from '~/composables/useRecentlyViewed'
 const { getProducts } = useRecentlyViewed()
 

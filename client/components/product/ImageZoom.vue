@@ -4,7 +4,7 @@
  * AURA ARCHIVE - Zoom on hover for product images
  */
 
-const props = defineProps<{
+defineProps<{
   src: string
   alt: string
 }>()

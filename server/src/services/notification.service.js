@@ -3,8 +3,7 @@
  * AURA ARCHIVE - Business logic for in-app notifications
  */
 
-const { Notification, User, Order } = require('../models');
-const { Op } = require('sequelize');
+const { Notification } = require('../models');
 
 /**
  * Create a notification

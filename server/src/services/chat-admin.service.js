@@ -3,8 +3,8 @@
  * AURA ARCHIVE - Business logic for admin chat management
  */
 
-const { ChatLog, ChatSession, User, sequelize } = require('../models');
-const { Op, fn, col, literal } = require('sequelize');
+const { ChatLog, ChatSession, User } = require('../models');
+const { Op, fn, col } = require('sequelize');
 const AppError = require('../utils/AppError');
 const { emitNewMessage } = require('../socket');
 

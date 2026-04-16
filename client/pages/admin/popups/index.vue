@@ -168,16 +168,6 @@ const removePopupImage = () => {
 }
 
 // Helpers
-const getTriggerLabel = (type: string) => {
-  const labels: Record<string, string> = {
-    immediate: t('admin.popups.triggerLabel.immediate'),
-    delay: t('admin.popups.triggerLabel.delay'),
-    scroll: t('admin.popups.triggerLabel.scroll'),
-    exit: t('admin.popups.triggerLabel.exit'),
-  }
-  return labels[type] || type
-}
-
 const getTriggerDetail = (popup: any) => {
   if (popup.trigger_type === 'delay') return t('admin.popups.triggerDetail.delay', { value: popup.trigger_value })
   if (popup.trigger_type === 'scroll') return t('admin.popups.triggerDetail.scroll', { value: popup.trigger_value })

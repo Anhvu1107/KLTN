@@ -4,7 +4,7 @@
  */
 
 const adminService = require('../services/admin.service');
-const { processUploadedFiles, deleteFile } = require('../services/upload.service');
+const { processUploadedFiles } = require('../services/upload.service');
 const voiceService = require('../services/voice.service');
 const catchAsync = require('../utils/catchAsync');
 

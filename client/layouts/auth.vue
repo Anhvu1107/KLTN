@@ -1,7 +1,5 @@
 <script setup lang="ts">
 // Auth layout - Minimal design for authentication pages with content loading
-const { t } = useI18n()
-
 // Inject loading state from app.vue
 const isPageLoading = inject<Ref<boolean>>('isPageLoading', ref(false))
 </script>

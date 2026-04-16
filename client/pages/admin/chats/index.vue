@@ -108,7 +108,7 @@ const fetchSessions = async (search = '', silent = false) => {
       }
     )
     sessions.value = response.data?.sessions || []
-  } catch (e: any) {
+  } catch {
     console.error('Failed to fetch sessions:', e)
   } finally {
     if (!silent) isLoadingSessions.value = false
@@ -441,7 +441,7 @@ const saveCustomerInfo = async () => {
     )
     saveMessage.value = t('admin.chatManagement.saveSuccess')
     setTimeout(() => { saveMessage.value = '' }, 2000)
-  } catch (e: any) {
+  } catch {
     saveMessage.value = t('admin.chatManagement.saveFailed')
   } finally {
     isSavingCustomer.value = false

@@ -51,7 +51,7 @@ onMounted(async () => {
 
     isEligible.value = response.data.eligible
     ineligibleReason.value = response.data.reason || ''
-  } catch (err: any) {
+  } catch {
     // If error, default to not eligible
     isEligible.value = false
     ineligibleReason.value = 'not_purchased'

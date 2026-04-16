@@ -255,7 +255,7 @@ const forgotPassword = async (email) => {
             resetToken,
             user.first_name || 'Quý khách'
         );
-    } catch (error) {
+    } catch {
         await user.update({
             reset_token: null,
             reset_token_expires: null,

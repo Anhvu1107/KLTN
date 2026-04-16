@@ -34,7 +34,7 @@ export const useAuthToken = () => {
                         }
                         return parsed.token
                     }
-                } catch (e) {
+                } catch {
                     // Invalid JSON
                 }
             }

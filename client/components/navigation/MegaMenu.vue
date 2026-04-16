@@ -4,8 +4,6 @@
  * AURA ARCHIVE - Full-width category menu with images
  */
 
-const config = useRuntimeConfig()
-
 const isOpen = ref(false)
 const activeCategory = ref<string | null>(null)
 

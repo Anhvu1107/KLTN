@@ -3,7 +3,7 @@
  * AURA ARCHIVE - Redirect authenticated users away from auth pages (login/register)
  */
 
-export default defineNuxtRouteMiddleware((to, from) => {
+export default defineNuxtRouteMiddleware(() => {
     // Skip on server
     if (process.server) return
 
@@ -18,7 +18,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
         try {
             const parsed = JSON.parse(persistedAuth)
             hasPersistedToken = !!parsed.token
-        } catch (e) {
+        } catch {
             // Invalid JSON, ignore
         }
     }

@@ -83,7 +83,7 @@ const optionalAuth = catchAsync(async (req, res, next) => {
                     lastName: user.last_name,
                 };
             }
-        } catch (error) {
+        } catch {
             // Token invalid, continue without user
         }
     }

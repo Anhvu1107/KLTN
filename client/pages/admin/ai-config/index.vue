@@ -1194,7 +1194,7 @@ useSeoMeta({
                   {{ isPreviewingVoice ? 'Đang phát...' : 'Nghe thử lại' }}
                 </button>
               </div>
-              <select v-model="voiceConfig.voiceName" class="input-field" @change="previewSelectedVoice">
+              <select v-model="voiceConfig.voiceName" class="input-field">
                 <option
                   v-for="voice in VOICE_NAME_OPTIONS"
                   :key="voice.value"

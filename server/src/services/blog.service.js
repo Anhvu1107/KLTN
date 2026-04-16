@@ -4,7 +4,6 @@
  */
 
 const { Blog, User } = require('../models');
-const { Op } = require('sequelize');
 
 /**
  * Sanitize HTML content to prevent XSS attacks

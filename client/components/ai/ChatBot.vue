@@ -205,7 +205,7 @@ const loadChatHistory = async (sid: string): Promise<boolean> => {
       return true
     }
     return false
-  } catch (_error: any) {
+  } catch {
     return false
   }
 }

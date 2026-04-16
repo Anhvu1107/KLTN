@@ -6,10 +6,6 @@
 
 const { locale, locales, setLocale } = useI18n()
 
-const availableLocales = computed(() => {
-  return locales.value.filter((l: any) => l.code !== locale.value)
-})
-
 const currentLocale = computed(() => {
   const current = locales.value.find((l: any) => l.code === locale.value)
   return current || { code: 'vi', name: 'Tiếng Việt' }

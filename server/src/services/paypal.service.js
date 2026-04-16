@@ -6,8 +6,6 @@
  * Docs: https://developer.paypal.com/docs/api/overview/
  */
 
-const crypto = require('crypto');
-
 const PAYPAL_MODE = process.env.PAYPAL_MODE || 'sandbox';
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
@@ -153,7 +151,7 @@ const capturePayment = async (paypalOrderId) => {
 /**
  * Verify PayPal webhook/IPN signature
  */
-const verifyWebhook = async (headers, body) => {
+const verifyWebhook = async (_headers, _body) => {
     // In production, verify PayPal webhook signature
     // For sandbox, we trust the data
     return true;

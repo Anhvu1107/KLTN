@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 
 const reviewController = require('../../controllers/review.controller');
-const { protect, optionalAuth } = require('../../middlewares/auth.middleware');
+const { protect } = require('../../middlewares/auth.middleware');
 
 // Public routes - Get reviews for a product
 router.get('/products/:productId/reviews', reviewController.getProductReviews);
