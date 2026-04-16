@@ -49,6 +49,29 @@ const getVoiceToken = catchAsync(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/chat/voice-settings
+ * Lightweight public config for visual widgets. This does not require or
+ * expose Gemini credentials, so the mascot can render even if voice is down.
+ */
+const getVoiceSettings = catchAsync(async (req, res) => {
+    const voiceSettings = await voiceService.getStoredVoiceSettings();
+
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        'Surrogate-Control': 'no-store',
+    });
+
+    res.status(200).json({
+        success: true,
+        data: {
+            voiceSettings,
+        },
+    });
+});
+
+/**
  * POST /api/v1/chat/voice-tool-call
  * Execute a tool call from the frontend during a voice session
  */
@@ -110,6 +133,7 @@ const previewVoice = catchAsync(async (req, res) => {
 
 module.exports = {
     getVoiceToken,
+    getVoiceSettings,
     handleToolCall,
     syncTranscript,
     previewVoice,

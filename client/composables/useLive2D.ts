@@ -5,6 +5,7 @@
 import { toValue } from 'vue'
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
+import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
 import {
   buildCommonLive2DBehaviorProfile,
   loadLive2DModelDefinition,
@@ -33,6 +34,7 @@ export function useLive2D(
 ) {
   const isModelReady = ref(false)
   const isLoading = ref(true)
+  const errorMessage = ref('')
   const behaviorProfile = ref<CommonLive2DBehaviorProfile>(buildCommonLive2DBehaviorProfile())
   const resolvedModelUrl = computed(() => resolveModelUrl(toValue(options.modelUrl) || DEFAULT_LIVE2D_MODEL_URL))
   const resolvedFallbackModelUrl = computed(() =>
@@ -105,21 +107,13 @@ export function useLive2D(
     return { width, height }
   }
 
-  const getModelNaturalSize = () => {
-    const internalWidth = Number(model?.internalModel?.width) || 0
-    const internalHeight = Number(model?.internalModel?.height) || 0
-
-    if (internalWidth > 0 && internalHeight > 0) {
-      return {
-        width: internalWidth,
-        height: internalHeight,
-      }
-    }
-
+  const getModelLocalBounds = () => {
     try {
       const bounds = model?.getLocalBounds?.()
       if (bounds?.width && bounds?.height) {
         return {
+          x: Number(bounds.x) || 0,
+          y: Number(bounds.y) || 0,
           width: Math.max(bounds.width, 1),
           height: Math.max(bounds.height, 1),
         }
@@ -128,7 +122,21 @@ export function useLive2D(
       // Pixi bounds can be unavailable before the first render.
     }
 
+    const internalWidth = Number(model?.internalModel?.width) || 0
+    const internalHeight = Number(model?.internalModel?.height) || 0
+
+    if (internalWidth > 0 && internalHeight > 0) {
+      return {
+        x: 0,
+        y: 0,
+        width: internalWidth,
+        height: internalHeight,
+      }
+    }
+
     return {
+      x: 0,
+      y: 0,
       width: Math.max(Number(model?.width) || 1, 1),
       height: Math.max(Number(model?.height) || 1, 1),
     }
@@ -139,23 +147,15 @@ export function useLive2D(
 
     const screenW = Math.max(app.renderer.screen.width || canvasRef.value?.clientWidth || 320, 1)
     const screenH = Math.max(app.renderer.screen.height || canvasRef.value?.clientHeight || 400, 1)
-    const { width, height } = getModelNaturalSize()
+    const bounds = getModelLocalBounds()
     const fitMode = resolvedFitMode.value
     const maxWidth = screenW * (fitMode === 'mascot' ? 0.92 : 0.86)
     const maxHeight = screenH * (fitMode === 'mascot' ? 0.92 : 0.88)
-    const scale = Math.max(0.01, Math.min(maxWidth / width, maxHeight / height))
+    const scale = Math.max(0.01, Math.min(maxWidth / bounds.width, maxHeight / bounds.height))
 
     model.scale.set(scale)
-
-    if (model.anchor?.set) {
-      model.anchor.set(0.5, 0.5)
-      model.x = screenW / 2
-      model.y = screenH * (fitMode === 'mascot' ? 0.54 : 0.5)
-      return
-    }
-
-    model.x = (screenW - width * scale) / 2
-    model.y = (screenH - height * scale) * (fitMode === 'mascot' ? 0.56 : 0.5)
+    model.x = (screenW - bounds.width * scale) / 2 - bounds.x * scale
+    model.y = (screenH - bounds.height * scale) / 2 - bounds.y * scale
   }
 
   const observeCanvasResize = () => {
@@ -188,6 +188,7 @@ export function useLive2D(
     const modelUrl = candidateModelUrl || resolvedModelUrl.value
 
     if (!canvas || !modelUrl) {
+      errorMessage.value = 'Missing Live2D canvas or model URL'
       isLoading.value = false
       return
     }
@@ -198,19 +199,16 @@ export function useLive2D(
 
     const token = ++initToken
     isLoading.value = true
+    errorMessage.value = ''
     destroyCurrentModel()
     const modelDefinitionPromise = loadLive2DModelDefinition(modelUrl)
 
-    // Wait for Cubism Core to be available.
-    let retries = 0
-    while (!(window as any).Live2DCubismCore && retries < 50) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-      if (isUnmounted || token !== initToken) return
-      retries++
-    }
+    const hasCore = await ensureLive2DCubismCoreLoaded()
+    if (isUnmounted || token !== initToken) return
 
-    if (!(window as any).Live2DCubismCore) {
+    if (!hasCore) {
       console.error('[Live2D] Cubism Core not loaded after timeout')
+      errorMessage.value = 'Live2D Cubism Core failed to load'
       isLoading.value = false
       return
     }
@@ -246,7 +244,7 @@ export function useLive2D(
       console.log('[Live2D] Loading model:', modelUrl)
       model = await Live2DModel.from(modelUrl, {
         autoInteract: false,
-        motionPreload: MotionPreloadStrategy.ALL,
+        motionPreload: MotionPreloadStrategy.NONE,
       })
 
       if (isUnmounted || token !== initToken) {
@@ -286,6 +284,7 @@ export function useLive2D(
       activeModelUrl = modelUrl
       isModelReady.value = true
       isLoading.value = false
+      errorMessage.value = ''
       observeCanvasResize()
 
       const motionMgr = model.internalModel.motionManager
@@ -320,6 +319,7 @@ export function useLive2D(
       }, 500)
     } catch (error) {
       console.error('[Live2D] Init error:', error)
+      errorMessage.value = error instanceof Error ? error.message : String(error)
       if (
         allowFallback
         && modelUrl !== resolvedFallbackModelUrl.value
@@ -543,6 +543,7 @@ export function useLive2D(
   return {
     isModelReady,
     isLoading,
+    errorMessage,
     behaviorProfile,
     setLipSync,
     setMood,

@@ -9,18 +9,19 @@
  * Caches results in sessionStorage for instant subsequent loads.
  */
 
+import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
+
 const props = defineProps<{
   modelUrl: string
   size?: number
 }>()
 
-const SNAPSHOT_CACHE_VERSION = 'v3'
+const SNAPSHOT_CACHE_VERSION = 'v4'
 
 const canvasSize = computed(() => props.size || 200)
 const snapshotUrl = ref<string | null>(null)
 const isRendering = ref(false)
 const hasError = ref(false)
-const shouldUseLivePreview = computed(() => props.modelUrl.startsWith('/uploads/'))
 
 const resolvedUrl = computed(() => {
   return props.modelUrl
@@ -68,6 +69,29 @@ const waitFrames = async (count = 2) => {
   }
 }
 
+const getModelRenderBounds = (model: any) => {
+  try {
+    const bounds = model?.getLocalBounds?.()
+    if (bounds?.width && bounds?.height) {
+      return {
+        x: Number(bounds.x) || 0,
+        y: Number(bounds.y) || 0,
+        width: Math.max(Number(bounds.width) || 1, 1),
+        height: Math.max(Number(bounds.height) || 1, 1),
+      }
+    }
+  } catch {
+    // Bounds can be unavailable until the model finishes its first layout pass.
+  }
+
+  return {
+    x: 0,
+    y: 0,
+    width: Math.max(Number(model?.internalModel?.width) || Number(model?.width) || 1, 1),
+    height: Math.max(Number(model?.internalModel?.height) || Number(model?.height) || 1, 1),
+  }
+}
+
 const readCachedSnapshot = (key: string) => {
   try {
     return sessionStorage.getItem(key)
@@ -105,15 +129,10 @@ const doRender = async (request: RenderRequest) => {
   let app: any = null
 
   try {
-    // Wait for Cubism Core
-    let retries = 0
-    while (!(window as any).Live2DCubismCore && retries < 40) {
-      await new Promise(r => setTimeout(r, 150))
-      if (request.requestId !== latestRequestId) return
-      retries++
-    }
+    const hasCore = await ensureLive2DCubismCoreLoaded()
+    if (request.requestId !== latestRequestId) return
 
-    if (!(window as any).Live2DCubismCore) {
+    if (!hasCore) {
       hasError.value = true
       return
     }
@@ -122,7 +141,7 @@ const doRender = async (request: RenderRequest) => {
     if (request.requestId !== latestRequestId) return
     ;(window as any).PIXI = PIXI
 
-    const { Live2DModel } = await import('pixi-live2d-display/cubism4')
+    const { Live2DModel, MotionPreloadStrategy } = await import('pixi-live2d-display/cubism4')
     if (request.requestId !== latestRequestId) return
 
     // Create a temporary DOM-attached canvas (required for WebGL)
@@ -146,26 +165,20 @@ const doRender = async (request: RenderRequest) => {
 
     const model = await Live2DModel.from(request.resolvedUrl, {
       autoInteract: false,
+      motionPreload: MotionPreloadStrategy.NONE,
     })
     if (request.requestId !== latestRequestId) return
 
+    app.stage.addChild(model)
+
     const screenW = Math.max(app.renderer.screen.width || request.size, 1)
     const screenH = Math.max(app.renderer.screen.height || request.size, 1)
-    const modelW = Math.max(Number(model.internalModel?.width) || Number(model.width) || 1, 1)
-    const modelH = Math.max(Number(model.internalModel?.height) || Number(model.height) || 1, 1)
-    const scale = Math.min((screenW * 0.84) / modelW, (screenH * 0.84) / modelH)
+    const bounds = getModelRenderBounds(model)
+    const scale = Math.min((screenW * 0.84) / bounds.width, (screenH * 0.84) / bounds.height)
 
     model.scale.set(scale)
-    if (model.anchor?.set) {
-      model.anchor.set(0.5, 0.5)
-      model.x = screenW / 2
-      model.y = screenH / 2
-    } else {
-      model.x = (screenW - modelW * scale) / 2
-      model.y = (screenH - modelH * scale) / 2
-    }
-
-    app.stage.addChild(model)
+    model.x = (screenW - bounds.width * scale) / 2 - bounds.x * scale
+    model.y = (screenH - bounds.height * scale) / 2 - bounds.y * scale
 
     // Give WebGL one full paint cycle before reading the canvas buffer.
     await waitFrames(2)
@@ -205,13 +218,6 @@ const doRender = async (request: RenderRequest) => {
 
 const requestRender = () => {
   if (!import.meta.client || !props.modelUrl) return
-
-  if (shouldUseLivePreview.value) {
-    snapshotUrl.value = null
-    hasError.value = false
-    isRendering.value = false
-    return
-  }
 
   const request: RenderRequest = {
     requestId: ++latestRequestId,
@@ -253,13 +259,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="live2d-snapshot w-full h-full">
-    <Live2DCanvasPreview
-      v-if="shouldUseLivePreview"
-      :key="resolvedUrl"
-      :model-url="modelUrl"
-      class="w-full h-full"
-    />
-
     <!-- Captured snapshot -->
     <img
       v-if="snapshotUrl"

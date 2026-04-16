@@ -45,6 +45,7 @@ router.get('/history/:sessionId', chatController.getChatHistory);
 router.get('/appearance', chatController.getAppearance);
 
 // Voice endpoints
+router.get('/voice-settings', voiceController.getVoiceSettings);
 router.get('/voice-token', voiceLimiter, voiceController.getVoiceToken);
 router.post('/voice-tool-call', voiceLimiter, voiceController.handleToolCall);
 router.post('/voice-sync', voiceLimiter, voiceController.syncTranscript);

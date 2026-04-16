@@ -941,6 +941,7 @@ const syncVoiceTranscript = async (sessionId, userText, aiText, pageContext = nu
 
 module.exports = {
     getVoiceConfig,
+    getStoredVoiceSettings,
     generateVoicePreview,
     executeToolCall,
     syncVoiceTranscript,

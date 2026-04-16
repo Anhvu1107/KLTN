@@ -30,7 +30,7 @@ const loadConfiguredModel = async () => {
       voiceSettings?: {
         live2dModelUrl?: string
       }
-    }>(`${config.public.apiUrl}/chat/voice-token?t=${Date.now()}`, {
+    }>(`${config.public.apiUrl}/chat/voice-settings?t=${Date.now()}`, {
       cache: 'no-store',
     })
 
