@@ -31,6 +31,8 @@ const DEFAULT_VOICE_SETTINGS = Object.freeze({
     characterSubtitle: 'AI Stylist Voice Call',
     hintText: 'Nói bất cứ điều gì để bắt đầu tư vấn',
     live2dModelUrl: '/live2d/office_f/office_f.model3.json',
+    live2dScale: 1.0,
+    live2dOffsetY: 0,
     idleReminderSeconds: 60,
 });
 
@@ -78,6 +80,18 @@ function normalizeVoiceSettings(config = {}) {
         ),
         hintText: normalizeVoiceString(config.hintText, DEFAULT_VOICE_SETTINGS.hintText),
         live2dModelUrl,
+        live2dScale: clampVoiceNumber(
+            config.live2dScale,
+            0.1,
+            5.0,
+            DEFAULT_VOICE_SETTINGS.live2dScale
+        ),
+        live2dOffsetY: clampVoiceNumber(
+            config.live2dOffsetY,
+            -1000,
+            1000,
+            DEFAULT_VOICE_SETTINGS.live2dOffsetY
+        ),
         idleReminderSeconds: Math.round(
             clampVoiceNumber(
                 config.idleReminderSeconds,
