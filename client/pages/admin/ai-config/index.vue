@@ -1298,6 +1298,39 @@ useSeoMeta({
             <p class="text-caption text-neutral-400 mt-1">{{ t('admin.aiConfig.voiceModelUrlHint') }}</p>
           </div>
 
+          <!-- Dynamic Scale & Offset Controls -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div>
+              <label class="block text-body-sm text-neutral-700 font-medium mb-2">Tỷ lệ Zoom (Scale)</label>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model.number="voiceConfig.live2dScale"
+                  type="range"
+                  min="0.5"
+                  max="3.0"
+                  step="0.1"
+                  class="flex-1"
+                />
+                <span class="text-body-sm font-mono w-8">{{ voiceConfig.live2dScale }}x</span>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-body-sm text-neutral-700 font-medium mb-2">Vị trí Dọc (Offset Y)</label>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model.number="voiceConfig.live2dOffsetY"
+                  type="range"
+                  min="-400"
+                  max="400"
+                  step="10"
+                  class="flex-1"
+                />
+                <span class="text-body-sm font-mono w-12">{{ voiceConfig.live2dOffsetY }}px</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Hint Text -->
           <div>
             <label class="block text-body-sm text-neutral-700 font-medium mb-2">{{ t('admin.aiConfig.voiceHintText') }}</label>
@@ -1344,8 +1377,10 @@ useSeoMeta({
                 <div class="w-full max-w-[220px] h-[240px] rounded-[28px] border border-white/10 bg-white/[0.04] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <Live2DCanvasPreview
                     v-if="selectedCharacterPreset.modelUrl"
-                    :key="selectedCharacterPreset.modelUrl"
+                    :key="`${selectedCharacterPreset.modelUrl}-${voiceConfig.live2dScale}-${voiceConfig.live2dOffsetY}`"
                     :model-url="selectedCharacterPreset.modelUrl"
+                    :live2d-scale="voiceConfig.live2dScale"
+                    :live2d-offset-y="voiceConfig.live2dOffsetY"
                     class="w-full h-full"
                   />
                   <div v-else class="w-full h-full flex items-center justify-center">

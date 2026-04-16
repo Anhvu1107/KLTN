@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const props = defineProps<{
   modelUrl: string
+  live2dScale?: number
+  live2dOffsetY?: number
 }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -12,6 +14,8 @@ const {
   handleTap,
 } = useLive2D(canvas, {
   modelUrl: computed(() => props.modelUrl),
+  live2dScale: computed(() => props.live2dScale ?? 1.0),
+  live2dOffsetY: computed(() => props.live2dOffsetY ?? 0),
 })
 </script>
 
