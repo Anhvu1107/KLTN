@@ -18,7 +18,7 @@ const isHovered = ref(false)
 const config = useRuntimeConfig()
 const configuredModelUrl = ref(DEFAULT_LIVE2D_MODEL_URL)
 
-onMounted(async () => {
+const loadConfiguredModel = async () => {
   try {
     const res = await $fetch<{
       success?: boolean
@@ -43,6 +43,15 @@ onMounted(async () => {
   } catch {
     // Fallback to default on error
   }
+}
+
+onMounted(() => {
+  loadConfiguredModel()
+  window.addEventListener('focus', loadConfiguredModel)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('focus', loadConfiguredModel)
 })
 
 const {
@@ -56,6 +65,7 @@ const {
 } = useLive2D(mascotCanvas, {
   modelUrl: configuredModelUrl,
   fallbackModelUrl: DEFAULT_LIVE2D_MODEL_URL,
+  fitMode: 'mascot',
 })
 
 // Play greeting when model is ready
@@ -120,6 +130,13 @@ const onClick = () => {
         class="absolute inset-0 flex items-center justify-center rounded-2xl bg-neutral-900/80 border border-white/10"
       >
         <div class="w-6 h-6 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+      </div>
+
+      <div
+        v-else-if="!isModelReady"
+        class="absolute inset-0 flex items-center justify-center rounded-2xl bg-neutral-950/85 border border-white/10 px-4 text-center"
+      >
+        <span class="text-[10px] uppercase tracking-[0.18em] text-white/55">AI preview loading</span>
       </div>
 
       <!-- Chat prompt badge -->

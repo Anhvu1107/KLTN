@@ -13,6 +13,7 @@ import { DEFAULT_LIVE2D_MODEL_URL, cloneDefaultVoiceConfig, normalizeVoiceConfig
 const config = useRuntimeConfig()
 const router = useRouter()
 const route = useRoute()
+const { buildAiCustomerContext, buildAiCustomerContextQuery } = useAiCustomerContext()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const { getImageUrl } = useImageUrl()
@@ -266,11 +267,38 @@ const handleCanvasPointerDown = (event: PointerEvent) => {
   onLive2DTap(event)
 }
 
-const sessionQuery = computed(() =>
-  sessionId.value
-    ? `?${new URLSearchParams({ sessionId: sessionId.value }).toString()}`
-    : ''
-)
+const buildVoiceTokenUrl = () => {
+  const params = buildAiCustomerContextQuery()
+  if (sessionId.value) {
+    params.set('sessionId', sessionId.value)
+  }
+  params.set('t', String(Date.now()))
+
+  return `${config.public.apiUrl}/chat/voice-token?${params.toString()}`
+}
+
+const sendCustomerContextCue = (reason = 'customer_context_update') => {
+  if (!websocket || websocket.readyState !== WebSocket.OPEN) return
+  if (state.value === 'connecting') return
+
+  const context = buildAiCustomerContext()
+  const parts = [
+    `[He thong: ${reason}.`,
+    `Khach dang o trang ${context.currentPath}.`,
+    `Loai trang: ${context.pageType}.`,
+  ]
+
+  if (context.productSlug) parts.push(`San pham dang xem: ${context.productSlug}.`)
+  if (context.category) parts.push(`Danh muc dang loc: ${context.category}.`)
+  if (context.search) parts.push(`Tu khoa dang tim: ${context.search}.`)
+  parts.push('Hay ghi nho ngu canh nay de tu van dung luc; khong can noi ra neu khach chua hoi.]')
+
+  websocket.send(JSON.stringify({
+    realtimeInput: {
+      text: parts.join(' '),
+    },
+  }))
+}
 
 const stopCurrentPlayback = () => {
   if (!playbackSource) return
@@ -414,12 +442,9 @@ const startVoiceSession = async () => {
         tools: any[]
         voiceSettings?: Partial<VoiceConfig>
       }
-    }>(
-      `${config.public.apiUrl}/chat/voice-token${sessionQuery.value}${sessionQuery.value ? '&' : '?'}t=${Date.now()}`,
-      {
-        cache: 'no-store',
-      },
-    )
+    }>(buildVoiceTokenUrl(), {
+      cache: 'no-store',
+    })
 
     if (!configRes.success || !configRes.data?.apiKey) {
       throw new Error('Failed to get voice config')
@@ -583,6 +608,7 @@ const startVoiceSession = async () => {
                   sessionId: sessionId.value,
                   userText: transcript.value,
                   aiText: aiTranscript.value,
+                  context: buildAiCustomerContext(),
                 },
               }).catch(() => {})
               
@@ -901,6 +927,7 @@ const handleToolCall = async (toolCall: any) => {
             toolName: call.name,
             args: call.args || {},
             sessionId: sessionId.value,
+            context: buildAiCustomerContext(),
           },
         }
       )
@@ -1353,9 +1380,10 @@ const dynamicStateLabel = computed(() =>
     : stateLabel.value
 )
 
-watch(() => route.path, (path, previousPath) => {
+watch(() => route.fullPath, (path, previousPath) => {
   if (!previousPath || path === previousPath) return
   minimizeVoiceWidget()
+  sendCustomerContextCue('customer_navigated')
 })
 
 // Cleanup on unmount
@@ -1391,7 +1419,10 @@ onMounted(() => {
       class="relative flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
       :class="isMinimized
         ? 'pointer-events-auto mr-4 mb-4 w-40 overflow-visible bg-transparent p-0 shadow-none'
-        : 'pointer-events-auto mx-auto w-full max-w-md max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto overscroll-contain rounded-[32px] border border-white/10 bg-neutral-950/95 px-4 py-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-6 sm:py-6'"
+        : [
+          'pointer-events-auto mx-auto w-full max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto overscroll-contain rounded-[32px] border border-white/10 bg-neutral-950/95 px-4 py-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-6 sm:py-6',
+          suggestedProducts.length ? 'max-w-2xl' : 'max-w-md',
+        ]"
     >
 
       <!-- Voice Header -->
@@ -1539,7 +1570,7 @@ onMounted(() => {
       <!-- Suggested Products -->
       <div
         v-if="suggestedProducts.length && !isMinimized"
-        class="w-full max-w-sm"
+        class="w-full max-w-full"
       >
         <p class="text-white/40 text-xs text-center mb-2">Sản phẩm gợi ý</p>
         <div class="mb-2 flex items-center justify-end gap-1.5">
@@ -1566,7 +1597,7 @@ onMounted(() => {
         </div>
         <div
           ref="suggestedProductsRail"
-          class="flex gap-2 overflow-x-auto overflow-y-hidden pb-2 scrollbar-hide snap-x snap-mandatory"
+          class="flex touch-pan-x snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-1 pb-3 [scrollbar-width:thin]"
           @wheel="handleSuggestedProductsWheel"
         >
           <article

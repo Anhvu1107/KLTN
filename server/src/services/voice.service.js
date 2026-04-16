@@ -89,6 +89,47 @@ function normalizeVoiceSettings(config = {}) {
     };
 }
 
+function normalizeContextString(value, fallback = null) {
+    return typeof value === 'string' && value.trim() ? value.trim().slice(0, 240) : fallback;
+}
+
+function normalizePageContext(context = {}) {
+    if (!context || typeof context !== 'object') return null;
+
+    const normalized = {
+        currentPath: normalizeContextString(context.currentPath),
+        currentUrl: normalizeContextString(context.currentUrl),
+        pageType: normalizeContextString(context.pageType),
+        productSlug: normalizeContextString(context.productSlug),
+        category: normalizeContextString(context.category),
+        search: normalizeContextString(context.search),
+        pageTitle: normalizeContextString(context.pageTitle),
+    };
+
+    return Object.values(normalized).some(Boolean) ? normalized : null;
+}
+
+function mergePageContext(sessionId, pageContext = null) {
+    const normalized = normalizePageContext(pageContext);
+    if (!sessionId) return normalized;
+
+    const session = sessionMemory.ensureSession(sessionId);
+    if (!normalized) return normalized;
+
+    session.context = {
+        ...(session.context || {}),
+        currentPath: normalized.currentPath || session.context?.currentPath,
+        currentUrl: normalized.currentUrl || session.context?.currentUrl,
+        pageType: normalized.pageType || session.context?.pageType,
+        productSlug: normalized.productSlug || session.context?.productSlug,
+        pageTitle: normalized.pageTitle || session.context?.pageTitle,
+        ...(normalized.category ? { category: normalized.category } : {}),
+        ...(normalized.search ? { search: normalized.search } : {}),
+    };
+
+    return normalized;
+}
+
 async function getStoredVoiceSettings() {
     try {
         const prompt = await SystemPrompt.findOne({
@@ -123,6 +164,78 @@ function extractInlineAudio(payload) {
     }
 
     return null;
+}
+
+function parseAudioRate(mimeType = '') {
+    const match = String(mimeType).match(/rate=(\d+)/i);
+    const parsed = match ? Number.parseInt(match[1], 10) : 0;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 24000;
+}
+
+function pcm16Base64ToWavBase64(audioBase64, {
+    sampleRate = 24000,
+    channels = 1,
+    bitsPerSample = 16,
+} = {}) {
+    const pcmBuffer = Buffer.from(audioBase64, 'base64');
+    const blockAlign = channels * (bitsPerSample / 8);
+    const byteRate = sampleRate * blockAlign;
+    const header = Buffer.alloc(44);
+
+    header.write('RIFF', 0);
+    header.writeUInt32LE(36 + pcmBuffer.length, 4);
+    header.write('WAVE', 8);
+    header.write('fmt ', 12);
+    header.writeUInt32LE(16, 16);
+    header.writeUInt16LE(1, 20);
+    header.writeUInt16LE(channels, 22);
+    header.writeUInt32LE(sampleRate, 24);
+    header.writeUInt32LE(byteRate, 28);
+    header.writeUInt16LE(blockAlign, 32);
+    header.writeUInt16LE(bitsPerSample, 34);
+    header.write('data', 36);
+    header.writeUInt32LE(pcmBuffer.length, 40);
+
+    return Buffer.concat([header, pcmBuffer]).toString('base64');
+}
+
+function ensureBrowserPlayablePreview(audio) {
+    const mimeType = String(audio?.mimeType || 'audio/wav');
+    const normalizedMime = mimeType.toLowerCase();
+    const audioBase64 = audio?.data || '';
+
+    if (!audioBase64) {
+        return audio;
+    }
+
+    if (audioBase64.startsWith('UklGR')) {
+        return {
+            data: audioBase64,
+            mimeType: 'audio/wav',
+        };
+    }
+
+    // Gemini TTS often returns raw PCM (`audio/L16` or `audio/pcm`), which
+    // browser <audio> cannot play until it is wrapped in a WAV container.
+    if (normalizedMime.includes('l16') || normalizedMime.includes('pcm')) {
+        return {
+            data: pcm16Base64ToWavBase64(audioBase64, {
+                sampleRate: parseAudioRate(mimeType),
+                channels: 1,
+                bitsPerSample: 16,
+            }),
+            mimeType: 'audio/wav',
+        };
+    }
+
+    if (normalizedMime === 'audio/x-wav') {
+        return {
+            data: audioBase64,
+            mimeType: 'audio/wav',
+        };
+    }
+
+    return audio;
 }
 
 async function generateVoicePreview({ voiceName, text } = {}) {
@@ -175,7 +288,7 @@ async function generateVoicePreview({ voiceName, text } = {}) {
             );
         }
 
-        const audio = extractInlineAudio(payload);
+        const audio = ensureBrowserPlayablePreview(extractInlineAudio(payload));
         if (!audio?.data) {
             throw new Error('Voice preview did not return audio data');
         }
@@ -232,13 +345,19 @@ function extractFirstImage(images) {
     }
 }
 
-function buildSessionSnapshot(sessionId) {
+function buildSessionSnapshot(sessionId, pageContext = null) {
     const session = sessionMemory.getSession(sessionId);
-    if (!session) return '';
+    const currentPage = normalizePageContext(pageContext) || normalizePageContext(session?.context || {});
+    if (!session && !currentPage) return '';
 
-    const ctx = session.context || {};
-    const sales = session.salesState || {};
+    const ctx = session?.context || {};
+    const sales = session?.salesState || {};
     const parts = [];
+
+    if (currentPage?.currentPath) parts.push(`Trang dang xem: ${currentPage.currentPath}`);
+    if (currentPage?.pageType) parts.push(`Loai trang: ${currentPage.pageType}`);
+    if (currentPage?.productSlug) parts.push(`San pham dang xem: ${currentPage.productSlug}`);
+    if (currentPage?.search) parts.push(`Tu khoa dang duyet: ${currentPage.search}`);
 
     if (ctx.height_cm) parts.push(`Chiều cao: ${ctx.height_cm}cm`);
     if (ctx.weight_kg) parts.push(`Cân nặng: ${ctx.weight_kg}kg`);
@@ -259,7 +378,7 @@ function buildSessionSnapshot(sessionId) {
     }
 
     // Include recent conversation history so voice AI knows what was discussed
-    const messages = session.messages || [];
+    const messages = session?.messages || [];
     if (messages.length > 0) {
         const recent = messages.slice(-6);
         const historyLines = recent.map(m => {
@@ -299,9 +418,18 @@ async function getPersonaForVoice() {
 /**
  * Build system prompt optimized for voice conversations.
  */
-const buildVoiceSystemPrompt = async (sessionId = null) => {
+const buildVoiceSystemPrompt = async (sessionId = null, pageContext = null) => {
     const persona = await getPersonaForVoice();
-    const sessionSnapshot = buildSessionSnapshot(sessionId);
+    const normalizedPageContext = normalizePageContext(pageContext);
+    const sessionSnapshot = buildSessionSnapshot(sessionId, normalizedPageContext);
+    let currentProductSnapshot = '';
+
+    if (normalizedPageContext?.productSlug) {
+        const currentProduct = await productSearch.getProductBySlug(normalizedPageContext.productSlug);
+        if (currentProduct) {
+            currentProductSnapshot = `\nCURRENT PRODUCT PAGE:\n${productSearch.buildProductContextForAi([currentProduct])}\nNeu khach hoi "mon nay", "cai nay", "san pham nay", hay uu tien tra loi dua tren CURRENT PRODUCT PAGE.`;
+        }
+    }
 
     const antiThinking = `BẮT BUỘC: Bạn PHẢI nói TRỰC TIẾP với khách hàng bằng tiếng Việt. KHÔNG BAO GIỜ được viết suy nghĩ nội bộ, giải thích quy trình, hay meta-commentary. Mọi output phải là lời nói tự nhiên dành cho khách.
 CHÀO HỎI: KHÔNG BAO GIỜ tự động chào. Chỉ chào DUY NHẤT MỘT LẦN khi nhận cue từ [He thong]. Sau khi chào xong, TUYỆT ĐỐI KHÔNG chào lại lần 2.`;
@@ -371,7 +499,7 @@ TUYỆT ĐỐI CẤM — OUTPUT FORMAT:
 - Ví dụ SAI: "**Initiating** I will greet the customer using mình and bạn..."
 - Ví dụ ĐÚNG: "Chào bạn! Mình là AURA, rất vui được gặp bạn!"`;
 
-    return `${antiThinking}\n\n${basePrompt}\n${conversationGuidance}\n${toolInstructions}${sessionSnapshot}`;
+    return `${antiThinking}\n\n${basePrompt}\n${conversationGuidance}\n${toolInstructions}${sessionSnapshot}${currentProductSnapshot}`;
 };
 
 /**
@@ -612,8 +740,10 @@ function updateSessionFromTool(sessionId, toolName, args = {}, payload = {}) {
 /**
  * Execute a backend tool call from Gemini Live API.
  */
-const executeToolCall = async (toolName, args = {}, sessionId = null) => {
+const executeToolCall = async (toolName, args = {}, sessionId = null, pageContext = null) => {
     try {
+        mergePageContext(sessionId, pageContext);
+
         switch (toolName) {
         case 'search_products': {
             const products = await productSearch.searchProducts({
@@ -711,7 +841,7 @@ const executeToolCall = async (toolName, args = {}, sessionId = null) => {
 /**
  * Get voice session config for frontend.
  */
-const getVoiceConfig = async (sessionId = null) => {
+const getVoiceConfig = async (sessionId = null, pageContext = null) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         throw new Error('GEMINI_API_KEY is not configured');
@@ -732,11 +862,9 @@ const getVoiceConfig = async (sessionId = null) => {
     const primaryLiveModel = liveModels[0] || DEFAULT_GEMINI_LIVE_MODEL;
     const fallbackLiveModels = liveModels.filter(model => model !== primaryLiveModel);
 
-    if (sessionId) {
-        sessionMemory.ensureSession(sessionId);
-    }
+    const normalizedPageContext = mergePageContext(sessionId, pageContext);
 
-    const systemPrompt = await buildVoiceSystemPrompt(sessionId);
+    const systemPrompt = await buildVoiceSystemPrompt(sessionId, normalizedPageContext);
     const greetingMessage = await aiService.getGreeting();
 
     return {
@@ -755,8 +883,10 @@ const getVoiceConfig = async (sessionId = null) => {
  * Called by frontend after each voice turn so text chat has full context.
  * Also updates ChatSession for admin visibility and emits WebSocket events.
  */
-const syncVoiceTranscript = async (sessionId, userText, aiText) => {
+const syncVoiceTranscript = async (sessionId, userText, aiText, pageContext = null) => {
     if (!sessionId) return;
+
+    mergePageContext(sessionId, pageContext);
 
     if (userText && userText.trim()) {
         const content = userText.trim();

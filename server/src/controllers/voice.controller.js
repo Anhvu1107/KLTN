@@ -6,13 +6,26 @@
 const voiceService = require('../services/voice.service');
 const catchAsync = require('../utils/catchAsync');
 
+const getRequestContext = (source = {}) => ({
+    currentPath: source.currentPath || null,
+    currentUrl: source.currentUrl || null,
+    pageType: source.pageType || null,
+    productSlug: source.productSlug || null,
+    category: source.category || null,
+    search: source.search || null,
+    pageTitle: source.pageTitle || null,
+});
+
 /**
  * GET /api/v1/chat/voice-token
  * Get voice session config (API key + model + system prompt + tools)
  * Client uses this to connect directly to Gemini Live API via WebSocket
  */
 const getVoiceToken = catchAsync(async (req, res) => {
-    const config = await voiceService.getVoiceConfig(req.query.sessionId || null);
+    const config = await voiceService.getVoiceConfig(
+        req.query.sessionId || null,
+        getRequestContext(req.query)
+    );
 
     res.set({
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -40,7 +53,7 @@ const getVoiceToken = catchAsync(async (req, res) => {
  * Execute a tool call from the frontend during a voice session
  */
 const handleToolCall = catchAsync(async (req, res) => {
-    const { toolName, args, sessionId } = req.body;
+    const { toolName, args, sessionId, context } = req.body;
 
     if (!toolName) {
         return res.status(400).json({
@@ -49,7 +62,7 @@ const handleToolCall = catchAsync(async (req, res) => {
         });
     }
 
-    const result = await voiceService.executeToolCall(toolName, args || {}, sessionId || null);
+    const result = await voiceService.executeToolCall(toolName, args || {}, sessionId || null, context || null);
 
     res.status(200).json({
         success: true,
@@ -62,7 +75,7 @@ const handleToolCall = catchAsync(async (req, res) => {
  * Sync voice transcript to shared session memory
  */
 const syncTranscript = catchAsync(async (req, res) => {
-    const { sessionId, userText, aiText } = req.body;
+    const { sessionId, userText, aiText, context } = req.body;
 
     if (!sessionId) {
         return res.status(400).json({
@@ -71,7 +84,7 @@ const syncTranscript = catchAsync(async (req, res) => {
         });
     }
 
-    await voiceService.syncVoiceTranscript(sessionId, userText || '', aiText || '');
+    await voiceService.syncVoiceTranscript(sessionId, userText || '', aiText || '', context || null);
 
     res.status(200).json({ success: true });
 });

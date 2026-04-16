@@ -7,6 +7,7 @@
 const config = useRuntimeConfig()
 const { t } = useI18n()
 const router = useRouter()
+const { buildAiCustomerContext } = useAiCustomerContext()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const { getImageUrl } = useImageUrl()
@@ -390,6 +391,7 @@ const sendMessage = async () => {
       body: {
         message,
         sessionId: sessionId.value,
+        context: buildAiCustomerContext(),
       },
     })
 

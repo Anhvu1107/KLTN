@@ -16,6 +16,7 @@ import {
 type UseLive2DOptions = {
   modelUrl?: MaybeRefOrGetter<string | null | undefined>
   fallbackModelUrl?: MaybeRefOrGetter<string | null | undefined>
+  fitMode?: MaybeRefOrGetter<'contain' | 'mascot'>
 }
 
 /**
@@ -37,6 +38,7 @@ export function useLive2D(
   const resolvedFallbackModelUrl = computed(() =>
     resolveModelUrl(toValue(options.fallbackModelUrl) || DEFAULT_LIVE2D_MODEL_URL),
   )
+  const resolvedFitMode = computed(() => toValue(options.fitMode) || 'contain')
 
   let app: any = null
   let model: any = null
@@ -89,43 +91,71 @@ export function useLive2D(
     }
   }
 
-  const getModelBounds = () => {
-    const fallbackWidth = Math.max(model?.internalModel?.width || 1, 1)
-    const fallbackHeight = Math.max(model?.internalModel?.height || 1, 1)
+  const getCanvasDisplaySize = (canvas: HTMLCanvasElement) => {
+    const parent = canvas.parentElement
+    const width = Math.max(
+      canvas.clientWidth || parent?.clientWidth || Number(canvas.getAttribute('width')) || 320,
+      1,
+    )
+    const height = Math.max(
+      canvas.clientHeight || parent?.clientHeight || Number(canvas.getAttribute('height')) || 400,
+      1,
+    )
+
+    return { width, height }
+  }
+
+  const getModelNaturalSize = () => {
+    const internalWidth = Number(model?.internalModel?.width) || 0
+    const internalHeight = Number(model?.internalModel?.height) || 0
+
+    if (internalWidth > 0 && internalHeight > 0) {
+      return {
+        width: internalWidth,
+        height: internalHeight,
+      }
+    }
 
     try {
       const bounds = model?.getLocalBounds?.()
       if (bounds?.width && bounds?.height) {
-        return bounds
+        return {
+          width: Math.max(bounds.width, 1),
+          height: Math.max(bounds.height, 1),
+        }
       }
     } catch {
-      // Fall back to internal model dimensions when Pixi bounds are unavailable.
+      // Pixi bounds can be unavailable before the first render.
     }
 
     return {
-      x: 0,
-      y: 0,
-      width: fallbackWidth,
-      height: fallbackHeight,
+      width: Math.max(Number(model?.width) || 1, 1),
+      height: Math.max(Number(model?.height) || 1, 1),
     }
   }
 
   const layoutModel = () => {
     if (!model || !app) return
 
-    const screenW = app.renderer.screen.width
-    const screenH = app.renderer.screen.height
-    const bounds = getModelBounds()
-    const width = Math.max(bounds.width, 1)
-    const height = Math.max(bounds.height, 1)
-
-    const maxWidth = screenW * 0.82
-    const maxHeight = screenH * 0.9
-    const scale = Math.max(0.05, Math.min(maxWidth / width, maxHeight / height) * 0.96)
+    const screenW = Math.max(app.renderer.screen.width || canvasRef.value?.clientWidth || 320, 1)
+    const screenH = Math.max(app.renderer.screen.height || canvasRef.value?.clientHeight || 400, 1)
+    const { width, height } = getModelNaturalSize()
+    const fitMode = resolvedFitMode.value
+    const maxWidth = screenW * (fitMode === 'mascot' ? 0.92 : 0.86)
+    const maxHeight = screenH * (fitMode === 'mascot' ? 0.92 : 0.88)
+    const scale = Math.max(0.01, Math.min(maxWidth / width, maxHeight / height))
 
     model.scale.set(scale)
-    model.x = (screenW - width * scale) / 2 - bounds.x * scale
-    model.y = screenH - height * scale - bounds.y * scale - screenH * 0.02
+
+    if (model.anchor?.set) {
+      model.anchor.set(0.5, 0.5)
+      model.x = screenW / 2
+      model.y = screenH * (fitMode === 'mascot' ? 0.54 : 0.5)
+      return
+    }
+
+    model.x = (screenW - width * scale) / 2
+    model.y = (screenH - height * scale) * (fitMode === 'mascot' ? 0.56 : 0.5)
   }
 
   const observeCanvasResize = () => {
@@ -195,12 +225,14 @@ export function useLive2D(
       const { Live2DModel, MotionPreloadStrategy } = await import('pixi-live2d-display/cubism4')
       if (isUnmounted || token !== initToken) return
 
+      const canvasSize = getCanvasDisplaySize(canvas)
+
       app = new PIXI.Application({
         view: canvas,
         backgroundAlpha: 0,
         autoStart: true,
-        width: canvas.clientWidth || 320,
-        height: canvas.clientHeight || 400,
+        width: canvasSize.width,
+        height: canvasSize.height,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
         antialias: true,
@@ -221,9 +253,6 @@ export function useLive2D(
         destroyCurrentModel()
         return
       }
-
-      const screenW = app.renderer.screen.width
-      const screenH = app.renderer.screen.height
 
       model.internalModel.on('beforeModelUpdate', () => {
         if (!model?.internalModel?.coreModel) return
@@ -249,6 +278,11 @@ export function useLive2D(
 
       app.stage.addChild(model)
       layoutModel()
+      requestAnimationFrame(() => {
+        if (!isUnmounted && token === initToken) {
+          layoutModel()
+        }
+      })
       activeModelUrl = modelUrl
       isModelReady.value = true
       isLoading.value = false
@@ -473,7 +507,8 @@ export function useLive2D(
     if (!model || !canvasRef.value || !app) return
 
     const canvas = canvasRef.value
-    app.renderer.resize(canvas.clientWidth, canvas.clientHeight)
+    const canvasSize = getCanvasDisplaySize(canvas)
+    app.renderer.resize(canvasSize.width, canvasSize.height)
     layoutModel()
   }
 

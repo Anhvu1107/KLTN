@@ -110,6 +110,10 @@ const saveFailure = (error: any) => {
   saveMessage.value = error?.data?.message || t('admin.aiConfig.saveError')
 }
 
+const isPositiveSaveMessage = computed(() =>
+  saveMessage.value === t('admin.aiConfig.saved') || saveMessage.value.startsWith('✅'),
+)
+
 watch(() => appearance.value.fontFamily, (font) => {
   if (import.meta.client) {
     loadGoogleFont(font)
@@ -330,6 +334,10 @@ const selectedLiveModel = computed(() =>
 
 const voicePreviewText = computed(() => {
   const characterName = voiceConfig.value.characterName?.trim() || 'AURA'
+  const configuredGreeting = promptData.value.greetingMessage?.trim()
+  if (configuredGreeting) {
+    return configuredGreeting.slice(0, 240)
+  }
   return `${characterName} xin chào, mình sẽ giúp bạn tìm món đồ phù hợp với phong cách hôm nay.`
 })
 
@@ -405,6 +413,8 @@ const isUploadingChar = ref(false)
 const newCharForm = ref({ label: '', description: '', tags: '' })
 const newCharFile = ref<File | null>(null)
 const charFileInput = ref<HTMLInputElement | null>(null)
+const pendingDeleteCharacter = ref<CharacterPreset | null>(null)
+const isDeletingCharacter = ref(false)
 
 /** Merged list: built-in + custom */
 const allPresets = computed<CharacterPreset[]>(() => [
@@ -440,6 +450,44 @@ const handleCharFileSelect = (e: Event) => {
   if (file) newCharFile.value = file
 }
 
+const requestDeleteCustomCharacter = (preset: CharacterPreset) => {
+  if (!preset.isCustom || isDeletingCharacter.value) return
+  pendingDeleteCharacter.value = preset
+}
+
+const cancelDeleteCustomCharacter = () => {
+  if (isDeletingCharacter.value) return
+  pendingDeleteCharacter.value = null
+}
+
+const confirmDeleteCustomCharacter = async () => {
+  const preset = pendingDeleteCharacter.value
+  if (!preset) return
+
+  isDeletingCharacter.value = true
+  try {
+    await $fetch(`${config.public.apiUrl}/live2d/characters/${encodeURIComponent(preset.value)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+
+    if (isPresetSelected(preset)) {
+      applyCharacterPreset(CHARACTER_PRESETS[0])
+      await saveVoiceData()
+    }
+
+    await fetchCustomCharacters()
+    pendingDeleteCharacter.value = null
+    saveMessage.value = '✅ Đã xóa nhân vật'
+    clearSaveMessageLater()
+  } catch (err: any) {
+    saveMessage.value = `❌ ${err?.data?.message || err?.message || 'Xóa thất bại'}`
+    clearSaveMessageLater()
+  } finally {
+    isDeletingCharacter.value = false
+  }
+}
+
 const uploadNewCharacter = async () => {
   if (!newCharForm.value.label || !newCharFile.value) return
 
@@ -463,7 +511,6 @@ const uploadNewCharacter = async () => {
     showAddCharDialog.value = false
 
     // Reload list
-    customCharacters.value = customCharacters.value.filter(option => option.modelUrl !== preset.modelUrl)
     await fetchCustomCharacters()
     saveMessage.value = '✅ Đã thêm nhân vật mới!'
     clearSaveMessageLater()
@@ -472,33 +519,6 @@ const uploadNewCharacter = async () => {
     clearSaveMessageLater()
   } finally {
     isUploadingChar.value = false
-  }
-}
-
-const deleteCustomCharacter = async (preset: CharacterPreset) => {
-  if (!confirm('Xóa nhân vật này?')) return
-
-  try {
-    await $fetch(`${config.public.apiUrl}/live2d/characters/${preset.value}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-
-    // If the deleted char was selected, revert to default
-    if (isPresetSelected(preset)) {
-      const fallbackPreset = CHARACTER_PRESETS.find(option =>
-        option.value === preset.value && option.modelUrl !== preset.modelUrl,
-      ) || CHARACTER_PRESETS[0]
-
-      applyCharacterPreset(fallbackPreset)
-    }
-
-    await fetchCustomCharacters()
-    saveMessage.value = '✅ Đã xóa nhân vật'
-    clearSaveMessageLater()
-  } catch (err: any) {
-    saveMessage.value = `❌ ${err?.data?.message || 'Xóa thất bại'}`
-    clearSaveMessageLater()
   }
 }
 
@@ -630,7 +650,7 @@ useSeoMeta({
           <span
             v-if="saveMessage"
             class="text-body-sm"
-            :class="saveMessage === t('admin.aiConfig.saved') ? 'text-green-600' : 'text-red-600'"
+            :class="isPositiveSaveMessage ? 'text-green-600' : 'text-red-600'"
           >
             {{ saveMessage }}
           </span>
@@ -789,7 +809,7 @@ useSeoMeta({
           <span
             v-if="saveMessage"
             class="text-body-sm"
-            :class="saveMessage === t('admin.aiConfig.saved') ? 'text-green-600' : 'text-red-600'"
+            :class="isPositiveSaveMessage ? 'text-green-600' : 'text-red-600'"
           >
             {{ saveMessage }}
           </span>
@@ -925,7 +945,7 @@ useSeoMeta({
                 type="button"
                 class="absolute z-30 top-1.5 left-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 title="Xóa nhân vật"
-                @click.stop.prevent="deleteCustomCharacter(preset)"
+                @click.stop.prevent="requestDeleteCustomCharacter(preset)"
               >
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
@@ -1027,6 +1047,61 @@ useSeoMeta({
               >
                 {{ isUploadingChar ? 'Đang tải lên...' : 'Thêm nhân vật' }}
               </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Delete Character Dialog -->
+      <Teleport to="body">
+        <div v-if="pendingDeleteCharacter" class="fixed inset-0 z-[110] flex items-center justify-center px-4">
+          <div class="absolute inset-0 bg-neutral-950/70 backdrop-blur-md" @click="cancelDeleteCustomCharacter" />
+          <div class="relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/15 bg-neutral-950 text-white shadow-[0_28px_90px_rgba(0,0,0,0.45)]">
+            <div class="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-red-500/20 blur-3xl" />
+            <div class="absolute -bottom-20 -left-12 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+
+            <div class="relative p-6">
+              <div class="mb-5 flex items-start gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-500/15 text-red-200 ring-1 ring-red-300/20">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-xs uppercase tracking-[0.28em] text-white/40">Confirm delete</p>
+                  <h3 class="mt-1 font-serif text-2xl leading-tight">Xóa nhân vật Live2D?</h3>
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <p class="text-sm text-white/70">
+                  Bạn đang xóa
+                  <span class="font-semibold text-white">{{ pendingDeleteCharacter.label }}</span>.
+                  File model đã upload cũng sẽ bị gỡ khỏi server.
+                </p>
+                <p class="mt-2 text-xs leading-relaxed text-white/40">
+                  Nếu nhân vật này đang được chọn cho AI ngoài website, hệ thống sẽ tự chuyển về AURA Classic để tránh lỗi mất model.
+                </p>
+              </div>
+
+              <div class="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  class="rounded-full border border-white/15 px-5 py-2 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                  :disabled="isDeletingCharacter"
+                  @click="cancelDeleteCustomCharacter"
+                >
+                  Giữ lại
+                </button>
+                <button
+                  type="button"
+                  class="rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-400 disabled:cursor-wait disabled:opacity-60"
+                  :disabled="isDeletingCharacter"
+                  @click="confirmDeleteCustomCharacter"
+                >
+                  {{ isDeletingCharacter ? 'Đang xóa...' : 'Xóa nhân vật' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1165,7 +1240,7 @@ useSeoMeta({
             <span
               v-if="saveMessage"
               class="text-body-sm"
-              :class="saveMessage === t('admin.aiConfig.saved') ? 'text-green-600' : 'text-red-600'"
+              :class="isPositiveSaveMessage ? 'text-green-600' : 'text-red-600'"
             >
               {{ saveMessage }}
             </span>

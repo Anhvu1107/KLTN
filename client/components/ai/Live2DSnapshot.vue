@@ -14,7 +14,7 @@ const props = defineProps<{
   size?: number
 }>()
 
-const SNAPSHOT_CACHE_VERSION = 'v2'
+const SNAPSHOT_CACHE_VERSION = 'v3'
 
 const canvasSize = computed(() => props.size || 200)
 const snapshotUrl = ref<string | null>(null)
@@ -149,16 +149,21 @@ const doRender = async (request: RenderRequest) => {
     })
     if (request.requestId !== latestRequestId) return
 
-    const screenW = app.renderer.screen.width
-    const screenH = app.renderer.screen.height
+    const screenW = Math.max(app.renderer.screen.width || request.size, 1)
+    const screenH = Math.max(app.renderer.screen.height || request.size, 1)
+    const modelW = Math.max(Number(model.internalModel?.width) || Number(model.width) || 1, 1)
+    const modelH = Math.max(Number(model.internalModel?.height) || Number(model.height) || 1, 1)
+    const scale = Math.min((screenW * 0.84) / modelW, (screenH * 0.84) / modelH)
 
-    // Scale model to fit canvas
-    const modelH = model.internalModel.height
-    const modelW = model.internalModel.width
-    const scale = (screenH / modelH) * 1.6
     model.scale.set(scale)
-    model.x = (screenW - modelW * scale) / 2
-    model.y = screenH * 0.05
+    if (model.anchor?.set) {
+      model.anchor.set(0.5, 0.5)
+      model.x = screenW / 2
+      model.y = screenH / 2
+    } else {
+      model.x = (screenW - modelW * scale) / 2
+      model.y = (screenH - modelH * scale) / 2
+    }
 
     app.stage.addChild(model)
 
@@ -260,7 +265,7 @@ onBeforeUnmount(() => {
       v-if="snapshotUrl"
       :src="snapshotUrl"
       :alt="modelUrl"
-      class="w-full h-full object-cover"
+      class="w-full h-full object-contain"
     />
 
     <!-- Loading state -->

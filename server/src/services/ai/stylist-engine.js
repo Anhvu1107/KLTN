@@ -167,7 +167,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
 
         const session = sessionMemory.ensureSession(sessionId);
         if (context && typeof context === 'object') {
-            Object.assign(session.context, context);
+            this._mergeContext(session.context, context);
         }
         sessionMemory.appendMessage(sessionId, { role: 'user', content: message });
 
@@ -228,6 +228,17 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
 
     async _enrichContext(intent, entities, sessionContext, message) {
         const enrichment = {};
+        const currentProductSlug = typeof sessionContext.productSlug === 'string'
+            ? sessionContext.productSlug.trim()
+            : '';
+        if (currentProductSlug) {
+            const currentProduct = await productSearch.getProductBySlug(currentProductSlug);
+            if (currentProduct) {
+                enrichment.current_product = currentProduct;
+                enrichment.current_product_context = productSearch.buildProductContextForAi([currentProduct]);
+            }
+        }
+
         const category = entities.category || sessionContext.category || null;
         const brand = entities.brand || sessionContext.brand || null;
         const color = entities.color || sessionContext.color || null;
@@ -457,6 +468,11 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         const missing = kb.getMissingProfileFields(ctx);
         const profileNotes = [];
 
+        if (ctx.currentPath) profileNotes.push(`Trang dang xem: ${ctx.currentPath}`);
+        if (ctx.pageType) profileNotes.push(`Loai trang: ${ctx.pageType}`);
+        if (ctx.productSlug) profileNotes.push(`San pham dang xem: ${ctx.productSlug}`);
+        if (ctx.search) profileNotes.push(`Tu khoa dang duyet: ${ctx.search}`);
+
         if (ctx.budget_label) profileNotes.push(`Ngân sách: ${ctx.budget_label}`);
         if (ctx.occasion) profileNotes.push(`Dịp mặc: ${ctx.occasion}`);
         if (ctx.height_cm) profileNotes.push(`Cao: ${ctx.height_cm}cm`);
@@ -520,6 +536,11 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
     async _generateApiResponse(message, session, intent, entities, enrichment, customSystemPrompt) {
         const prompt = this._composeSystemPrompt(customSystemPrompt, session, intent, enrichment);
         const contextParts = [prompt, '\n\n--- CONTEXT DATA ---'];
+
+        if (enrichment.current_product_context) {
+            contextParts.push(`\nCURRENT PRODUCT PAGE:\n${enrichment.current_product_context}`);
+            contextParts.push('\nKhach dang xem san pham nay. Neu khach hoi "mon nay", "cai nay", "san pham nay", hay uu tien tra loi dua tren CURRENT PRODUCT PAGE.');
+        }
 
         if (enrichment.products && enrichment.products.length) {
             contextParts.push(`\n📦 SẢN PHẨM TÌM ĐƯỢC:\n${enrichment.product_context}`);
@@ -593,6 +614,10 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         // Customer profile
         const ctx = session.context || {};
         const profileParts = [];
+        if (ctx.currentPath) profileParts.push(`Trang dang xem: ${ctx.currentPath}`);
+        if (ctx.pageType) profileParts.push(`Loai trang: ${ctx.pageType}`);
+        if (ctx.productSlug) profileParts.push(`San pham dang xem: ${ctx.productSlug}`);
+        if (ctx.search) profileParts.push(`Tu khoa dang duyet: ${ctx.search}`);
         if (ctx.height_cm) profileParts.push(`Cao: ${ctx.height_cm}cm`);
         if (ctx.weight_kg) profileParts.push(`Nặng: ${ctx.weight_kg}kg`);
         if (ctx.gender) profileParts.push(`Giới tính: ${ctx.gender}`);
