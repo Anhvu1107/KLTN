@@ -1439,6 +1439,9 @@ onMounted(() => {
   window.addEventListener('wheel', resetActivity, { passive: true })
 
   sessionId.value = getOrCreateSessionId()
+  
+  // Tự động kết nối với Gemini khi UI vừa mở lên để cất lời chào khách
+  startVoiceSession()
 })
 </script>
 

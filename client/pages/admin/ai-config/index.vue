@@ -395,6 +395,9 @@ const normalizeVoicePreviewError = (message?: string) => {
   return raw || 'Không thể nghe thử giọng nói lúc này.'
 }
 
+// --- Voice Preview Cache ---
+const voicePreviewCache = new Map<string, { base64: string; mimeType: string }>()
+
 const stopVoicePreview = () => {
   isPreviewingVoice.value = false
   if (!activeVoicePreview.value) return
@@ -412,28 +415,45 @@ const previewSelectedVoice = async () => {
   voicePreviewError.value = ''
 
   try {
-    const token = getToken()
-    const response = await $fetch<{
-      success: boolean
-      data?: {
-        audioBase64?: string
-        mimeType?: string
-      }
-    }>(`${config.public.apiUrl}/admin/voice-preview`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: {
-        voiceName: voiceConfig.value.voiceName,
-        text: voicePreviewText.value,
-      },
-    })
+    const cacheKey = `${voiceConfig.value.voiceName}|${voicePreviewText.value}`
+    let audioBase64: string | undefined
+    let mimeType: string | undefined
 
-    const audioBase64 = response.data?.audioBase64
-    if (!audioBase64) {
-      throw new Error('Không nhận được audio preview từ server')
+    if (voicePreviewCache.has(cacheKey)) {
+      // Use cached audio
+      const cached = voicePreviewCache.get(cacheKey)!
+      audioBase64 = cached.base64
+      mimeType = cached.mimeType
+    } else {
+      // Fetch fresh preview from Gemini
+      const token = getToken()
+      const response = await $fetch<{
+        success: boolean
+        data?: {
+          audioBase64?: string
+          mimeType?: string
+        }
+      }>(`${config.public.apiUrl}/admin/voice-preview`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: {
+          voiceName: voiceConfig.value.voiceName,
+          text: voicePreviewText.value,
+        },
+      })
+
+      audioBase64 = response.data?.audioBase64
+      mimeType = response.data?.mimeType || 'audio/wav'
+
+      if (!audioBase64) {
+        throw new Error('Không nhận được audio preview từ server')
+      }
+
+      // Store in memory cache
+      voicePreviewCache.set(cacheKey, { base64: audioBase64, mimeType })
     }
 
-    const previewAudio = new Audio(`data:${response.data?.mimeType || 'audio/wav'};base64,${audioBase64}`)
+    const previewAudio = new Audio(`data:${mimeType};base64,${audioBase64}`)
     activeVoicePreview.value = previewAudio
 
     previewAudio.onended = () => {
