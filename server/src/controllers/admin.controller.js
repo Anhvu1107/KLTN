@@ -5,6 +5,7 @@
 
 const adminService = require('../services/admin.service');
 const { processUploadedFiles, deleteFile } = require('../services/upload.service');
+const voiceService = require('../services/voice.service');
 const catchAsync = require('../utils/catchAsync');
 
 /**
@@ -138,6 +139,25 @@ const updateSystemPrompt = catchAsync(async (req, res) => {
         success: true,
         message: 'System prompt updated successfully',
         data: { prompt },
+    });
+});
+
+const previewVoice = catchAsync(async (req, res) => {
+    const preview = await voiceService.generateVoicePreview({
+        voiceName: req.body?.voiceName,
+        text: req.body?.text,
+    });
+
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        'Surrogate-Control': 'no-store',
+    });
+
+    res.status(200).json({
+        success: true,
+        data: preview,
     });
 });
 
@@ -357,6 +377,7 @@ module.exports = {
     getSystemPrompts,
     getSystemPromptByKey,
     updateSystemPrompt,
+    previewVoice,
     createProduct,
     getProducts,
     getProductById,

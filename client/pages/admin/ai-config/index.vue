@@ -4,7 +4,7 @@
  * AURA ARCHIVE - Prompt, appearance, and voice experience settings.
  */
 
-import type { VoiceConfig } from '~/utils/voice-config'
+import type { CharacterPreset, VoiceConfig } from '~/utils/voice-config'
 import {
   CHARACTER_PRESETS,
   LIVE_MODEL_OPTIONS,
@@ -57,6 +57,9 @@ const appearance = ref({
 })
 
 const voiceConfig = ref<VoiceConfig>(cloneDefaultVoiceConfig())
+const isPreviewingVoice = ref(false)
+const voicePreviewError = ref('')
+const activeVoicePreview = ref<HTMLAudioElement | null>(null)
 
 const fontOptions = [
   { value: 'Inter', label: 'Inter' },
@@ -325,6 +328,74 @@ const selectedLiveModel = computed(() =>
   LIVE_MODEL_OPTIONS.find(option => option.value === voiceConfig.value.liveModel) || LIVE_MODEL_OPTIONS[0],
 )
 
+const voicePreviewText = computed(() => {
+  const characterName = voiceConfig.value.characterName?.trim() || 'AURA'
+  return `${characterName} xin chào, mình sẽ giúp bạn tìm món đồ phù hợp với phong cách hôm nay.`
+})
+
+const stopVoicePreview = () => {
+  isPreviewingVoice.value = false
+  if (!activeVoicePreview.value) return
+
+  activeVoicePreview.value.pause()
+  activeVoicePreview.value.currentTime = 0
+  activeVoicePreview.value = null
+}
+
+const previewSelectedVoice = async () => {
+  if (!import.meta.client || !voiceConfig.value.voiceName) return
+
+  stopVoicePreview()
+  isPreviewingVoice.value = true
+  voicePreviewError.value = ''
+
+  try {
+    const token = getToken()
+    const response = await $fetch<{
+      success: boolean
+      data?: {
+        audioBase64?: string
+        mimeType?: string
+      }
+    }>(`${config.public.apiUrl}/admin/voice-preview`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: {
+        voiceName: voiceConfig.value.voiceName,
+        text: voicePreviewText.value,
+      },
+    })
+
+    const audioBase64 = response.data?.audioBase64
+    if (!audioBase64) {
+      throw new Error('Không nhận được audio preview từ server')
+    }
+
+    const previewAudio = new Audio(`data:${response.data?.mimeType || 'audio/wav'};base64,${audioBase64}`)
+    activeVoicePreview.value = previewAudio
+
+    previewAudio.onended = () => {
+      if (activeVoicePreview.value === previewAudio) {
+        activeVoicePreview.value = null
+      }
+      isPreviewingVoice.value = false
+    }
+
+    previewAudio.onerror = () => {
+      if (activeVoicePreview.value === previewAudio) {
+        activeVoicePreview.value = null
+      }
+      voicePreviewError.value = 'Không thể phát đoạn nghe thử của giọng này.'
+      isPreviewingVoice.value = false
+    }
+
+    await previewAudio.play()
+  } catch (error: any) {
+    voicePreviewError.value = error?.data?.message || error?.message || 'Không thể nghe thử giọng nói lúc này.'
+    isPreviewingVoice.value = false
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Custom characters management (admin-uploaded via ZIP)
 // ---------------------------------------------------------------------------
@@ -351,7 +422,10 @@ const selectedCharacterPreset = computed(() =>
 const fetchCustomCharacters = async () => {
   try {
     const res = await $fetch<{ success: boolean; characters: CharacterPreset[] }>(
-      `${config.public.apiUrl}/live2d/characters`,
+      `${config.public.apiUrl}/live2d/characters?t=${Date.now()}`,
+      {
+        cache: 'no-store',
+      },
     )
     if (res?.characters) {
       customCharacters.value = res.characters.map(c => ({ ...c, isCustom: true }))
@@ -389,6 +463,7 @@ const uploadNewCharacter = async () => {
     showAddCharDialog.value = false
 
     // Reload list
+    customCharacters.value = customCharacters.value.filter(option => option.modelUrl !== preset.modelUrl)
     await fetchCustomCharacters()
     saveMessage.value = '✅ Đã thêm nhân vật mới!'
     clearSaveMessageLater()
@@ -434,6 +509,10 @@ const voicePreviewGreeting = computed(() =>
 onMounted(() => {
   loadData()
   fetchCustomCharacters()
+})
+
+onBeforeUnmount(() => {
+  stopVoicePreview()
 })
 
 useSeoMeta({
@@ -834,7 +913,7 @@ useSeoMeta({
               <!-- Selected Badge -->
               <div
                 v-if="isPresetSelected(preset)"
-                class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-aura-black text-white flex items-center justify-center shadow-sm"
+                class="absolute z-20 top-1.5 right-1.5 w-5 h-5 rounded-full bg-aura-black text-white flex items-center justify-center shadow-sm"
               >
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -844,7 +923,7 @@ useSeoMeta({
               <button
                 v-if="preset.isCustom"
                 type="button"
-                class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                class="absolute z-30 top-1.5 left-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 title="Xóa nhân vật"
                 @click.stop.prevent="deleteCustomCharacter(preset)"
               >
@@ -853,17 +932,17 @@ useSeoMeta({
                 </svg>
               </button>
               <!-- Custom badge -->
-              <div v-if="preset.isCustom" class="absolute bottom-1.5 left-1.5 text-[8px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded-full">
+              <div v-if="preset.isCustom" class="absolute z-10 bottom-1.5 left-1.5 text-[8px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded-full">
                 CUSTOM
               </div>
               <div
                 v-if="preset.isAvailable === false"
-                class="absolute bottom-1.5 right-1.5 text-[8px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded-full"
+                class="absolute z-10 bottom-1.5 right-1.5 text-[8px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded-full"
               >
                 MISSING FILE
               </div>
               <!-- Hover overlay -->
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
 
             <!-- Info -->
@@ -971,8 +1050,18 @@ useSeoMeta({
           <!-- Voice & Model -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-body-sm text-neutral-700 font-medium mb-2">{{ t('admin.aiConfig.voiceName') }}</label>
-              <select v-model="voiceConfig.voiceName" class="input-field">
+              <div class="mb-2 flex items-center justify-between gap-3">
+                <label class="block text-body-sm text-neutral-700 font-medium">{{ t('admin.aiConfig.voiceName') }}</label>
+                <button
+                  type="button"
+                  class="text-caption font-medium text-aura-black hover:text-neutral-600 disabled:text-neutral-300 transition-colors"
+                  :disabled="isPreviewingVoice"
+                  @click="previewSelectedVoice"
+                >
+                  {{ isPreviewingVoice ? 'Đang phát...' : 'Nghe thử lại' }}
+                </button>
+              </div>
+              <select v-model="voiceConfig.voiceName" class="input-field" @change="previewSelectedVoice">
                 <option
                   v-for="voice in VOICE_NAME_OPTIONS"
                   :key="voice.value"
@@ -982,6 +1071,12 @@ useSeoMeta({
                 </option>
               </select>
               <p class="text-caption text-neutral-400 mt-1">{{ t('admin.aiConfig.voiceNameHint') }}</p>
+              <p v-if="isPreviewingVoice" class="text-caption text-emerald-600 mt-1">
+                Đang phát thử giọng {{ selectedVoiceOption.value }} · {{ selectedVoiceOption.tone }}
+              </p>
+              <p v-else-if="voicePreviewError" class="text-caption text-red-500 mt-1">
+                {{ voicePreviewError }}
+              </p>
             </div>
 
             <div>

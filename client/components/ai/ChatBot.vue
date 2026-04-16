@@ -204,7 +204,7 @@ const loadChatHistory = async (sid: string): Promise<boolean> => {
       return true
     }
     return false
-  } catch {
+  } catch (_error: any) {
     return false
   }
 }
@@ -409,14 +409,18 @@ const sendMessage = async () => {
       // Auto-execute action links (add-to-cart, wishlist, etc.)
       await autoExecuteActions(response.message)
     }
-  } catch {
+  } catch (error: any) {
+    console.warn('[AiChat] sendMessage failed:', error)
     if (sessionId.value) {
       setupSocket(sessionId.value)
       startWidgetPolling()
     }
+    const fallbackErrorMessage = error?.data?.message
+      || error?.message
+      || t('chat.connectionError', 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.')
     pushUniqueMessage({
       role: 'assistant',
-      content: t('chat.connectionError', 'Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại.'),
+      content: fallbackErrorMessage,
     })
   } finally {
     isLoading.value = false

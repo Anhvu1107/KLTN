@@ -14,6 +14,13 @@ const catchAsync = require('../utils/catchAsync');
 const getVoiceToken = catchAsync(async (req, res) => {
     const config = await voiceService.getVoiceConfig(req.query.sessionId || null);
 
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        'Surrogate-Control': 'no-store',
+    });
+
     res.status(200).json({
         success: true,
         data: {
@@ -69,8 +76,28 @@ const syncTranscript = catchAsync(async (req, res) => {
     res.status(200).json({ success: true });
 });
 
+const previewVoice = catchAsync(async (req, res) => {
+    const preview = await voiceService.generateVoicePreview({
+        voiceName: req.body?.voiceName,
+        text: req.body?.text,
+    });
+
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        'Surrogate-Control': 'no-store',
+    });
+
+    res.status(200).json({
+        success: true,
+        data: preview,
+    });
+});
+
 module.exports = {
     getVoiceToken,
     handleToolCall,
     syncTranscript,
+    previewVoice,
 };

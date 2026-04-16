@@ -102,7 +102,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiUrl: process.env.NUXT_PUBLIC_API_URL || '/api/v1',
-      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:5000',
+      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || '',
       imageBaseUrl: process.env.NUXT_PUBLIC_IMAGE_BASE_URL || '',
     },
   },

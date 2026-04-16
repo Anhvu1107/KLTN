@@ -16,6 +16,8 @@ const { isModelUrlAvailable } = require('./live2d.service');
 
 const DEFAULT_GEMINI_LIVE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const DEFAULT_GEMINI_LIVE_MODEL_BACKUP = 'gemini-2.5-flash-native-audio-preview-12-2025';
+const DEFAULT_GEMINI_TTS_PREVIEW_MODEL = process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
+const DEFAULT_VOICE_PREVIEW_TEXT = 'Xin chao, minh la AURA Stylist. Day la doan nghe thu de ban chon chat giong phu hop nhat.';
 const PROMPT_CACHE_TTL = 60 * 1000;
 const promptCache = {
     persona: { value: null, expiresAt: 0 },
@@ -101,6 +103,92 @@ async function getStoredVoiceSettings() {
     } catch (error) {
         logger.warn('Failed to load VOICE_CONFIG, using defaults:', error?.message || error);
         return { ...DEFAULT_VOICE_SETTINGS };
+    }
+}
+
+function extractInlineAudio(payload) {
+    const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
+
+    for (const candidate of candidates) {
+        const parts = candidate?.content?.parts || [];
+        for (const part of parts) {
+            const inlineData = part?.inlineData || part?.inline_data;
+            if (inlineData?.data) {
+                return {
+                    data: inlineData.data,
+                    mimeType: inlineData.mimeType || inlineData.mime_type || 'audio/wav',
+                };
+            }
+        }
+    }
+
+    return null;
+}
+
+async function generateVoicePreview({ voiceName, text } = {}) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error('GEMINI_API_KEY is not configured');
+    }
+
+    const selectedVoiceName = normalizeVoiceString(voiceName, DEFAULT_VOICE_SETTINGS.voiceName);
+    const previewText = normalizeVoiceString(text, DEFAULT_VOICE_PREVIEW_TEXT).slice(0, 240);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    try {
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(DEFAULT_GEMINI_TTS_PREVIEW_MODEL)}:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    contents: [{
+                        role: 'user',
+                        parts: [{
+                            text: `Hay doc tu nhien, ro rang, dung nguyen van cau sau bang tieng Viet: "${previewText}"`,
+                        }],
+                    }],
+                    generationConfig: {
+                        responseModalities: ['AUDIO'],
+                        temperature: 0.4,
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: {
+                                    voiceName: selectedVoiceName,
+                                },
+                            },
+                        },
+                    },
+                }),
+            }
+        );
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(
+                payload?.error?.message || `Voice preview request failed (${response.status})`
+            );
+        }
+
+        const audio = extractInlineAudio(payload);
+        if (!audio?.data) {
+            throw new Error('Voice preview did not return audio data');
+        }
+
+        return {
+            voiceName: selectedVoiceName,
+            model: DEFAULT_GEMINI_TTS_PREVIEW_MODEL,
+            mimeType: audio.mimeType,
+            audioBase64: audio.data,
+            text: previewText,
+        };
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
@@ -723,6 +811,7 @@ const syncVoiceTranscript = async (sessionId, userText, aiText) => {
 
 module.exports = {
     getVoiceConfig,
+    generateVoicePreview,
     executeToolCall,
     syncVoiceTranscript,
     buildVoiceSystemPrompt,

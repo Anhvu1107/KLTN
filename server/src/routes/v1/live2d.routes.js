@@ -36,6 +36,12 @@ const uploadZip = multer({
 router.get('/characters', async (req, res) => {
     try {
         const characters = await live2dService.getCustomCharacters();
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+            'Surrogate-Control': 'no-store',
+        });
         res.json({ success: true, characters });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

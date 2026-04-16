@@ -8,7 +8,7 @@
 
 import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
 import type { VoiceConfig } from '~/utils/voice-config'
-import { cloneDefaultVoiceConfig, normalizeVoiceConfig } from '~/utils/voice-config'
+import { DEFAULT_LIVE2D_MODEL_URL, cloneDefaultVoiceConfig, normalizeVoiceConfig } from '~/utils/voice-config'
 
 const config = useRuntimeConfig()
 const router = useRouter()
@@ -39,6 +39,7 @@ const errorMessage = ref('')
 const transcript = ref('')
 const aiTranscript = ref('')
 const suggestedProducts = ref<any[]>([])
+const suggestedProductsRail = ref<HTMLElement | null>(null)
 const sessionId = ref('')
 const isMinimized = ref(props.startMinimized)
 const voiceSettings = ref<VoiceConfig>(cloneDefaultVoiceConfig())
@@ -67,7 +68,10 @@ const {
   playGoodbye,
   handlePointerMove: onLive2DPointerMove,
   handleTap: onLive2DTap,
-} = useLive2D(live2dCanvas, { modelUrl: live2dModelUrl })
+} = useLive2D(live2dCanvas, {
+  modelUrl: live2dModelUrl,
+  fallbackModelUrl: DEFAULT_LIVE2D_MODEL_URL,
+})
 
 // Audio refs
 let websocket: WebSocket | null = null
@@ -215,10 +219,37 @@ const maximizeVoiceWidget = () => {
 
 const updateSuggestedProducts = (products: any[] = []) => {
   suggestedProducts.value = Array.isArray(products) ? products : []
+  nextTick(() => {
+    suggestedProductsRail.value?.scrollTo({ left: 0, behavior: 'auto' })
+  })
 
   if (suggestedProducts.value.length > 1) {
     maximizeVoiceWidget()
   }
+}
+
+const scrollSuggestedProducts = (direction: 'left' | 'right') => {
+  suggestedProductsRail.value?.scrollBy({
+    left: direction === 'left' ? -220 : 220,
+    behavior: 'smooth',
+  })
+}
+
+const handleSuggestedProductsWheel = (event: WheelEvent) => {
+  const rail = suggestedProductsRail.value
+  if (!rail) return
+
+  const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+    ? event.deltaX
+    : event.deltaY
+
+  if (!dominantDelta) return
+
+  event.preventDefault()
+  rail.scrollBy({
+    left: dominantDelta,
+    behavior: 'auto',
+  })
 }
 
 const handleCanvasPointerMove = (event: PointerEvent) => {
@@ -383,7 +414,12 @@ const startVoiceSession = async () => {
         tools: any[]
         voiceSettings?: Partial<VoiceConfig>
       }
-    }>(`${config.public.apiUrl}/chat/voice-token${sessionQuery.value}`)
+    }>(
+      `${config.public.apiUrl}/chat/voice-token${sessionQuery.value}${sessionQuery.value ? '&' : '?'}t=${Date.now()}`,
+      {
+        cache: 'no-store',
+      },
+    )
 
     if (!configRes.success || !configRes.data?.apiKey) {
       throw new Error('Failed to get voice config')
@@ -600,7 +636,7 @@ const startVoiceSession = async () => {
     console.error('[Voice] Start error:', error)
     teardownVoiceSession()
     state.value = 'error'
-    errorMessage.value = error.message || 'Không thể bắt đầu cuộc gọi'
+    errorMessage.value = error?.data?.message || error.message || 'Không thể bắt đầu cuộc gọi'
   }
 }
 
@@ -1506,11 +1542,37 @@ onMounted(() => {
         class="w-full max-w-sm"
       >
         <p class="text-white/40 text-xs text-center mb-2">Sản phẩm gợi ý</p>
-        <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div class="mb-2 flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            class="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white"
+            aria-label="Cuộn sản phẩm sang trái"
+            @click="scrollSuggestedProducts('left')"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="rounded-full border border-white/10 bg-white/5 p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white"
+            aria-label="Cuộn sản phẩm sang phải"
+            @click="scrollSuggestedProducts('right')"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        <div
+          ref="suggestedProductsRail"
+          class="flex gap-2 overflow-x-auto overflow-y-hidden pb-2 scrollbar-hide snap-x snap-mandatory"
+          @wheel="handleSuggestedProductsWheel"
+        >
           <article
-            v-for="(p, i) in suggestedProducts.slice(0, 4)"
+            v-for="(p, i) in suggestedProducts"
             :key="i"
-            class="flex-shrink-0 w-40 bg-white/10 hover:bg-white/15 rounded-lg p-3 transition-colors border border-white/10"
+            class="flex-shrink-0 snap-start w-40 bg-white/10 hover:bg-white/15 rounded-lg p-3 transition-colors border border-white/10"
           >
             <div v-if="p.image" class="mb-2 h-20 w-full overflow-hidden rounded-md bg-white/5">
               <img :src="getImageUrl(p.image) || p.image" :alt="p.name" class="h-full w-full object-cover" />

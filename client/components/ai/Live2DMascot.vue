@@ -30,7 +30,9 @@ onMounted(async () => {
       voiceSettings?: {
         live2dModelUrl?: string
       }
-    }>(`${config.public.apiUrl}/chat/voice-token`)
+    }>(`${config.public.apiUrl}/chat/voice-token?t=${Date.now()}`, {
+      cache: 'no-store',
+    })
 
     const nextModelUrl = res?.data?.voiceSettings?.live2dModelUrl
       || res?.voiceSettings?.live2dModelUrl
@@ -51,7 +53,10 @@ const {
   playMotionByNumber,
   handlePointerMove,
   handleTap,
-} = useLive2D(mascotCanvas, { modelUrl: configuredModelUrl })
+} = useLive2D(mascotCanvas, {
+  modelUrl: configuredModelUrl,
+  fallbackModelUrl: DEFAULT_LIVE2D_MODEL_URL,
+})
 
 // Play greeting when model is ready
 watch(isModelReady, (ready) => {

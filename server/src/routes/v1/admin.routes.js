@@ -32,6 +32,7 @@ router.patch('/orders/:id/status', adminController.updateOrderStatus);
 router.get('/system-prompts', adminController.getSystemPrompts);
 router.get('/system-prompts/:key', adminController.getSystemPromptByKey);
 router.put('/system-prompts/:key', adminController.updateSystemPrompt);
+router.post('/voice-preview', adminController.previewVoice);
 
 // Products management
 router.get('/products', adminController.getProducts);

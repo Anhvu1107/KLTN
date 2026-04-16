@@ -11,11 +11,48 @@ let activeUsers = 0
 
 export const useSocket = () => {
     const config = useRuntimeConfig()
+    let hasLease = false
+
+    const acquireLease = () => {
+        if (hasLease) return
+        hasLease = true
+        activeUsers++
+    }
+
+    const releaseLease = () => {
+        if (!hasLease) return
+        hasLease = false
+        activeUsers = Math.max(0, activeUsers - 1)
+    }
+
+    const resolveSocketServerUrl = () => {
+        const explicitSocketUrl = typeof config.public.socketUrl === 'string'
+            ? config.public.socketUrl.trim()
+            : ''
+
+        if (explicitSocketUrl) {
+            return explicitSocketUrl
+        }
+
+        const apiUrl = typeof config.public.apiUrl === 'string'
+            ? config.public.apiUrl.trim()
+            : ''
+
+        if (/^https?:\/\//i.test(apiUrl)) {
+            return apiUrl.replace(/\/api\/v1\/?$/, '')
+        }
+
+        if (import.meta.client) {
+            return window.location.origin
+        }
+
+        return ''
+    }
 
     const connect = async () => {
         // Only run in browser
         if (!import.meta.client) return null
-        activeUsers++
+        acquireLease()
         if (socket?.connected) return socket
         if (socket) {
             try {
@@ -34,11 +71,13 @@ export const useSocket = () => {
                 ioModule = mod.io
             }
 
-            const serverUrl = config.public.socketUrl || config.public.apiUrl.replace(/\/api\/v1$/, '')
+            const serverUrl = resolveSocketServerUrl()
 
             socket = ioModule(serverUrl, {
+                path: '/socket.io',
                 transports: ['websocket', 'polling'],
                 autoConnect: true,
+                withCredentials: true,
             })
 
             socket.on('connect', () => {
@@ -47,6 +86,10 @@ export const useSocket = () => {
 
             socket.on('disconnect', () => {
                 console.log('[Socket] Disconnected')
+            })
+
+            socket.on('connect_error', (error: Error) => {
+                console.warn('[Socket] Connect error:', error?.message || error)
             })
 
             return socket
@@ -87,7 +130,7 @@ export const useSocket = () => {
     }
 
     const disconnect = () => {
-        activeUsers = Math.max(0, activeUsers - 1)
+        releaseLease()
         if (activeUsers === 0 && socket) {
             socket.disconnect()
             socket = null

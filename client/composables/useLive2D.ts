@@ -15,6 +15,7 @@ import {
 
 type UseLive2DOptions = {
   modelUrl?: MaybeRefOrGetter<string | null | undefined>
+  fallbackModelUrl?: MaybeRefOrGetter<string | null | undefined>
 }
 
 /**
@@ -33,12 +34,16 @@ export function useLive2D(
   const isLoading = ref(true)
   const behaviorProfile = ref<CommonLive2DBehaviorProfile>(buildCommonLive2DBehaviorProfile())
   const resolvedModelUrl = computed(() => resolveModelUrl(toValue(options.modelUrl) || DEFAULT_LIVE2D_MODEL_URL))
+  const resolvedFallbackModelUrl = computed(() =>
+    resolveModelUrl(toValue(options.fallbackModelUrl) || DEFAULT_LIVE2D_MODEL_URL),
+  )
 
   let app: any = null
   let model: any = null
   let isUnmounted = false
   let activeModelUrl = ''
   let initToken = 0
+  let resizeObserver: ResizeObserver | null = null
 
   // Track current lipsync target level; applied every frame via beforeModelUpdate.
   let currentLipLevel = 0
@@ -73,17 +78,84 @@ export function useLive2D(
     }
 
     resetBehaviorProfile()
+    activeModelUrl = ''
     isModelReady.value = false
+  }
+
+  const disconnectResizeObserver = () => {
+    if (resizeObserver) {
+      resizeObserver.disconnect()
+      resizeObserver = null
+    }
+  }
+
+  const getModelBounds = () => {
+    const fallbackWidth = Math.max(model?.internalModel?.width || 1, 1)
+    const fallbackHeight = Math.max(model?.internalModel?.height || 1, 1)
+
+    try {
+      const bounds = model?.getLocalBounds?.()
+      if (bounds?.width && bounds?.height) {
+        return bounds
+      }
+    } catch {
+      // Fall back to internal model dimensions when Pixi bounds are unavailable.
+    }
+
+    return {
+      x: 0,
+      y: 0,
+      width: fallbackWidth,
+      height: fallbackHeight,
+    }
+  }
+
+  const layoutModel = () => {
+    if (!model || !app) return
+
+    const screenW = app.renderer.screen.width
+    const screenH = app.renderer.screen.height
+    const bounds = getModelBounds()
+    const width = Math.max(bounds.width, 1)
+    const height = Math.max(bounds.height, 1)
+
+    const maxWidth = screenW * 0.82
+    const maxHeight = screenH * 0.9
+    const scale = Math.max(0.05, Math.min(maxWidth / width, maxHeight / height) * 0.96)
+
+    model.scale.set(scale)
+    model.x = (screenW - width * scale) / 2 - bounds.x * scale
+    model.y = screenH - height * scale - bounds.y * scale - screenH * 0.02
+  }
+
+  const observeCanvasResize = () => {
+    if (!import.meta.client) return
+
+    disconnectResizeObserver()
+    if (!canvasRef.value || typeof ResizeObserver === 'undefined') return
+
+    resizeObserver = new ResizeObserver(() => {
+      resize()
+    })
+    resizeObserver.observe(canvasRef.value)
   }
 
   /**
    * Initialize PixiJS Application + load the selected Live2D model.
    */
-  const init = async ({ force = false } = {}) => {
+  const init = async ({
+    force = false,
+    candidateModelUrl,
+    allowFallback = true,
+  }: {
+    force?: boolean
+    candidateModelUrl?: string
+    allowFallback?: boolean
+  } = {}) => {
     if (isUnmounted) return
 
     const canvas = canvasRef.value
-    const modelUrl = resolvedModelUrl.value
+    const modelUrl = candidateModelUrl || resolvedModelUrl.value
 
     if (!canvas || !modelUrl) {
       isLoading.value = false
@@ -152,11 +224,6 @@ export function useLive2D(
 
       const screenW = app.renderer.screen.width
       const screenH = app.renderer.screen.height
-      const scale = (screenH / model.internalModel.height) * 1.8
-
-      model.scale.set(scale)
-      model.x = (screenW - model.internalModel.width * scale) / 2
-      model.y = screenH * 0.05
 
       model.internalModel.on('beforeModelUpdate', () => {
         if (!model?.internalModel?.coreModel) return
@@ -181,9 +248,11 @@ export function useLive2D(
       })
 
       app.stage.addChild(model)
+      layoutModel()
       activeModelUrl = modelUrl
       isModelReady.value = true
       isLoading.value = false
+      observeCanvasResize()
 
       const motionMgr = model.internalModel.motionManager
       const runtimeMotionDefinitions = motionMgr?.definitions || {}
@@ -217,6 +286,20 @@ export function useLive2D(
       }, 500)
     } catch (error) {
       console.error('[Live2D] Init error:', error)
+      if (
+        allowFallback
+        && modelUrl !== resolvedFallbackModelUrl.value
+        && resolvedFallbackModelUrl.value
+      ) {
+        console.warn('[Live2D] Falling back to default model:', resolvedFallbackModelUrl.value)
+        await init({
+          force: true,
+          candidateModelUrl: resolvedFallbackModelUrl.value,
+          allowFallback: false,
+        })
+        return
+      }
+
       isLoading.value = false
     }
   }
@@ -391,26 +474,24 @@ export function useLive2D(
 
     const canvas = canvasRef.value
     app.renderer.resize(canvas.clientWidth, canvas.clientHeight)
-
-    const screenW = app.renderer.screen.width
-    const screenH = app.renderer.screen.height
-    const scale = (screenH / model.internalModel.height) * 1.8
-
-    model.scale.set(scale)
-    model.x = (screenW - model.internalModel.width * scale) / 2
-    model.y = screenH * 0.05
+    layoutModel()
   }
 
   const destroy = () => {
     isUnmounted = true
+    disconnectResizeObserver()
     destroyCurrentModel()
   }
 
   watch(
-    resolvedModelUrl,
-    (nextUrl, previousUrl) => {
+    [resolvedModelUrl, resolvedFallbackModelUrl],
+    ([nextUrl, nextFallbackUrl], [previousUrl, previousFallbackUrl]) => {
       if (!import.meta.client || isUnmounted) return
-      if (nextUrl === previousUrl && isModelReady.value) return
+      if (
+        nextUrl === previousUrl
+        && nextFallbackUrl === previousFallbackUrl
+        && isModelReady.value
+      ) return
 
       nextTick(() => init({ force: true }))
     },
