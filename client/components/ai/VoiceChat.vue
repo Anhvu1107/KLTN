@@ -56,7 +56,9 @@ let hasSentInitialGreetingPrompt = false
 const live2dCanvas = ref<HTMLCanvasElement | null>(null)
 const {
   isModelReady,
+  hasVisibleFrame,
   isLoading: isModelLoading,
+  errorMessage: live2dErrorMessage,
   setLipSync,
   setMood,
   playGesture,
@@ -79,7 +81,12 @@ let websocket: WebSocket | null = null
 let audioContext: AudioContext | null = null
 let mediaStream: MediaStream | null = null
 let playbackContext: AudioContext | null = null
-let audioQueue: ArrayBuffer[] = []
+type QueuedAudio = {
+  buffer: ArrayBuffer
+  sampleRate: number
+}
+
+let audioQueue: QueuedAudio[] = []
 let isPlaying = false
 let playbackSource: AudioBufferSourceNode | null = null
 let micSourceNode: MediaStreamAudioSourceNode | null = null
@@ -89,9 +96,10 @@ let currentTurnAudioParts = new Set<string>()
 let currentTurnTextParts = new Set<string>()
 let isStreamingAiResponse = false
 let shouldResumeListeningAfterPlayback = false
-let pendingAudioChunks: ArrayBuffer[] = []
+let pendingAudioChunks: QueuedAudio[] = []
 let audioFlushTimer: ReturnType<typeof setTimeout> | null = null
 const AUDIO_BATCH_MS = 80 // batch small chunks for smoother playback
+const DEFAULT_OUTPUT_SAMPLE_RATE = 24000
 
 // Waveform animation + LipSync
 const audioLevel = ref(0)
@@ -513,7 +521,7 @@ const startVoiceSession = async () => {
       }
 
       ws.send(JSON.stringify(setupMessage))
-      console.log('[Voice] Setup sent with model:', model)
+      console.log('[Voice] Setup sent with model:', model, 'voice:', voiceSettings.value.voiceName)
     }
 
     ws.onmessage = async (event) => {
@@ -581,7 +589,7 @@ const startVoiceSession = async () => {
               currentTurnAudioParts.add(audioData)
               state.value = 'speaking'
               const audioBytes = base64ToArrayBuffer(audioData)
-              scheduleAudioChunk(audioBytes)
+              scheduleAudioChunk(audioBytes, parseAudioSampleRate(part.inlineData.mimeType))
             }
           }
 
@@ -1088,8 +1096,16 @@ const startMicCapture = async () => {
  * Each chunk from Gemini is very short; playing them individually
  * causes audible clicks between chunks.
  */
-const scheduleAudioChunk = (chunk: ArrayBuffer) => {
-  pendingAudioChunks.push(chunk)
+const scheduleAudioChunk = (chunk: ArrayBuffer, sampleRate = DEFAULT_OUTPUT_SAMPLE_RATE) => {
+  const normalizedSampleRate = Number.isFinite(sampleRate) && sampleRate > 0
+    ? sampleRate
+    : DEFAULT_OUTPUT_SAMPLE_RATE
+
+  if (pendingAudioChunks.length && pendingAudioChunks[0]?.sampleRate !== normalizedSampleRate) {
+    flushPendingAudio()
+  }
+
+  pendingAudioChunks.push({ buffer: chunk, sampleRate: normalizedSampleRate })
   if (audioFlushTimer) clearTimeout(audioFlushTimer)
   audioFlushTimer = setTimeout(flushPendingAudio, AUDIO_BATCH_MS)
 }
@@ -1102,18 +1118,19 @@ const flushPendingAudio = () => {
   if (!pendingAudioChunks.length) return
 
   // Merge all pending chunks into one contiguous PCM buffer
-  const totalLength = pendingAudioChunks.reduce((sum, c) => sum + c.byteLength, 0)
+  const sampleRate = pendingAudioChunks[0]?.sampleRate || DEFAULT_OUTPUT_SAMPLE_RATE
+  const totalLength = pendingAudioChunks.reduce((sum, c) => sum + c.buffer.byteLength, 0)
   const merged = new Uint8Array(totalLength)
   let offset = 0
   for (const chunk of pendingAudioChunks) {
-    merged.set(new Uint8Array(chunk), offset)
-    offset += chunk.byteLength
+    merged.set(new Uint8Array(chunk.buffer), offset)
+    offset += chunk.buffer.byteLength
   }
   pendingAudioChunks = []
-  enqueueAudio(merged.buffer)
+  enqueueAudio({ buffer: merged.buffer, sampleRate })
 }
 
-const enqueueAudio = (audioBuffer: ArrayBuffer) => {
+const enqueueAudio = (audioBuffer: QueuedAudio) => {
   audioQueue.push(audioBuffer)
   if (!isPlaying) {
     playNext()
@@ -1129,7 +1146,7 @@ const playNext = async () => {
   }
 
   isPlaying = true
-  const buffer = audioQueue.shift()!
+  const queuedAudio = audioQueue.shift()!
 
   try {
     // Use device's native sample rate for best quality output.
@@ -1149,9 +1166,9 @@ const playNext = async () => {
     }
 
     // Gemini returns PCM 24kHz audio — resample to device rate
-    const float32 = pcm16ToFloat32(buffer)
+    const float32 = pcm16ToFloat32(queuedAudio.buffer)
     const deviceRate = playbackContext.sampleRate
-    const resampledData = resampleLinear(float32, 24000, deviceRate)
+    const resampledData = resampleLinear(float32, queuedAudio.sampleRate, deviceRate)
 
     const audioBuffer2 = playbackContext.createBuffer(1, resampledData.length, deviceRate)
     audioBuffer2.getChannelData(0).set(resampledData)
@@ -1340,6 +1357,12 @@ const pcm16ToFloat32 = (buffer: ArrayBuffer): Float32Array => {
   return float32
 }
 
+const parseAudioSampleRate = (mimeType?: string): number => {
+  const match = String(mimeType || '').match(/rate=(\d+)/i)
+  const parsed = match ? Number(match[1]) : DEFAULT_OUTPUT_SAMPLE_RATE
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_OUTPUT_SAMPLE_RATE
+}
+
 /**
  * Resample audio from srcRate to dstRate using linear interpolation.
  * Produces much cleaner output than forcing AudioContext to a non-native rate.
@@ -1488,18 +1511,34 @@ onMounted(() => {
           }"
         />
 
+        <div
+          class="absolute z-0 flex items-center justify-center overflow-hidden bg-gradient-to-b from-neutral-900/70 to-neutral-800/70"
+          :class="isMinimized
+            ? 'h-56 w-40 rounded-2xl'
+            : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] rounded-2xl border-2 border-white/10'"
+        >
+          <Live2DSnapshot
+            :key="`voice-static-${live2dModelUrl}`"
+            :model-url="live2dModelUrl"
+            :size="440"
+            class="h-full w-full"
+          />
+        </div>
+
         <!-- Live2D Canvas -->
         <canvas
           ref="live2dCanvas"
           width="440"
           height="520"
-          class="transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          class="relative z-10 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           :class="[
             isMinimized
               ? 'h-56 w-40 rounded-2xl border-0 bg-none shadow-none'
-              : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] rounded-2xl border-2 bg-gradient-to-b from-neutral-900/50 to-neutral-800/50',
+              : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] rounded-2xl border-2',
             {
-              'border-white/10 opacity-40': !isMinimized && (state === 'connecting' || state === 'idle'),
+              'opacity-0': !hasVisibleFrame,
+              'opacity-100': hasVisibleFrame,
+              'border-white/10': !isMinimized && (state === 'connecting' || state === 'idle'),
               'border-emerald-400/40': !isMinimized && state === 'listening',
               'border-blue-400/40': !isMinimized && state === 'speaking',
               'border-amber-400/40': !isMinimized && state === 'processing',
@@ -1511,7 +1550,7 @@ onMounted(() => {
         <!-- Loading overlay -->
         <div
           v-if="state === 'connecting' || isModelLoading"
-          class="absolute inset-0 flex flex-col items-center justify-center"
+          class="absolute inset-0 z-20 flex flex-col items-center justify-center"
           :class="isMinimized ? 'bg-transparent' : 'rounded-2xl bg-black/40'"
         >
           <svg :class="isMinimized ? 'h-6 w-6' : 'h-10 w-10'" class="text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -1523,8 +1562,15 @@ onMounted(() => {
 
         <!-- Error overlay — small badge at bottom, not covering the face -->
         <div
+          v-if="!(state === 'connecting' || isModelLoading) && !hasVisibleFrame && live2dErrorMessage && !isMinimized"
+          class="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[10px] text-white/50 backdrop-blur-sm"
+        >
+          Live2D fallback
+        </div>
+
+        <div
           v-if="state === 'error'"
-          class="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-red-500/20 border border-red-400/30 backdrop-blur-sm"
+          class="absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-red-500/20 border border-red-400/30 backdrop-blur-sm"
           :class="isMinimized ? 'bottom-1.5 px-2 py-0.5 text-[9px]' : 'bottom-3 px-3 py-1.5'"
         >
           <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1536,7 +1582,7 @@ onMounted(() => {
         <!-- State indicator badge -->
         <div
           v-if="state === 'listening' || state === 'speaking'"
-          class="absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full font-medium backdrop-blur-sm"
+          class="absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full font-medium backdrop-blur-sm"
           :class="[
             isMinimized ? 'bottom-1.5 px-2 py-0.5 text-[9px]' : 'bottom-3 px-3 py-1 text-[11px]',
             {

@@ -10,6 +10,7 @@
  */
 
 import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
+import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
 
 const props = defineProps<{
   modelUrl: string
@@ -24,7 +25,7 @@ const isRendering = ref(false)
 const hasError = ref(false)
 
 const resolvedUrl = computed(() => {
-  return props.modelUrl
+  return resolveLive2DAssetUrl(props.modelUrl) || props.modelUrl
 })
 
 const cacheKey = computed(() => `${SNAPSHOT_CACHE_VERSION}:live2d_snap_${resolvedUrl.value}`)
@@ -127,6 +128,7 @@ const doRender = async (request: RenderRequest) => {
 
   let canvas: HTMLCanvasElement | null = null
   let app: any = null
+  let snapshotModel: any = null
 
   try {
     const hasCore = await ensureLive2DCubismCoreLoaded()
@@ -167,6 +169,7 @@ const doRender = async (request: RenderRequest) => {
       autoInteract: false,
       motionPreload: MotionPreloadStrategy.NONE,
     })
+    snapshotModel = model
     if (request.requestId !== latestRequestId) return
 
     app.stage.addChild(model)
@@ -174,11 +177,12 @@ const doRender = async (request: RenderRequest) => {
     const screenW = Math.max(app.renderer.screen.width || request.size, 1)
     const screenH = Math.max(app.renderer.screen.height || request.size, 1)
     const bounds = getModelRenderBounds(model)
-    const scale = Math.min((screenW * 0.84) / bounds.width, (screenH * 0.84) / bounds.height)
+    const scale = Math.max(0.01, Math.min((screenW * 0.84) / bounds.width, (screenH * 0.84) / bounds.height))
 
+    model.anchor?.set?.(0.5, 0.5)
     model.scale.set(scale)
-    model.x = (screenW - bounds.width * scale) / 2 - bounds.x * scale
-    model.y = (screenH - bounds.height * scale) / 2 - bounds.y * scale
+    model.x = screenW / 2
+    model.y = screenH / 2
 
     // Give WebGL one full paint cycle before reading the canvas buffer.
     await waitFrames(2)
@@ -201,7 +205,13 @@ const doRender = async (request: RenderRequest) => {
     snapshotUrl.value = null
   } finally {
     try {
-      app?.destroy(true, { children: true })
+      snapshotModel?.destroy?.({ children: true, texture: false, baseTexture: false })
+    } catch {
+      // Keep shared textures alive; other Live2D canvases may use the same model.
+    }
+
+    try {
+      app?.destroy(false, { children: false, texture: false, baseTexture: false })
     } catch {
       // Ignore renderer teardown errors.
     }

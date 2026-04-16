@@ -56,12 +56,13 @@ onUnmounted(() => {
 
 const {
   isModelReady,
+  hasVisibleFrame,
   isLoading,
+  errorMessage,
   playIdle,
   playGreeting,
   playMotionByNumber,
   handlePointerMove,
-  handleTap,
 } = useLive2D(mascotCanvas, {
   modelUrl: configuredModelUrl,
   fallbackModelUrl: DEFAULT_LIVE2D_MODEL_URL,
@@ -111,15 +112,24 @@ const onClick = () => {
         'scale-105': isHovered,
       }"
     >
+      <div class="absolute inset-0 overflow-hidden rounded-2xl bg-neutral-950/85 border border-white/10">
+        <Live2DSnapshot
+          :key="`mascot-static-${configuredModelUrl}`"
+          :model-url="configuredModelUrl"
+          :size="320"
+          class="w-full h-full"
+        />
+      </div>
+
       <!-- Canvas -->
       <canvas
         ref="mascotCanvas"
         width="320"
         height="448"
-        class="w-full h-full rounded-2xl"
+        class="relative z-10 w-full h-full rounded-2xl"
         :class="{
-          'opacity-0': isLoading,
-          'opacity-100': !isLoading,
+          'opacity-0': isLoading || !hasVisibleFrame,
+          'opacity-100': hasVisibleFrame,
         }"
         style="transition: opacity 0.5s ease-in;"
       />
@@ -133,10 +143,10 @@ const onClick = () => {
       </div>
 
       <div
-        v-else-if="!isModelReady"
-        class="absolute inset-0 flex items-center justify-center rounded-2xl bg-neutral-950/85 border border-white/10 px-4 text-center"
+        v-if="!isLoading && !isModelReady && errorMessage"
+        class="absolute inset-x-2 bottom-2 z-20 rounded-lg bg-black/60 px-2 py-1 text-center backdrop-blur-sm"
       >
-        <span class="text-[10px] uppercase tracking-[0.18em] text-white/55">AI preview loading</span>
+        <span class="text-[9px] uppercase tracking-[0.12em] text-white/60">Live2D fallback</span>
       </div>
 
       <!-- Chat prompt badge -->

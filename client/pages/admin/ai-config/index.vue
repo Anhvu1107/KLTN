@@ -60,6 +60,9 @@ const voiceConfig = ref<VoiceConfig>(cloneDefaultVoiceConfig())
 const isPreviewingVoice = ref(false)
 const voicePreviewError = ref('')
 const activeVoicePreview = ref<HTMLAudioElement | null>(null)
+const isAutoSavingVoice = ref(false)
+const hasLoadedVoiceConfig = ref(false)
+let voiceAutoSaveTimer: ReturnType<typeof setTimeout> | null = null
 
 const fontOptions = [
   { value: 'Inter', label: 'Inter' },
@@ -162,6 +165,7 @@ const loadData = async () => {
     voiceConfig.value = normalizeVoiceConfig(
       voicePrompt ? parseStoredJson<Partial<VoiceConfig>>(voicePrompt.content, {}) : {},
     )
+    hasLoadedVoiceConfig.value = true
   } catch (error) {
     console.error('Failed to load AI config:', error)
   } finally {
@@ -184,18 +188,49 @@ const saveAppearanceData = async () => {
 
 const saveVoiceData = async () => {
   const token = getToken()
-  voiceConfig.value = normalizeVoiceConfig(voiceConfig.value)
+  const normalizedVoiceConfig = normalizeVoiceConfig(voiceConfig.value)
+  const normalizedContent = JSON.stringify(normalizedVoiceConfig)
+  if (normalizedContent !== JSON.stringify(voiceConfig.value)) {
+    voiceConfig.value = normalizedVoiceConfig
+  }
 
   await $fetch(`${config.public.apiUrl}/admin/system-prompts/VOICE_CONFIG`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}` },
     body: {
-      content: JSON.stringify(voiceConfig.value),
+      content: normalizedContent,
       name: 'Voice Experience Config',
       description: 'Voice chat configuration (JSON). Controls voice, Live2D character, and realtime call behavior.',
     },
   })
 }
+
+const queueVoiceAutoSave = () => {
+  if (!hasLoadedVoiceConfig.value || activeTab.value !== 'voice') return
+  if (voiceAutoSaveTimer) clearTimeout(voiceAutoSaveTimer)
+
+  voiceAutoSaveTimer = setTimeout(async () => {
+    voiceAutoSaveTimer = null
+    isAutoSavingVoice.value = true
+    try {
+      await saveVoiceData()
+      saveMessage.value = '✅ Đã tự lưu cấu hình voice'
+      clearSaveMessageLater()
+    } catch (error) {
+      saveFailure(error)
+    } finally {
+      isAutoSavingVoice.value = false
+    }
+  }, 800)
+}
+
+watch(
+  voiceConfig,
+  () => {
+    queueVoiceAutoSave()
+  },
+  { deep: true },
+)
 
 const savePrompt = async () => {
   isSaving.value = true
@@ -243,6 +278,10 @@ const saveAppearance = async () => {
 }
 
 const saveVoice = async () => {
+  if (voiceAutoSaveTimer) {
+    clearTimeout(voiceAutoSaveTimer)
+    voiceAutoSaveTimer = null
+  }
   isSaving.value = true
   saveMessage.value = ''
 
@@ -314,6 +353,7 @@ const applyCharacterPreset = (preset: CharacterPreset) => {
     characterId: preset.value,
     live2dModelUrl: preset.modelUrl,
   })
+  queueVoiceAutoSave()
 }
 
 
@@ -532,6 +572,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (voiceAutoSaveTimer) {
+    clearTimeout(voiceAutoSaveTimer)
+    voiceAutoSaveTimer = null
+  }
   stopVoicePreview()
 })
 
@@ -1237,6 +1281,7 @@ useSeoMeta({
           </div>
 
           <div class="flex items-center justify-end gap-3 pt-4 border-t">
+            <span v-if="isAutoSavingVoice" class="text-caption text-neutral-400">Đang tự lưu...</span>
             <span
               v-if="saveMessage"
               class="text-body-sm"

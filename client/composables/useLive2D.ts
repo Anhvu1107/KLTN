@@ -5,6 +5,7 @@
 import { toValue } from 'vue'
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
+import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
 import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
 import {
   buildCommonLive2DBehaviorProfile,
@@ -20,12 +21,8 @@ type UseLive2DOptions = {
   fitMode?: MaybeRefOrGetter<'contain' | 'mascot'>
 }
 
-/**
- * Keep Live2D asset URLs same-origin so Nuxt route rules can proxy `/uploads/**`
- * in both dev and production without triggering cross-origin texture loads.
- */
 function resolveModelUrl(url: string): string {
-  return url
+  return resolveLive2DAssetUrl(url) || url
 }
 
 export function useLive2D(
@@ -33,6 +30,7 @@ export function useLive2D(
   options: UseLive2DOptions = {},
 ) {
   const isModelReady = ref(false)
+  const hasVisibleFrame = ref(false)
   const isLoading = ref(true)
   const errorMessage = ref('')
   const behaviorProfile = ref<CommonLive2DBehaviorProfile>(buildCommonLive2DBehaviorProfile())
@@ -84,6 +82,7 @@ export function useLive2D(
     resetBehaviorProfile()
     activeModelUrl = ''
     isModelReady.value = false
+    hasVisibleFrame.value = false
   }
 
   const disconnectResizeObserver = () => {
@@ -107,13 +106,21 @@ export function useLive2D(
     return { width, height }
   }
 
-  const getModelLocalBounds = () => {
+  const getModelIntrinsicSize = () => {
+    const internalWidth = Number(model?.internalModel?.width) || 0
+    const internalHeight = Number(model?.internalModel?.height) || 0
+
+    if (internalWidth > 0 && internalHeight > 0) {
+      return {
+        width: internalWidth,
+        height: internalHeight,
+      }
+    }
+
     try {
       const bounds = model?.getLocalBounds?.()
       if (bounds?.width && bounds?.height) {
         return {
-          x: Number(bounds.x) || 0,
-          y: Number(bounds.y) || 0,
           width: Math.max(bounds.width, 1),
           height: Math.max(bounds.height, 1),
         }
@@ -122,21 +129,7 @@ export function useLive2D(
       // Pixi bounds can be unavailable before the first render.
     }
 
-    const internalWidth = Number(model?.internalModel?.width) || 0
-    const internalHeight = Number(model?.internalModel?.height) || 0
-
-    if (internalWidth > 0 && internalHeight > 0) {
-      return {
-        x: 0,
-        y: 0,
-        width: internalWidth,
-        height: internalHeight,
-      }
-    }
-
     return {
-      x: 0,
-      y: 0,
       width: Math.max(Number(model?.width) || 1, 1),
       height: Math.max(Number(model?.height) || 1, 1),
     }
@@ -147,15 +140,70 @@ export function useLive2D(
 
     const screenW = Math.max(app.renderer.screen.width || canvasRef.value?.clientWidth || 320, 1)
     const screenH = Math.max(app.renderer.screen.height || canvasRef.value?.clientHeight || 400, 1)
-    const bounds = getModelLocalBounds()
+    const modelSize = getModelIntrinsicSize()
     const fitMode = resolvedFitMode.value
     const maxWidth = screenW * (fitMode === 'mascot' ? 0.92 : 0.86)
     const maxHeight = screenH * (fitMode === 'mascot' ? 0.92 : 0.88)
-    const scale = Math.max(0.01, Math.min(maxWidth / bounds.width, maxHeight / bounds.height))
+    const scale = Math.max(0.01, Math.min(maxWidth / modelSize.width, maxHeight / modelSize.height))
 
+    model.anchor?.set?.(0.5, 0.5)
     model.scale.set(scale)
-    model.x = (screenW - bounds.width * scale) / 2 - bounds.x * scale
-    model.y = (screenH - bounds.height * scale) / 2 - bounds.y * scale
+    model.x = screenW / 2
+    model.y = screenH / 2
+  }
+
+  const waitFrames = async (count = 1) => {
+    for (let i = 0; i < count; i++) {
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+    }
+  }
+
+  const pixelsContainModel = (pixels: Uint8Array) => {
+    let meaningfulPixels = 0
+    const stride = 16 * 4
+
+    for (let i = 0; i < pixels.length; i += stride) {
+      const red = pixels[i] || 0
+      const green = pixels[i + 1] || 0
+      const blue = pixels[i + 2] || 0
+      const alpha = pixels[i + 3] || 0
+      const isAlmostWhite = red > 246 && green > 246 && blue > 246
+
+      if (alpha > 24 && !isAlmostWhite) {
+        meaningfulPixels++
+        if (meaningfulPixels > 24) return true
+      }
+    }
+
+    return false
+  }
+
+  const verifyVisibleFrame = async (token: number) => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await waitFrames(2)
+      if (isUnmounted || token !== initToken || !app || !model) return
+
+      layoutModel()
+      app.render()
+
+      try {
+        const pixels = app.renderer.plugins?.extract?.pixels?.()
+        if (!pixels || pixelsContainModel(pixels)) {
+          hasVisibleFrame.value = true
+          return
+        }
+      } catch {
+        // If the browser blocks pixel extraction, trust the loaded model.
+        hasVisibleFrame.value = true
+        return
+      }
+    }
+
+    if (!isUnmounted && token === initToken) {
+      hasVisibleFrame.value = false
+      errorMessage.value = 'Live2D loaded but did not render a visible frame'
+      console.warn('[Live2D] Loaded model but no visible pixels were detected:', activeModelUrl)
+    }
   }
 
   const observeCanvasResize = () => {
@@ -228,6 +276,7 @@ export function useLive2D(
       app = new PIXI.Application({
         view: canvas,
         backgroundAlpha: 0,
+        transparent: true,
         autoStart: true,
         width: canvasSize.width,
         height: canvasSize.height,
@@ -284,8 +333,10 @@ export function useLive2D(
       activeModelUrl = modelUrl
       isModelReady.value = true
       isLoading.value = false
+      hasVisibleFrame.value = false
       errorMessage.value = ''
       observeCanvasResize()
+      verifyVisibleFrame(token)
 
       const motionMgr = model.internalModel.motionManager
       const runtimeMotionDefinitions = motionMgr?.definitions || {}
@@ -542,6 +593,7 @@ export function useLive2D(
 
   return {
     isModelReady,
+    hasVisibleFrame,
     isLoading,
     errorMessage,
     behaviorProfile,

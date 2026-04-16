@@ -327,7 +327,9 @@ const autoExecuteActions = async (responseText: string) => {
         try {
           const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
           if (Array.isArray(imgs) && imgs.length) image = getImageUrl(imgs[0]) || imgs[0] || ''
-        } catch {}
+        } catch {
+          // Product images can be stored as either JSON or arrays; ignore malformed legacy values.
+        }
 
         cartStore.addToCart({
           id: variant.id,
@@ -496,7 +498,9 @@ const handleChatClick = async (e: MouseEvent) => {
         try {
           const imgs = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
           if (Array.isArray(imgs) && imgs.length) image = getImageUrl(imgs[0]) || imgs[0] || ''
-        } catch {}
+        } catch {
+          // Product images can be stored as either JSON or arrays; ignore malformed legacy values.
+        }
 
         cartStore.addToCart({
           id: variant.id,

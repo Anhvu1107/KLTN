@@ -111,7 +111,11 @@ if (process.env.NODE_ENV === 'development') {
 // STATIC FILES
 // ===========================================
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // ===========================================
 // HEALTH CHECK (for cron-job.org ping)
