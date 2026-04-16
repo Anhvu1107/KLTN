@@ -275,8 +275,12 @@ export function useLive2D(
 
       app = new PIXI.Application({
         view: canvas,
+        backgroundColor: 0xffffff,
         backgroundAlpha: 0,
         transparent: true,
+        clearBeforeRender: true,
+        useContextAlpha: 'notMultiplied',
+        premultipliedAlpha: false,
         autoStart: true,
         width: canvasSize.width,
         height: canvasSize.height,
@@ -284,6 +288,11 @@ export function useLive2D(
         autoDensity: true,
         antialias: true,
       })
+
+      canvas.style.background = 'transparent'
+      const renderer = app.renderer as any
+      renderer.backgroundAlpha = 0
+      renderer.backgroundColor = 0xffffff
 
       if (isUnmounted || token !== initToken) {
         destroyCurrentModel()

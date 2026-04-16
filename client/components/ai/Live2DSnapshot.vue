@@ -17,7 +17,7 @@ const props = defineProps<{
   size?: number
 }>()
 
-const SNAPSHOT_CACHE_VERSION = 'v5-transparent-mascot'
+const SNAPSHOT_CACHE_VERSION = 'v6-transparent-edge-cleanup'
 
 const canvasSize = computed(() => props.size || 200)
 const snapshotUrl = ref<string | null>(null)
@@ -109,6 +109,95 @@ const writeCachedSnapshot = (key: string, value: string) => {
   }
 }
 
+const isEdgeBackgroundPixel = (
+  data: Uint8ClampedArray,
+  index: number,
+  bg: { red: number, green: number, blue: number },
+) => {
+  const red = data[index] || 0
+  const green = data[index + 1] || 0
+  const blue = data[index + 2] || 0
+  const alpha = data[index + 3] || 0
+
+  if (alpha <= 8) return true
+
+  const dr = red - bg.red
+  const dg = green - bg.green
+  const db = blue - bg.blue
+  const distance = Math.sqrt((dr * dr) + (dg * dg) + (db * db))
+  const isDarkNeutral = red < 58 && green < 58 && blue < 58 && Math.abs(red - green) < 16 && Math.abs(green - blue) < 16
+
+  return distance < 48 || isDarkNeutral
+}
+
+const captureTransparentSnapshot = (source: HTMLCanvasElement) => {
+  const width = Math.max(source.width, 1)
+  const height = Math.max(source.height, 1)
+  const output = document.createElement('canvas')
+  output.width = width
+  output.height = height
+
+  const context = output.getContext('2d', { willReadFrequently: true })
+  if (!context) return source.toDataURL('image/png')
+
+  context.clearRect(0, 0, width, height)
+  context.drawImage(source, 0, 0)
+
+  const image = context.getImageData(0, 0, width, height)
+  const { data } = image
+  const bg = {
+    red: data[0] || 0,
+    green: data[1] || 0,
+    blue: data[2] || 0,
+  }
+
+  if ((data[3] || 0) <= 8) {
+    return output.toDataURL('image/png')
+  }
+
+  const visited = new Uint8Array(width * height)
+  const stack: number[] = []
+  const enqueue = (pixelIndex: number) => {
+    if (visited[pixelIndex]) return
+    const dataIndex = pixelIndex * 4
+    if (!isEdgeBackgroundPixel(data, dataIndex, bg)) return
+    visited[pixelIndex] = 1
+    stack.push(pixelIndex)
+  }
+
+  for (let x = 0; x < width; x++) {
+    enqueue(x)
+    enqueue((height - 1) * width + x)
+  }
+  for (let y = 0; y < height; y++) {
+    enqueue(y * width)
+    enqueue(y * width + (width - 1))
+  }
+
+  while (stack.length > 0) {
+    const pixelIndex = stack.pop()!
+    const x = pixelIndex % width
+    const y = Math.floor(pixelIndex / width)
+
+    if (x > 0) enqueue(pixelIndex - 1)
+    if (x < width - 1) enqueue(pixelIndex + 1)
+    if (y > 0) enqueue(pixelIndex - width)
+    if (y < height - 1) enqueue(pixelIndex + width)
+  }
+
+  for (let pixelIndex = 0; pixelIndex < visited.length; pixelIndex++) {
+    if (!visited[pixelIndex]) continue
+    const dataIndex = pixelIndex * 4
+    data[dataIndex] = 0
+    data[dataIndex + 1] = 0
+    data[dataIndex + 2] = 0
+    data[dataIndex + 3] = 0
+  }
+
+  context.putImageData(image, 0, 0)
+  return output.toDataURL('image/png')
+}
+
 // ---------------------------------------------------------------------------
 // Core render logic
 // ---------------------------------------------------------------------------
@@ -148,15 +237,19 @@ const doRender = async (request: RenderRequest) => {
 
     // Create a temporary DOM-attached canvas (required for WebGL)
     canvas = document.createElement('canvas')
-    canvas.style.cssText = 'position:fixed;top:-9999px;left:-9999px;pointer-events:none;opacity:0;'
+    canvas.style.cssText = 'position:fixed;top:-9999px;left:-9999px;pointer-events:none;opacity:0;background:transparent;'
     canvas.style.width = `${request.size}px`
     canvas.style.height = `${request.size}px`
     document.body.appendChild(canvas)
 
     app = new PIXI.Application({
       view: canvas,
+      backgroundColor: 0xffffff,
       backgroundAlpha: 0,
       autoStart: false,
+      clearBeforeRender: true,
+      useContextAlpha: 'notMultiplied',
+      premultipliedAlpha: false,
       width: request.size,
       height: request.size,
       resolution: window.devicePixelRatio || 1,
@@ -164,6 +257,9 @@ const doRender = async (request: RenderRequest) => {
       antialias: true,
       preserveDrawingBuffer: true,
     })
+    const renderer = app.renderer as any
+    renderer.backgroundAlpha = 0
+    renderer.backgroundColor = 0xffffff
 
     const model = await Live2DModel.from(request.resolvedUrl, {
       autoInteract: false,
@@ -190,7 +286,7 @@ const doRender = async (request: RenderRequest) => {
     await waitFrames(1)
 
     // Capture canvas to data URL
-    const dataUrl = canvas.toDataURL('image/png')
+    const dataUrl = captureTransparentSnapshot(canvas)
     if (request.requestId !== latestRequestId) return
 
     snapshotUrl.value = dataUrl
@@ -268,7 +364,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="live2d-snapshot w-full h-full">
+  <div class="live2d-snapshot w-full h-full bg-transparent">
     <!-- Captured snapshot -->
     <img
       v-if="snapshotUrl"
@@ -278,21 +374,11 @@ onBeforeUnmount(() => {
     />
 
     <!-- Loading state -->
-    <div v-else-if="isRendering" class="w-full h-full flex items-center justify-center bg-neutral-100 rounded">
-      <div class="flex flex-col items-center gap-1.5">
-        <div class="w-5 h-5 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
-        <span class="text-[9px] text-neutral-400">Đang tải...</span>
-      </div>
+    <div v-else-if="isRendering" class="w-full h-full flex items-center justify-center bg-transparent">
+      <div class="w-5 h-5 border-2 border-neutral-200 border-t-neutral-700 rounded-full bg-white/75 shadow-sm animate-spin" />
     </div>
 
     <!-- Error / fallback -->
-    <div v-else-if="hasError" class="w-full h-full flex items-center justify-center bg-neutral-50 text-neutral-400 rounded">
-      <div class="flex flex-col items-center gap-1.5 px-3 text-center">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <span class="text-[10px] uppercase tracking-[0.12em]">Preview unavailable</span>
-      </div>
-    </div>
+    <div v-else-if="hasError" class="w-full h-full bg-transparent" />
   </div>
 </template>

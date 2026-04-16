@@ -52,13 +52,26 @@ const speakingLabel = computed(() => `${voiceCharacterName.value} đang trả l�
 let isInitialGreetingTurn = false
 let hasSentInitialGreetingPrompt = false
 
+const normalizeVoiceErrorMessage = (message?: string) => {
+  const raw = String(message || '').trim()
+
+  if (/quota|rate[-_\s]?limit|too many requests|resource_exhausted|exceeded/i.test(raw)) {
+    return 'Gemini đang chạm giới hạn dùng thử. Hãy thử lại sau hoặc đổi model/API key.'
+  }
+
+  if (/api key|permission|unauthorized|forbidden/i.test(raw)) {
+    return 'Cấu hình API key voice chưa hợp lệ. Hãy kiểm tra lại trong admin.'
+  }
+
+  return raw || 'Không thể bắt đầu cuộc gọi'
+}
+
 // Live2D Model
 const live2dCanvas = ref<HTMLCanvasElement | null>(null)
 const {
   isModelReady,
   hasVisibleFrame,
   isLoading: isModelLoading,
-  errorMessage: live2dErrorMessage,
   setLipSync,
   setMood,
   playGesture,
@@ -644,7 +657,7 @@ const startVoiceSession = async () => {
       console.error('[Voice] WebSocket error:', error)
       teardownVoiceSession()
       state.value = 'error'
-      errorMessage.value = 'Lỗi kết nối với AI voice'
+      errorMessage.value = normalizeVoiceErrorMessage('Lỗi kết nối với AI voice')
     }
 
     ws.onclose = (event) => {
@@ -660,9 +673,7 @@ const startVoiceSession = async () => {
       teardownVoiceSession()
 
       if (shouldShowError) {
-        errorMessage.value = event.reason
-          ? event.reason.substring(0, 80)
-          : 'Voice connection closed unexpectedly'
+        errorMessage.value = normalizeVoiceErrorMessage(event.reason || 'Voice connection closed unexpectedly')
         state.value = 'error'
       }
     }
@@ -670,7 +681,7 @@ const startVoiceSession = async () => {
     console.error('[Voice] Start error:', error)
     teardownVoiceSession()
     state.value = 'error'
-    errorMessage.value = error?.data?.message || error.message || 'Không thể bắt đầu cuộc gọi'
+    errorMessage.value = normalizeVoiceErrorMessage(error?.data?.message || error.message)
   }
 }
 
@@ -1503,25 +1514,25 @@ onMounted(() => {
         </div>
         <!-- Glow ring based on state -->
         <div
-          class="absolute inset-0 rounded-2xl transition-all duration-500"
+          class="pointer-events-none absolute inset-0 rounded-2xl transition-all duration-500"
           :class="{
-            'shadow-[0_0_40px_rgba(16,185,129,0.25)]': state === 'listening',
-            'shadow-[0_0_40px_rgba(59,130,246,0.25)]': state === 'speaking',
-            'shadow-[0_0_40px_rgba(245,158,11,0.25)]': state === 'processing',
+            'shadow-[0_18px_50px_rgba(16,185,129,0.12)]': state === 'listening',
+            'shadow-[0_18px_50px_rgba(59,130,246,0.12)]': state === 'speaking',
+            'shadow-[0_18px_50px_rgba(245,158,11,0.12)]': state === 'processing',
           }"
         />
 
         <div
-          class="absolute z-0 flex items-center justify-center overflow-hidden bg-gradient-to-b from-neutral-900/70 to-neutral-800/70"
+          class="absolute z-0 flex items-center justify-center overflow-visible bg-transparent"
           :class="isMinimized
-            ? 'h-56 w-40 rounded-2xl'
-            : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] rounded-2xl border-2 border-white/10'"
+            ? 'h-56 w-40'
+            : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px]'"
         >
           <Live2DSnapshot
             :key="`voice-static-${live2dModelUrl}`"
             :model-url="live2dModelUrl"
             :size="440"
-            class="h-full w-full"
+            class="h-full w-full bg-transparent"
           />
         </div>
 
@@ -1533,16 +1544,11 @@ onMounted(() => {
           class="relative z-10 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
           :class="[
             isMinimized
-              ? 'h-56 w-40 rounded-2xl border-0 bg-none shadow-none'
-              : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] rounded-2xl border-2',
+              ? 'h-56 w-40 border-0 bg-transparent shadow-none'
+              : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] border-0 bg-transparent',
             {
               'opacity-0': !hasVisibleFrame,
               'opacity-100': hasVisibleFrame,
-              'border-white/10': !isMinimized && (state === 'connecting' || state === 'idle'),
-              'border-emerald-400/40': !isMinimized && state === 'listening',
-              'border-blue-400/40': !isMinimized && state === 'speaking',
-              'border-amber-400/40': !isMinimized && state === 'processing',
-              'border-red-400/40': !isMinimized && state === 'error',
             },
           ]"
         />
@@ -1551,7 +1557,7 @@ onMounted(() => {
         <div
           v-if="state === 'connecting' || isModelLoading"
           class="absolute inset-0 z-20 flex flex-col items-center justify-center"
-          :class="isMinimized ? 'bg-transparent' : 'rounded-2xl bg-black/40'"
+          :class="isMinimized ? 'bg-transparent' : 'bg-transparent'"
         >
           <svg :class="isMinimized ? 'h-6 w-6' : 'h-10 w-10'" class="text-white/60 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
@@ -1560,45 +1566,15 @@ onMounted(() => {
           <p class="text-white/50 text-xs mt-3">Đang kết nối...</p>
         </div>
 
-        <!-- Error overlay — small badge at bottom, not covering the face -->
-        <div
-          v-if="!(state === 'connecting' || isModelLoading) && !hasVisibleFrame && live2dErrorMessage && !isMinimized"
-          class="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[10px] text-white/50 backdrop-blur-sm"
-        >
-          Live2D fallback
-        </div>
-
         <div
           v-if="state === 'error'"
-          class="absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-red-500/20 border border-red-400/30 backdrop-blur-sm"
-          :class="isMinimized ? 'bottom-1.5 px-2 py-0.5 text-[9px]' : 'bottom-3 px-3 py-1.5'"
+          class="absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/90 border border-red-200 shadow-sm"
+          :class="isMinimized ? 'bottom-1.5 px-2 py-0.5 text-[9px]' : 'bottom-1 px-3 py-1.5'"
         >
           <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
-          <span class="text-red-300 text-[11px] font-medium">Lỗi kết nối</span>
-        </div>
-
-        <!-- State indicator badge -->
-        <div
-          v-if="state === 'listening' || state === 'speaking'"
-          class="absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full font-medium backdrop-blur-sm"
-          :class="[
-            isMinimized ? 'bottom-1.5 px-2 py-0.5 text-[9px]' : 'bottom-3 px-3 py-1 text-[11px]',
-            {
-              'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30': state === 'listening',
-              'bg-blue-500/20 text-blue-300 border border-blue-400/30': state === 'speaking',
-            },
-          ]"
-        >
-          <span
-            class="w-1.5 h-1.5 rounded-full animate-pulse"
-            :class="{
-              'bg-emerald-400': state === 'listening',
-              'bg-blue-400': state === 'speaking',
-            }"
-          />
-          {{ state === 'listening' ? 'Đang nghe...' : 'Đang trả lời...' }}
+          <span class="text-red-500 text-[11px] font-medium">Lỗi kết nối</span>
         </div>
       </div>
 

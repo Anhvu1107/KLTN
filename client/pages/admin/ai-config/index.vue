@@ -381,6 +381,20 @@ const voicePreviewText = computed(() => {
   return `${characterName} xin chào, mình sẽ giúp bạn tìm món đồ phù hợp với phong cách hôm nay.`
 })
 
+const normalizeVoicePreviewError = (message?: string) => {
+  const raw = String(message || '').trim()
+
+  if (/quota|rate[-_\s]?limit|too many requests|resource_exhausted|exceeded/i.test(raw)) {
+    return 'Gemini đang chạm giới hạn dùng thử. Hãy thử lại sau hoặc đổi API key/model.'
+  }
+
+  if (/api key|permission|unauthorized|forbidden/i.test(raw)) {
+    return 'API key voice chưa hợp lệ. Hãy kiểm tra lại cấu hình Gemini.'
+  }
+
+  return raw || 'Không thể nghe thử giọng nói lúc này.'
+}
+
 const stopVoicePreview = () => {
   isPreviewingVoice.value = false
   if (!activeVoicePreview.value) return
@@ -439,7 +453,7 @@ const previewSelectedVoice = async () => {
 
     await previewAudio.play()
   } catch (error: any) {
-    voicePreviewError.value = error?.data?.message || error?.message || 'Không thể nghe thử giọng nói lúc này.'
+    voicePreviewError.value = normalizeVoicePreviewError(error?.data?.message || error?.message)
     isPreviewingVoice.value = false
   }
 }
