@@ -8,6 +8,8 @@ export type VoiceConfig = {
   hintText: string
   live2dModelUrl: string
   idleReminderSeconds: number
+  live2dScale: number
+  live2dOffsetY: number
 }
 
 export type CharacterPreset = {
@@ -113,6 +115,8 @@ export const DEFAULT_VOICE_CONFIG: VoiceConfig = {
   hintText: 'Nói bất cứ điều gì để bắt đầu tư vấn',
   live2dModelUrl: DEFAULT_LIVE2D_MODEL_URL,
   idleReminderSeconds: 60,
+  live2dScale: 1.0,
+  live2dOffsetY: 0,
 }
 
 const clampNumber = (value: unknown, min: number, max: number, fallback: number) => {
@@ -153,5 +157,7 @@ export const normalizeVoiceConfig = (input?: Partial<VoiceConfig> | null): Voice
       600,
       DEFAULT_VOICE_CONFIG.idleReminderSeconds,
     ),
+    live2dScale: clampNumber(input?.live2dScale, 0.1, 5.0, DEFAULT_VOICE_CONFIG.live2dScale),
+    live2dOffsetY: clampNumber(input?.live2dOffsetY, -1000, 1000, DEFAULT_VOICE_CONFIG.live2dOffsetY),
   }
 }

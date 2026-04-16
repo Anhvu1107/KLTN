@@ -17,6 +17,8 @@ const isHovered = ref(false)
 // Fetch admin-configured model URL from voice settings
 const config = useRuntimeConfig()
 const configuredModelUrl = ref(DEFAULT_LIVE2D_MODEL_URL)
+const live2dScale = ref(1.0)
+const live2dOffsetY = ref(0)
 
 const loadConfiguredModel = async () => {
   try {
@@ -25,20 +27,31 @@ const loadConfiguredModel = async () => {
       data?: {
         voiceSettings?: {
           live2dModelUrl?: string
+          live2dScale?: number
+          live2dOffsetY?: number
         }
       }
       voiceSettings?: {
         live2dModelUrl?: string
+        live2dScale?: number
+        live2dOffsetY?: number
       }
     }>(`${config.public.apiUrl}/chat/voice-settings?t=${Date.now()}`, {
       cache: 'no-store',
     })
 
-    const nextModelUrl = res?.data?.voiceSettings?.live2dModelUrl
-      || res?.voiceSettings?.live2dModelUrl
+    const settings = res?.data?.voiceSettings || res?.voiceSettings
 
+    const nextModelUrl = settings?.live2dModelUrl
     if (nextModelUrl) {
       configuredModelUrl.value = nextModelUrl
+    }
+    
+    if (typeof settings?.live2dScale === 'number') {
+      live2dScale.value = settings.live2dScale
+    }
+    if (typeof settings?.live2dOffsetY === 'number') {
+      live2dOffsetY.value = settings.live2dOffsetY
     }
   } catch {
     // Fallback to default on error
@@ -66,6 +79,8 @@ const {
   modelUrl: configuredModelUrl,
   fallbackModelUrl: DEFAULT_LIVE2D_MODEL_URL,
   fitMode: 'mascot',
+  live2dScale,
+  live2dOffsetY,
 })
 
 // Play greeting when model is ready

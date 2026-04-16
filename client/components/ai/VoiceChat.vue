@@ -45,6 +45,8 @@ const sessionId = ref('')
 const isMinimized = ref(props.startMinimized)
 const voiceSettings = ref<VoiceConfig>(cloneDefaultVoiceConfig())
 const live2dModelUrl = computed(() => voiceSettings.value.live2dModelUrl)
+const live2dScale = computed(() => voiceSettings.value.live2dScale)
+const live2dOffsetY = computed(() => voiceSettings.value.live2dOffsetY)
 const voiceCharacterName = computed(() => voiceSettings.value.characterName || 'AURA')
 const voiceCharacterSubtitle = computed(() => voiceSettings.value.characterSubtitle || 'AI Stylist Voice Call')
 const voiceHintText = computed(() => voiceSettings.value.hintText || 'Nói bất cứ điều gì để bắt đầu tư vấn')
@@ -89,6 +91,8 @@ const {
 } = useLive2D(live2dCanvas, {
   modelUrl: live2dModelUrl,
   fallbackModelUrl: DEFAULT_LIVE2D_MODEL_URL,
+  live2dScale,
+  live2dOffsetY,
 })
 
 // Audio refs

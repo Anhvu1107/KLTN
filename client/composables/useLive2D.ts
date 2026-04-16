@@ -19,6 +19,8 @@ type UseLive2DOptions = {
   modelUrl?: MaybeRefOrGetter<string | null | undefined>
   fallbackModelUrl?: MaybeRefOrGetter<string | null | undefined>
   fitMode?: MaybeRefOrGetter<'contain' | 'mascot'>
+  live2dScale?: MaybeRefOrGetter<number>
+  live2dOffsetY?: MaybeRefOrGetter<number>
 }
 
 function resolveModelUrl(url: string): string {
@@ -166,12 +168,17 @@ export function useLive2D(
     const fitMode = resolvedFitMode.value
     const maxWidth = screenW * (fitMode === 'mascot' ? 0.92 : 0.86)
     const maxHeight = screenH * (fitMode === 'mascot' ? 0.92 : 0.88)
-    const scale = Math.max(0.01, Math.min(maxWidth / modelSize.width, maxHeight / modelSize.height))
+    
+    const customScale = toValue(options.live2dScale) ?? 1.0
+    const customOffsetY = toValue(options.live2dOffsetY) ?? 0
+
+    const baseScale = Math.max(0.01, Math.min(maxWidth / modelSize.width, maxHeight / modelSize.height))
+    const finalScale = baseScale * customScale
 
     model.anchor?.set?.(0.5, 0.5)
-    model.scale.set(scale)
+    model.scale.set(finalScale)
     model.x = screenW / 2
-    model.y = screenH / 2
+    model.y = (screenH / 2) + customOffsetY
   }
 
   const waitFrames = async (count = 1) => {
