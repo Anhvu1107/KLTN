@@ -58,7 +58,6 @@ const {
   isModelReady,
   hasVisibleFrame,
   isLoading,
-  errorMessage,
   playIdle,
   playGreeting,
   playMotionByNumber,
@@ -99,7 +98,7 @@ const onClick = () => {
 
 <template>
   <div
-    class="fixed bottom-4 right-4 z-50 group cursor-pointer"
+    class="live2d-mascot fixed bottom-4 right-4 z-50 group cursor-pointer"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
     @click="onClick"
@@ -112,12 +111,12 @@ const onClick = () => {
         'scale-105': isHovered,
       }"
     >
-      <div class="absolute inset-0 overflow-hidden rounded-2xl bg-neutral-950/85 border border-white/10">
+      <div class="live2d-mascot__stage absolute inset-0 overflow-visible bg-transparent">
         <Live2DSnapshot
           :key="`mascot-static-${configuredModelUrl}`"
           :model-url="configuredModelUrl"
           :size="320"
-          class="w-full h-full"
+          class="live2d-mascot__snapshot w-full h-full bg-transparent"
         />
       </div>
 
@@ -126,7 +125,7 @@ const onClick = () => {
         ref="mascotCanvas"
         width="320"
         height="448"
-        class="relative z-10 w-full h-full rounded-2xl"
+        class="live2d-mascot__canvas relative z-10 w-full h-full bg-transparent"
         :class="{
           'opacity-0': isLoading || !hasVisibleFrame,
           'opacity-100': hasVisibleFrame,
@@ -137,23 +136,16 @@ const onClick = () => {
       <!-- Loading placeholder -->
       <div
         v-if="isLoading"
-        class="absolute inset-0 flex items-center justify-center rounded-2xl bg-neutral-900/80 border border-white/10"
+        class="absolute inset-0 flex items-center justify-center rounded-2xl bg-transparent"
       >
-        <div class="w-6 h-6 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
-      </div>
-
-      <div
-        v-if="!isLoading && !isModelReady && errorMessage"
-        class="absolute inset-x-2 bottom-2 z-20 rounded-lg bg-black/60 px-2 py-1 text-center backdrop-blur-sm"
-      >
-        <span class="text-[9px] uppercase tracking-[0.12em] text-white/60">Live2D fallback</span>
+        <div class="w-6 h-6 rounded-full border-2 border-neutral-200 border-t-neutral-700 bg-white/80 shadow-sm animate-spin" />
       </div>
 
       <!-- Chat prompt badge -->
       <div
         class="absolute -top-4 -left-6 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap shadow-lg"
         :class="{
-          'bg-aura-black text-white scale-100': !isHovered,
+          'border border-neutral-200 bg-white/95 text-neutral-800 scale-100': !isHovered,
           'bg-emerald-500 text-white scale-110': isHovered,
         }"
       >
@@ -168,3 +160,21 @@ const onClick = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.live2d-mascot,
+.live2d-mascot__stage,
+.live2d-mascot__snapshot,
+.live2d-mascot__canvas,
+.live2d-mascot__stage :deep(.live2d-snapshot),
+.live2d-mascot__stage :deep(.live2d-snapshot img),
+.live2d-mascot__stage :deep(canvas) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.live2d-mascot__canvas {
+  background-color: transparent !important;
+}
+</style>

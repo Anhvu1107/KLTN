@@ -17,7 +17,7 @@ const props = defineProps<{
   size?: number
 }>()
 
-const SNAPSHOT_CACHE_VERSION = 'v4'
+const SNAPSHOT_CACHE_VERSION = 'v5-transparent-mascot'
 
 const canvasSize = computed(() => props.size || 200)
 const snapshotUrl = ref<string | null>(null)
