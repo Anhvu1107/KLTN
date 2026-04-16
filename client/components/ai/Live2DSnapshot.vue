@@ -23,13 +23,7 @@ const hasError = ref(false)
 const shouldUseLivePreview = computed(() => props.modelUrl.startsWith('/uploads/'))
 
 const resolvedUrl = computed(() => {
-  const url = props.modelUrl
-  if (url.startsWith('/uploads/')) {
-    const config = useRuntimeConfig()
-    const backendOrigin = (config.public.apiUrl as string).replace(/\/api\/v\d+\/?$/, '')
-    return `${backendOrigin}${url}`
-  }
-  return url
+  return props.modelUrl
 })
 
 const cacheKey = computed(() => `${SNAPSHOT_CACHE_VERSION}:live2d_snap_${resolvedUrl.value}`)

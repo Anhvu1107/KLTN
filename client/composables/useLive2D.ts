@@ -18,17 +18,10 @@ type UseLive2DOptions = {
 }
 
 /**
- * Resolve model URL: custom models served from /uploads/ need
- * the backend server origin prefix; built-in models are served
- * from the Nuxt public dir and stay relative.
+ * Keep Live2D asset URLs same-origin so Nuxt route rules can proxy `/uploads/**`
+ * in both dev and production without triggering cross-origin texture loads.
  */
 function resolveModelUrl(url: string): string {
-  if (url.startsWith('/uploads/')) {
-    const config = useRuntimeConfig()
-    // apiUrl = "https://backend.example.com/api/v1" → strip "/api/v1"
-    const backendOrigin = (config.public.apiUrl as string).replace(/\/api\/v\d+\/?$/, '')
-    return `${backendOrigin}${url}`
-  }
   return url
 }
 

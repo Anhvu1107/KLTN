@@ -11,6 +11,9 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
+# Ensure upload directories exist for static file serving and mounted volumes
+RUN mkdir -p uploads/live2d uploads/products
+
 # Expose port
 EXPOSE 5000
 

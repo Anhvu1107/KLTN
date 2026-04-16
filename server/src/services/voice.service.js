@@ -12,6 +12,7 @@ const aiService = require('./ai.service');
 const logger = require('../utils/logger');
 const chatAdminService = require('./chat-admin.service');
 const { emitNewMessage } = require('../socket');
+const { isModelUrlAvailable } = require('./live2d.service');
 
 const DEFAULT_GEMINI_LIVE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const DEFAULT_GEMINI_LIVE_MODEL_BACKUP = 'gemini-2.5-flash-native-audio-preview-12-2025';
@@ -44,6 +45,20 @@ function clampVoiceNumber(value, min, max, fallback) {
 }
 
 function normalizeVoiceSettings(config = {}) {
+    const requestedModelUrl = normalizeVoiceString(
+        config.live2dModelUrl,
+        DEFAULT_VOICE_SETTINGS.live2dModelUrl
+    );
+    const live2dModelUrl = isModelUrlAvailable(requestedModelUrl)
+        ? requestedModelUrl
+        : DEFAULT_VOICE_SETTINGS.live2dModelUrl;
+
+    if (requestedModelUrl !== live2dModelUrl) {
+        logger.warn(
+            `Configured Live2D model is missing on disk, falling back to default: ${requestedModelUrl}`
+        );
+    }
+
     return {
         voiceName: normalizeVoiceString(config.voiceName, DEFAULT_VOICE_SETTINGS.voiceName),
         liveModel: typeof config.liveModel === 'string' ? config.liveModel.trim() : DEFAULT_VOICE_SETTINGS.liveModel,
@@ -60,10 +75,7 @@ function normalizeVoiceSettings(config = {}) {
             DEFAULT_VOICE_SETTINGS.characterSubtitle
         ),
         hintText: normalizeVoiceString(config.hintText, DEFAULT_VOICE_SETTINGS.hintText),
-        live2dModelUrl: normalizeVoiceString(
-            config.live2dModelUrl,
-            DEFAULT_VOICE_SETTINGS.live2dModelUrl
-        ),
+        live2dModelUrl,
         idleReminderSeconds: Math.round(
             clampVoiceNumber(
                 config.idleReminderSeconds,
@@ -624,7 +636,13 @@ const getVoiceConfig = async (sessionId = null) => {
         voiceSettings.liveModel,
         process.env.GEMINI_LIVE_MODEL_MAIN || process.env.GEMINI_LIVE_MODEL || DEFAULT_GEMINI_LIVE_MODEL,
         process.env.GEMINI_LIVE_MODEL_BACKUP || DEFAULT_GEMINI_LIVE_MODEL_BACKUP,
-    ].filter((v, i, a) => a.indexOf(v) === i); // deduplicate
+    ]
+        .map(value => (typeof value === 'string' ? value.trim() : ''))
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i); // deduplicate
+
+    const primaryLiveModel = liveModels[0] || DEFAULT_GEMINI_LIVE_MODEL;
+    const fallbackLiveModels = liveModels.filter(model => model !== primaryLiveModel);
 
     if (sessionId) {
         sessionMemory.ensureSession(sessionId);
@@ -635,8 +653,8 @@ const getVoiceConfig = async (sessionId = null) => {
 
     return {
         apiKey,
-        model: liveModels[0],
-        fallbackModels: liveModels.slice(1),
+        model: primaryLiveModel,
+        fallbackModels: fallbackLiveModels,
         systemPrompt,
         greetingMessage,
         tools: getToolDeclarations(),

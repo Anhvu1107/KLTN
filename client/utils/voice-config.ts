@@ -17,6 +17,7 @@ export type CharacterPreset = {
   modelUrl: string
   tags: string[]
   isCustom?: boolean
+  isAvailable?: boolean
 }
 
 export const DEFAULT_CHARACTER_ID = 'aura-classic'

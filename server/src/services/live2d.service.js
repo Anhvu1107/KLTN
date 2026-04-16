@@ -13,7 +13,8 @@ const { promisify } = require('util');
 const { SystemPrompt } = require('../models');
 
 const DB_KEY = 'CUSTOM_LIVE2D_CHARACTERS';
-const UPLOAD_BASE = path.join(__dirname, '../../uploads/live2d');
+const UPLOAD_ROOT = path.join(__dirname, '../../uploads');
+const UPLOAD_BASE = path.join(UPLOAD_ROOT, 'live2d');
 const CUSTOM_ID_PREFIX = 'custom';
 
 // Ensure base directory exists
@@ -28,7 +29,12 @@ const getCustomCharacters = async () => {
     const row = await SystemPrompt.findOne({ where: { key: DB_KEY } });
     if (!row || !row.content) return [];
     try {
-        return JSON.parse(row.content);
+        const parsed = JSON.parse(row.content);
+        const characters = Array.isArray(parsed) ? parsed : [];
+        return characters.map(character => ({
+            ...character,
+            isAvailable: isModelUrlAvailable(character.modelUrl),
+        }));
     } catch {
         return [];
     }
@@ -38,7 +44,9 @@ const getCustomCharacters = async () => {
  * Save custom characters to DB.
  */
 const saveCustomCharacters = async (characters) => {
-    const payload = JSON.stringify(characters);
+    const payload = JSON.stringify(
+        characters.map(({ isAvailable, ...character }) => character)
+    );
     const [row, created] = await SystemPrompt.findOrCreate({
         where: { key: DB_KEY },
         defaults: {
@@ -72,6 +80,28 @@ const createCustomCharacterId = (label, characters) => {
     return hasConflict
         ? `${baseId}-${Date.now()}`
         : baseId;
+};
+
+const resolveUploadPath = (modelUrl = '') => {
+    if (typeof modelUrl !== 'string' || !modelUrl.startsWith('/uploads/')) {
+        return null;
+    }
+
+    const relativePath = modelUrl.replace(/^\/uploads\/+/, '');
+    return path.join(UPLOAD_ROOT, relativePath);
+};
+
+const isModelUrlAvailable = (modelUrl = '') => {
+    if (typeof modelUrl !== 'string' || !modelUrl) {
+        return false;
+    }
+
+    if (!modelUrl.startsWith('/uploads/')) {
+        return true;
+    }
+
+    const resolvedPath = resolveUploadPath(modelUrl);
+    return Boolean(resolvedPath && fs.existsSync(resolvedPath));
 };
 
 /**
@@ -198,4 +228,5 @@ module.exports = {
     getCustomCharacters,
     addCharacter,
     deleteCharacter,
+    isModelUrlAvailable,
 };

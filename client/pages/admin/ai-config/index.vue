@@ -293,7 +293,15 @@ const isPresetSelected = (preset: CharacterPreset) =>
   voiceConfig.value.characterId === preset.value
   && voiceConfig.value.live2dModelUrl === preset.modelUrl
 
+const isPresetAvailable = (preset: CharacterPreset) => preset.isAvailable !== false
+
 const applyCharacterPreset = (preset: CharacterPreset) => {
+  if (!isPresetAvailable(preset)) {
+    saveMessage.value = 'Model này đang thiếu file trên server. Hãy xóa hoặc upload lại ZIP.'
+    clearSaveMessageLater()
+    return
+  }
+
   voiceConfig.value = normalizeVoiceConfig({
     ...voiceConfig.value,
     characterId: preset.value,
@@ -806,9 +814,12 @@ useSeoMeta({
             role="button"
             tabindex="0"
             class="character-card group relative rounded-xl border-2 overflow-hidden transition-all duration-300 text-left"
-            :class="isPresetSelected(preset)
-              ? 'border-aura-black shadow-elevated ring-1 ring-aura-black/20 scale-[1.02]'
-              : 'border-neutral-200 hover:border-neutral-400 hover:shadow-md'"
+            :class="[
+              isPresetSelected(preset)
+                ? 'border-aura-black shadow-elevated ring-1 ring-aura-black/20 scale-[1.02]'
+                : 'border-neutral-200 hover:border-neutral-400 hover:shadow-md',
+              isPresetAvailable(preset) ? '' : 'border-red-200 bg-red-50/30',
+            ]"
             @click="applyCharacterPreset(preset)"
             @keydown.enter.prevent="applyCharacterPreset(preset)"
             @keydown.space.prevent="applyCharacterPreset(preset)"
@@ -845,6 +856,12 @@ useSeoMeta({
               <div v-if="preset.isCustom" class="absolute bottom-1.5 left-1.5 text-[8px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded-full">
                 CUSTOM
               </div>
+              <div
+                v-if="preset.isAvailable === false"
+                class="absolute bottom-1.5 right-1.5 text-[8px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded-full"
+              >
+                MISSING FILE
+              </div>
               <!-- Hover overlay -->
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
@@ -856,6 +873,9 @@ useSeoMeta({
               </p>
               <p class="text-[10px] text-neutral-400 mt-0.5 line-clamp-2 leading-tight min-h-[24px]">
                 {{ preset.description }}
+              </p>
+              <p v-if="preset.isAvailable === false" class="mt-1 text-[10px] font-medium text-red-500">
+                File upload khong con ton tai tren server
               </p>
               <div class="flex gap-1 mt-1.5 flex-wrap">
                 <span
@@ -1120,6 +1140,12 @@ useSeoMeta({
               </div>
 
               <p class="mt-3 text-center text-[11px] text-white/30 break-all font-mono">{{ voiceConfig.live2dModelUrl }}</p>
+              <p
+                v-if="selectedCharacterPreset.isAvailable === false"
+                class="mt-2 text-center text-xs text-red-300"
+              >
+                Preset nay dang thieu file tren server. Hay xoa hoac upload lai ZIP.
+              </p>
               <p class="mt-2 text-center text-xs text-white/35">{{ voiceConfig.hintText }}</p>
             </div>
           </div>
