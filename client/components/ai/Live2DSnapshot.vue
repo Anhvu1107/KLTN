@@ -20,6 +20,7 @@ const canvasSize = computed(() => props.size || 200)
 const snapshotUrl = ref<string | null>(null)
 const isRendering = ref(false)
 const hasError = ref(false)
+const shouldUseLivePreview = computed(() => props.modelUrl.startsWith('/uploads/'))
 
 const resolvedUrl = computed(() => {
   const url = props.modelUrl
@@ -206,6 +207,13 @@ const doRender = async (request: RenderRequest) => {
 const requestRender = () => {
   if (!import.meta.client || !props.modelUrl) return
 
+  if (shouldUseLivePreview.value) {
+    snapshotUrl.value = null
+    hasError.value = false
+    isRendering.value = false
+    return
+  }
+
   const request: RenderRequest = {
     requestId: ++latestRequestId,
     cacheKey: cacheKey.value,
@@ -246,6 +254,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="live2d-snapshot w-full h-full">
+    <Live2DCanvasPreview
+      v-if="shouldUseLivePreview"
+      :key="resolvedUrl"
+      :model-url="modelUrl"
+      class="w-full h-full"
+    />
+
     <!-- Captured snapshot -->
     <img
       v-if="snapshotUrl"
