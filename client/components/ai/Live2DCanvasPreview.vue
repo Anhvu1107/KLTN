@@ -10,6 +10,7 @@ const canvas = ref<HTMLCanvasElement | null>(null)
 const {
   isLoading,
   isModelReady,
+  hasVisibleFrame,
   handlePointerMove,
   handleTap,
 } = useLive2D(canvas, {
@@ -25,22 +26,32 @@ const {
     @pointermove="handlePointerMove"
     @pointerdown="handleTap"
   >
+    <Live2DSnapshot
+      v-if="!hasVisibleFrame"
+      :key="`preview-static-${props.modelUrl}-${props.live2dScale ?? 1}-${props.live2dOffsetY ?? 0}`"
+      :model-url="props.modelUrl"
+      :size="260"
+      :live2d-scale="props.live2dScale ?? 1"
+      :live2d-offset-y="props.live2dOffsetY ?? 0"
+      class="absolute inset-0 z-0 h-full w-full bg-transparent"
+    />
+
     <canvas
       ref="canvas"
-      class="w-full h-full bg-transparent transition-opacity duration-300"
-      :class="isModelReady ? 'opacity-100' : 'opacity-0'"
+      class="relative z-10 w-full h-full bg-transparent transition-opacity duration-300"
+      :class="hasVisibleFrame ? 'opacity-100' : 'opacity-0'"
     />
 
     <div
-      v-if="isLoading"
-      class="absolute inset-0 flex items-center justify-center bg-transparent"
+      v-if="isLoading && !hasVisibleFrame"
+      class="absolute inset-0 z-20 flex items-center justify-center bg-transparent"
     >
       <div class="w-6 h-6 rounded-full border-2 border-neutral-200 border-t-neutral-700 bg-white/75 shadow-sm animate-spin" />
     </div>
 
     <div
       v-else-if="!isModelReady"
-      class="absolute inset-0 bg-transparent"
+      class="absolute inset-0 z-20 bg-transparent"
     />
   </div>
 </template>
