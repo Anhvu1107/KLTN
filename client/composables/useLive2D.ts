@@ -373,7 +373,7 @@ export function useLive2D(
 
       const canvasSize = getCanvasDisplaySize(canvas)
 
-      app = new PIXI.Application({
+      const localApp = new PIXI.Application({
         view: canvas,
         backgroundColor: 0x000000,
         backgroundAlpha: 0,
@@ -389,25 +389,29 @@ export function useLive2D(
       })
 
       canvas.style.background = 'transparent'
-      const renderer = app.renderer as any
+      const renderer = localApp.renderer as any
       renderer.backgroundAlpha = 0
       renderer.backgroundColor = 0x000000
 
       if (isUnmounted || token !== initToken) {
-        destroyCurrentModel()
+        try { localApp?.destroy(true, { children: true }) } catch {}
         return
       }
 
+      app = localApp
+
       console.log('[Live2D] Loading model:', modelUrl)
-      model = await Live2DModel.from(modelUrl, {
+      const loadedModel: any = await Live2DModel.from(modelUrl, {
         autoInteract: false,
         motionPreload: MotionPreloadStrategy.IDLE,
       })
 
       if (isUnmounted || token !== initToken) {
-        destroyCurrentModel()
+        try { loadedModel?.destroy?.() } catch {}
         return
       }
+
+      model = loadedModel
 
       model.internalModel.on('beforeModelUpdate', () => {
         if (!model?.internalModel?.coreModel) return
@@ -442,12 +446,12 @@ export function useLive2D(
       const runtimeMotionDefinitions = motionMgr?.definitions || {}
       const modelDefinition = await modelDefinitionPromise
       if (isUnmounted || token !== initToken) {
-        destroyCurrentModel()
+        try { loadedModel?.destroy?.() } catch {}
         return
       }
       const motionCatalog = await loadLive2DMotionCatalog(modelUrl, modelDefinition)
       if (isUnmounted || token !== initToken) {
-        destroyCurrentModel()
+        try { loadedModel?.destroy?.() } catch {}
         return
       }
 
