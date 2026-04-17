@@ -11,7 +11,7 @@
 
 import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
 import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
-import { computeLive2DLayout, detectLive2DEdgeContact, getLive2DRenderBounds } from '~/utils/live2d-layout'
+import { computeLive2DLayout, getLive2DRenderBounds } from '~/utils/live2d-layout'
 
 const props = defineProps<{
   modelUrl: string
@@ -23,7 +23,7 @@ const props = defineProps<{
   live2dOffsetY?: number
 }>()
 
-const SNAPSHOT_CACHE_VERSION = 'v9-thumb-refit'
+const SNAPSHOT_CACHE_VERSION = 'v10-shared-layout'
 
 const canvasWidth = computed(() => props.width || props.size || 200)
 const canvasHeight = computed(() => props.height || props.size || 200)
@@ -296,47 +296,7 @@ const doRender = async (request: RenderRequest) => {
       model.y = layout.y
     }
 
-    const touchesEdge = () => {
-      try {
-        const pixels = app?.renderer?.plugins?.extract?.pixels?.() as Uint8Array | undefined
-        if (!pixels?.length) return false
-
-        const width = Math.max(
-          Number(canvas?.width)
-          || Number(app?.renderer?.width)
-          || Number(app?.renderer?.screen?.width)
-          || request.width,
-          1,
-        )
-        const height = Math.max(
-          Number(canvas?.height)
-          || Number(app?.renderer?.height)
-          || Number(app?.renderer?.screen?.height)
-          || request.height,
-          1,
-        )
-
-        return detectLive2DEdgeContact(pixels, width, height)
-      } catch {
-        return false
-      }
-    }
-
-    let autoFitScaleFactor = 1
-    for (let pass = 0; pass < 6; pass++) {
-      applyLayout(autoFitScaleFactor)
-      await waitFrames(1)
-      app.render()
-      await waitFrames(1)
-
-      if (!touchesEdge()) {
-        break
-      }
-
-      autoFitScaleFactor = Math.max(0.4, autoFitScaleFactor * 0.92)
-    }
-
-    applyLayout(autoFitScaleFactor)
+    applyLayout(1)
 
     // Give WebGL one full paint cycle before reading the canvas buffer.
     await waitFrames(2)

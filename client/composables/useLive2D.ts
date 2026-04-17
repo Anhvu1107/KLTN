@@ -7,7 +7,7 @@ import type { MaybeRefOrGetter, Ref } from 'vue'
 import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
 import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
 import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
-import { computeLive2DLayout, detectLive2DEdgeContact, getLive2DRenderBounds } from '~/utils/live2d-layout'
+import { computeLive2DLayout, getLive2DRenderBounds } from '~/utils/live2d-layout'
 import {
   buildCommonLive2DBehaviorProfile,
   loadLive2DMotionCatalog,
@@ -59,7 +59,6 @@ export function useLive2D(
   let initToken = 0
   let resizeObserver: ResizeObserver | null = null
   let idleMotionTimer: ReturnType<typeof setTimeout> | null = null
-  let autoFitScaleFactor = 1
   let baseModelX = 0
   let baseModelY = 0
   let ambientPhase = Math.random() * Math.PI * 2
@@ -150,7 +149,6 @@ export function useLive2D(
     }
 
     resetBehaviorProfile()
-    autoFitScaleFactor = 1
     baseModelX = 0
     baseModelY = 0
     ambientPhase = Math.random() * Math.PI * 2
@@ -205,7 +203,7 @@ export function useLive2D(
       viewportHeight: screenH,
       bounds,
       fitMode: resolvedFitMode.value,
-      customScale: resolvedLive2DScale.value * autoFitScaleFactor,
+      customScale: resolvedLive2DScale.value,
       customOffsetY: resolvedLive2DOffsetY.value,
     })
 
@@ -239,64 +237,6 @@ export function useLive2D(
     }
 
     return false
-  }
-
-  const rendererTouchesEdge = () => {
-    try {
-      const pixels = app?.renderer?.plugins?.extract?.pixels?.() as Uint8Array | undefined
-      if (!pixels?.length) return false
-
-      const width = Math.max(
-        Number(canvasRef.value?.width)
-        || Number(app?.renderer?.width)
-        || Number(app?.renderer?.screen?.width)
-        || 0,
-        1,
-      )
-      const height = Math.max(
-        Number(canvasRef.value?.height)
-        || Number(app?.renderer?.height)
-        || Number(app?.renderer?.screen?.height)
-        || 0,
-        1,
-      )
-
-      return detectLive2DEdgeContact(pixels, width, height)
-    } catch {
-      return false
-    }
-  }
-
-  const autoFitModelToViewport = async (token: number, { reset = false } = {}) => {
-    if (!app || !model || isUnmounted || token !== initToken) return
-
-    if (reset) {
-      autoFitScaleFactor = 1
-    }
-
-    suspendAmbientMotion = true
-    try {
-      for (let pass = 0; pass < 6; pass++) {
-        if (!app || !model || isUnmounted || token !== initToken) return
-
-        layoutModel()
-        app.render()
-        await waitFrames(1)
-
-        if (!rendererTouchesEdge()) {
-          break
-        }
-
-        autoFitScaleFactor = Math.max(0.4, autoFitScaleFactor * 0.92)
-      }
-
-      if (!app || !model || isUnmounted || token !== initToken) return
-      layoutModel()
-      app.render()
-    } finally {
-      suspendAmbientMotion = false
-      applyAmbientTransform()
-    }
   }
 
   const verifyVisibleFrame = async (token: number) => {
@@ -334,9 +274,6 @@ export function useLive2D(
 
     resizeObserver = new ResizeObserver(() => {
       resize()
-      if (!isUnmounted && model && app) {
-        void autoFitModelToViewport(initToken, { reset: false })
-      }
     })
     resizeObserver.observe(canvasRef.value)
   }
@@ -455,8 +392,11 @@ export function useLive2D(
       })
 
       app.stage.addChild(model)
-      autoFitScaleFactor = 1
-      await autoFitModelToViewport(token, { reset: true })
+      suspendAmbientMotion = true
+      layoutModel()
+      app.render()
+      suspendAmbientMotion = false
+      applyAmbientTransform()
 
       const motionMgr = model.internalModel.motionManager
       const runtimeMotionDefinitions = motionMgr?.definitions || {}
@@ -757,11 +697,6 @@ export function useLive2D(
       if (!import.meta.client || isUnmounted) return
       nextTick(() => {
         resize()
-        if (model && app) {
-          void autoFitModelToViewport(initToken, { reset: true })
-          return
-        }
-
         app?.render?.()
       })
     },

@@ -41,11 +41,12 @@ function normalizeVoiceString(value, fallback) {
 }
 
 function clampVoiceNumber(value, min, max, fallback) {
-    if (typeof value !== 'number' || Number.isNaN(value)) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
         return fallback;
     }
 
-    return Math.min(max, Math.max(min, value));
+    return Math.min(max, Math.max(min, parsed));
 }
 
 function normalizeVoiceSettings(config = {}) {

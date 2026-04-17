@@ -141,13 +141,13 @@ const onClick = () => {
         'drop-shadow-[0_10px_24px_rgba(16,185,129,0.24)]': isHovered,
       }"
     >
-      <div class="live2d-mascot__stage absolute inset-0 overflow-visible bg-transparent">
+      <div class="live2d-mascot__stage absolute inset-0 overflow-hidden bg-transparent">
         <Live2DSnapshot
           v-if="!isModelReady"
           :key="`mascot-static-${configuredModelUrl}-${live2dScale}-${live2dOffsetY}`"
           :model-url="configuredModelUrl"
-          :width="448"
-          :height="640"
+          :width="224"
+          :height="320"
           fit-mode="mascot"
           :live2d-scale="live2dScale"
           :live2d-offset-y="live2dOffsetY"
@@ -158,8 +158,8 @@ const onClick = () => {
       <!-- Canvas -->
       <canvas
         ref="mascotCanvas"
-        width="448"
-        height="640"
+        width="224"
+        height="320"
         class="live2d-mascot__canvas relative z-10 w-full h-full bg-transparent"
         :class="{
           'opacity-0': isLoading || !(isModelReady || hasVisibleFrame),
