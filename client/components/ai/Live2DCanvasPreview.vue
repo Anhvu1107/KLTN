@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   modelUrl: string
+  fitMode?: 'contain' | 'mascot'
   live2dScale?: number
   live2dOffsetY?: number
 }>()
@@ -15,6 +16,7 @@ const {
   handleTap,
 } = useLive2D(canvas, {
   modelUrl: computed(() => props.modelUrl),
+  fitMode: computed(() => props.fitMode || 'contain'),
   live2dScale: computed(() => props.live2dScale ?? 1.0),
   live2dOffsetY: computed(() => props.live2dOffsetY ?? 0),
 })
@@ -28,9 +30,11 @@ const {
   >
     <Live2DSnapshot
       v-if="!hasVisibleFrame"
-      :key="`preview-static-${props.modelUrl}-${props.live2dScale ?? 1}-${props.live2dOffsetY ?? 0}`"
+      :key="`preview-static-${props.modelUrl}-${props.fitMode || 'contain'}-${props.live2dScale ?? 1}-${props.live2dOffsetY ?? 0}`"
       :model-url="props.modelUrl"
-      :size="260"
+      :width="448"
+      :height="640"
+      :fit-mode="props.fitMode || 'contain'"
       :live2d-scale="props.live2dScale ?? 1"
       :live2d-offset-y="props.live2dOffsetY ?? 0"
       class="absolute inset-0 z-0 h-full w-full bg-transparent"

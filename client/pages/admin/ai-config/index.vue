@@ -1377,13 +1377,14 @@ useSeoMeta({
             </div>
 
             <div class="px-6 py-5">
-              <div class="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.24),_transparent_55%),linear-gradient(180deg,_rgba(255,255,255,0.03),_rgba(255,255,255,0.01))] min-h-[280px] px-5 py-6 flex flex-col items-center justify-center">
+              <div class="rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.24),_transparent_55%),linear-gradient(180deg,_rgba(255,255,255,0.03),_rgba(255,255,255,0.01))] min-h-[360px] px-5 py-6 flex flex-col items-center justify-center">
                 <!-- Character live preview -->
-                <div class="w-full max-w-[220px] h-[240px] rounded-[28px] border border-white/10 bg-white/[0.04] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div class="h-80 w-56 rounded-[28px] border border-white/10 bg-white/[0.04] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <Live2DCanvasPreview
                     v-if="selectedCharacterPreset.modelUrl"
                     :key="`${selectedCharacterPreset.modelUrl}-${voiceConfig.live2dScale}-${voiceConfig.live2dOffsetY}`"
                     :model-url="selectedCharacterPreset.modelUrl"
+                    fit-mode="mascot"
                     :live2d-scale="voiceConfig.live2dScale"
                     :live2d-offset-y="voiceConfig.live2dOffsetY"
                     class="w-full h-full"

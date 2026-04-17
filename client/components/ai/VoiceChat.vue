@@ -1559,7 +1559,8 @@ onMounted(() => {
           <Live2DSnapshot
             :key="`voice-static-${live2dModelUrl}`"
             :model-url="live2dModelUrl"
-            :size="440"
+            :width="440"
+            :height="520"
             :live2d-scale="live2dScale"
             :live2d-offset-y="live2dOffsetY"
             class="h-full w-full bg-transparent"

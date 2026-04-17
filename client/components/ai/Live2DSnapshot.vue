@@ -15,13 +15,18 @@ import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
 const props = defineProps<{
   modelUrl: string
   size?: number
+  width?: number
+  height?: number
+  fitMode?: 'contain' | 'mascot'
   live2dScale?: number
   live2dOffsetY?: number
 }>()
 
 const SNAPSHOT_CACHE_VERSION = 'v6-transparent-edge-cleanup'
 
-const canvasSize = computed(() => props.size || 200)
+const canvasWidth = computed(() => props.width || props.size || 200)
+const canvasHeight = computed(() => props.height || props.size || 200)
+const snapshotFitMode = computed(() => props.fitMode || 'contain')
 const snapshotScale = computed(() => {
   const scale = Number(props.live2dScale ?? 1)
   return Number.isFinite(scale) ? scale : 1
@@ -39,7 +44,16 @@ const resolvedUrl = computed(() => {
 })
 
 const cacheKey = computed(() =>
-  `${SNAPSHOT_CACHE_VERSION}:live2d_snap_${resolvedUrl.value}_${snapshotScale.value}_${snapshotOffsetY.value}`,
+  [
+    SNAPSHOT_CACHE_VERSION,
+    'live2d_snap',
+    resolvedUrl.value,
+    canvasWidth.value,
+    canvasHeight.value,
+    snapshotFitMode.value,
+    snapshotScale.value,
+    snapshotOffsetY.value,
+  ].join(':'),
 )
 
 // ---------------------------------------------------------------------------
@@ -218,7 +232,9 @@ type RenderRequest = {
   cacheKey: string
   modelUrl: string
   resolvedUrl: string
-  size: number
+  width: number
+  height: number
+  fitMode: 'contain' | 'mascot'
   live2dScale: number
   live2dOffsetY: number
 }
@@ -252,8 +268,8 @@ const doRender = async (request: RenderRequest) => {
     // Create a temporary DOM-attached canvas (required for WebGL)
     canvas = document.createElement('canvas')
     canvas.style.cssText = 'position:fixed;top:-9999px;left:-9999px;pointer-events:none;opacity:0;background:transparent;'
-    canvas.style.width = `${request.size}px`
-    canvas.style.height = `${request.size}px`
+    canvas.style.width = `${request.width}px`
+    canvas.style.height = `${request.height}px`
     document.body.appendChild(canvas)
 
     app = new PIXI.Application({
@@ -264,8 +280,8 @@ const doRender = async (request: RenderRequest) => {
       clearBeforeRender: true,
       useContextAlpha: 'notMultiplied',
       premultipliedAlpha: false,
-      width: request.size,
-      height: request.size,
+      width: request.width,
+      height: request.height,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
       antialias: true,
@@ -284,10 +300,12 @@ const doRender = async (request: RenderRequest) => {
 
     app.stage.addChild(model)
 
-    const screenW = Math.max(app.renderer.screen.width || request.size, 1)
-    const screenH = Math.max(app.renderer.screen.height || request.size, 1)
+    const screenW = Math.max(app.renderer.screen.width || request.width, 1)
+    const screenH = Math.max(app.renderer.screen.height || request.height, 1)
     const bounds = getModelRenderBounds(model)
-    const baseScale = Math.max(0.01, Math.min((screenW * 0.84) / bounds.width, (screenH * 0.84) / bounds.height))
+    const maxWidth = screenW * (request.fitMode === 'mascot' ? 0.92 : 0.84)
+    const maxHeight = screenH * (request.fitMode === 'mascot' ? 0.92 : 0.84)
+    const baseScale = Math.max(0.01, Math.min(maxWidth / bounds.width, maxHeight / bounds.height))
     const scale = baseScale * request.live2dScale
 
     model.anchor?.set?.(0.5, 0.5)
@@ -345,7 +363,9 @@ const requestRender = () => {
     cacheKey: cacheKey.value,
     modelUrl: props.modelUrl,
     resolvedUrl: resolvedUrl.value,
-    size: canvasSize.value,
+    width: canvasWidth.value,
+    height: canvasHeight.value,
+    fitMode: snapshotFitMode.value,
     live2dScale: snapshotScale.value,
     live2dOffsetY: snapshotOffsetY.value,
   }
@@ -366,7 +386,7 @@ const requestRender = () => {
   enqueueRender(() => doRender(request))
 }
 
-watch([resolvedUrl, canvasSize, snapshotScale, snapshotOffsetY], () => {
+watch([resolvedUrl, canvasWidth, canvasHeight, snapshotFitMode, snapshotScale, snapshotOffsetY], () => {
   requestRender()
 })
 
