@@ -397,6 +397,15 @@ onMounted(() => {
   requestRender()
 })
 
+const handleImageError = () => {
+  console.warn('[Live2D] Snapshot image failed to decode, clearing corrupt cache')
+  hasError.value = true
+  snapshotUrl.value = ''
+  try {
+    sessionStorage.removeItem(getCacheKey(resolvedUrl.value))
+  } catch {}
+}
+
 onBeforeUnmount(() => {
   latestRequestId++
 })
@@ -404,12 +413,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="live2d-snapshot w-full h-full bg-transparent">
-    <!-- Captured snapshot -->
     <img
       v-if="snapshotUrl"
       :src="snapshotUrl"
       :alt="modelUrl"
       class="w-full h-full object-contain"
+      @error="handleImageError"
     />
 
     <!-- Loading state -->
