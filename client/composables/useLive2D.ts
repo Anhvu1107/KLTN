@@ -41,6 +41,14 @@ export function useLive2D(
     resolveModelUrl(toValue(options.fallbackModelUrl) || DEFAULT_LIVE2D_MODEL_URL),
   )
   const resolvedFitMode = computed(() => toValue(options.fitMode) || 'contain')
+  const resolvedLive2DScale = computed(() => {
+    const scale = Number(toValue(options.live2dScale) ?? 1)
+    return Number.isFinite(scale) ? scale : 1
+  })
+  const resolvedLive2DOffsetY = computed(() => {
+    const offsetY = Number(toValue(options.live2dOffsetY) ?? 0)
+    return Number.isFinite(offsetY) ? offsetY : 0
+  })
 
   let app: any = null
   let model: any = null
@@ -169,8 +177,8 @@ export function useLive2D(
     const maxWidth = screenW * (fitMode === 'mascot' ? 0.92 : 0.86)
     const maxHeight = screenH * (fitMode === 'mascot' ? 0.92 : 0.88)
     
-    const customScale = toValue(options.live2dScale) ?? 1.0
-    const customOffsetY = toValue(options.live2dOffsetY) ?? 0
+    const customScale = resolvedLive2DScale.value
+    const customOffsetY = resolvedLive2DOffsetY.value
 
     const baseScale = Math.max(0.01, Math.min(maxWidth / modelSize.width, maxHeight / modelSize.height))
     const finalScale = baseScale * customScale
@@ -621,6 +629,18 @@ export function useLive2D(
 
       nextTick(() => init({ force: true }))
     },
+  )
+
+  watch(
+    [resolvedFitMode, resolvedLive2DScale, resolvedLive2DOffsetY],
+    () => {
+      if (!import.meta.client || isUnmounted) return
+      nextTick(() => {
+        resize()
+        app?.render?.()
+      })
+    },
+    { flush: 'post' },
   )
 
   onMounted(() => {

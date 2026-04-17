@@ -11,6 +11,7 @@ const emit = defineEmits<{
   click: []
 }>()
 
+const VOICE_CONFIG_UPDATED_KEY = 'aura_voice_config_updated_at'
 const mascotCanvas = ref<HTMLCanvasElement | null>(null)
 const isHovered = ref(false)
 
@@ -61,11 +62,26 @@ const loadConfiguredModel = async () => {
 onMounted(() => {
   loadConfiguredModel()
   window.addEventListener('focus', loadConfiguredModel)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  window.addEventListener('storage', handleVoiceConfigStorage)
 })
 
 onUnmounted(() => {
   window.removeEventListener('focus', loadConfiguredModel)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  window.removeEventListener('storage', handleVoiceConfigStorage)
 })
+
+const handleVisibilityChange = () => {
+  if (!document.hidden) {
+    loadConfiguredModel()
+  }
+}
+
+const handleVoiceConfigStorage = (event: StorageEvent) => {
+  if (event.key !== VOICE_CONFIG_UPDATED_KEY) return
+  loadConfiguredModel()
+}
 
 const {
   isModelReady,
@@ -132,6 +148,8 @@ const onClick = () => {
           :key="`mascot-static-${configuredModelUrl}`"
           :model-url="configuredModelUrl"
           :size="448"
+          :live2d-scale="live2dScale"
+          :live2d-offset-y="live2dOffsetY"
           class="live2d-mascot__snapshot w-full h-full bg-transparent"
         />
       </div>

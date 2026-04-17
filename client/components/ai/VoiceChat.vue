@@ -94,6 +94,7 @@ const {
   live2dScale,
   live2dOffsetY,
 })
+let pendingAnimation: string | null = null
 
 // Audio refs
 let websocket: WebSocket | null = null
@@ -995,7 +996,10 @@ const handleToolCall = async (toolCall: any) => {
  * Trigger Live2D animation by name
  */
 const triggerAnimation = (animation: string) => {
-  if (!isModelReady.value) return
+  if (!isModelReady.value) {
+    pendingAnimation = animation
+    return
+  }
 
   switch (animation) {
     case 'wave':
@@ -1277,8 +1281,7 @@ const cueSalesEnergy = (text: string) => {
   }
 }
 
-// Watch state changes to trigger Live2D animations
-watch(state, (newState, oldState) => {
+const applyVoiceStateAnimation = (newState: VoiceState, oldState?: VoiceState) => {
   if (!isModelReady.value) return
 
   switch (newState) {
@@ -1309,6 +1312,22 @@ watch(state, (newState, oldState) => {
       playIdle()
       break
   }
+}
+
+// Watch state changes to trigger Live2D animations
+watch(state, applyVoiceStateAnimation)
+
+watch(isModelReady, (ready) => {
+  if (!ready) return
+
+  if (pendingAnimation) {
+    const animation = pendingAnimation
+    pendingAnimation = null
+    triggerAnimation(animation)
+    return
+  }
+
+  applyVoiceStateAnimation(state.value)
 })
 
 watch(aiTranscript, (text) => {
@@ -1541,6 +1560,8 @@ onMounted(() => {
             :key="`voice-static-${live2dModelUrl}`"
             :model-url="live2dModelUrl"
             :size="440"
+            :live2d-scale="live2dScale"
+            :live2d-offset-y="live2dOffsetY"
             class="h-full w-full bg-transparent"
           />
         </div>

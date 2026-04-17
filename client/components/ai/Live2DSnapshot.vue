@@ -15,11 +15,21 @@ import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
 const props = defineProps<{
   modelUrl: string
   size?: number
+  live2dScale?: number
+  live2dOffsetY?: number
 }>()
 
 const SNAPSHOT_CACHE_VERSION = 'v6-transparent-edge-cleanup'
 
 const canvasSize = computed(() => props.size || 200)
+const snapshotScale = computed(() => {
+  const scale = Number(props.live2dScale ?? 1)
+  return Number.isFinite(scale) ? scale : 1
+})
+const snapshotOffsetY = computed(() => {
+  const offsetY = Number(props.live2dOffsetY ?? 0)
+  return Number.isFinite(offsetY) ? offsetY : 0
+})
 const snapshotUrl = ref<string | null>(null)
 const isRendering = ref(false)
 const hasError = ref(false)
@@ -28,7 +38,9 @@ const resolvedUrl = computed(() => {
   return resolveLive2DAssetUrl(props.modelUrl) || props.modelUrl
 })
 
-const cacheKey = computed(() => `${SNAPSHOT_CACHE_VERSION}:live2d_snap_${resolvedUrl.value}`)
+const cacheKey = computed(() =>
+  `${SNAPSHOT_CACHE_VERSION}:live2d_snap_${resolvedUrl.value}_${snapshotScale.value}_${snapshotOffsetY.value}`,
+)
 
 // ---------------------------------------------------------------------------
 // Global sequential render queue (shared across all instances)
@@ -207,6 +219,8 @@ type RenderRequest = {
   modelUrl: string
   resolvedUrl: string
   size: number
+  live2dScale: number
+  live2dOffsetY: number
 }
 
 const doRender = async (request: RenderRequest) => {
@@ -273,12 +287,13 @@ const doRender = async (request: RenderRequest) => {
     const screenW = Math.max(app.renderer.screen.width || request.size, 1)
     const screenH = Math.max(app.renderer.screen.height || request.size, 1)
     const bounds = getModelRenderBounds(model)
-    const scale = Math.max(0.01, Math.min((screenW * 0.84) / bounds.width, (screenH * 0.84) / bounds.height))
+    const baseScale = Math.max(0.01, Math.min((screenW * 0.84) / bounds.width, (screenH * 0.84) / bounds.height))
+    const scale = baseScale * request.live2dScale
 
     model.anchor?.set?.(0.5, 0.5)
     model.scale.set(scale)
     model.x = screenW / 2
-    model.y = screenH / 2
+    model.y = (screenH / 2) + request.live2dOffsetY
 
     // Give WebGL one full paint cycle before reading the canvas buffer.
     await waitFrames(2)
@@ -331,6 +346,8 @@ const requestRender = () => {
     modelUrl: props.modelUrl,
     resolvedUrl: resolvedUrl.value,
     size: canvasSize.value,
+    live2dScale: snapshotScale.value,
+    live2dOffsetY: snapshotOffsetY.value,
   }
 
   const cached = readCachedSnapshot(request.cacheKey)
@@ -349,7 +366,7 @@ const requestRender = () => {
   enqueueRender(() => doRender(request))
 }
 
-watch([resolvedUrl, canvasSize], () => {
+watch([resolvedUrl, canvasSize, snapshotScale, snapshotOffsetY], () => {
   requestRender()
 })
 

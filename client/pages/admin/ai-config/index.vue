@@ -27,6 +27,7 @@ type StoredPrompt = {
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const { getToken } = useAuthToken()
+const VOICE_CONFIG_UPDATED_KEY = 'aura_voice_config_updated_at'
 
 const activeTab = ref<TabKey>('prompt')
 const isSaving = ref(false)
@@ -203,6 +204,10 @@ const saveVoiceData = async () => {
       description: 'Voice chat configuration (JSON). Controls voice, Live2D character, and realtime call behavior.',
     },
   })
+
+  if (import.meta.client) {
+    localStorage.setItem(VOICE_CONFIG_UPDATED_KEY, String(Date.now()))
+  }
 }
 
 const queueVoiceAutoSave = () => {
