@@ -47,6 +47,9 @@ const voiceSettings = ref<VoiceConfig>(cloneDefaultVoiceConfig())
 const live2dModelUrl = computed(() => voiceSettings.value.live2dModelUrl)
 const live2dScale = computed(() => voiceSettings.value.live2dScale)
 const live2dOffsetY = computed(() => voiceSettings.value.live2dOffsetY)
+const live2dSnapshotWidth = computed(() => (isMinimized.value ? 448 : 440))
+const live2dSnapshotHeight = computed(() => (isMinimized.value ? 640 : 520))
+const live2dSnapshotFitMode = computed<'contain' | 'mascot'>(() => (isMinimized.value ? 'mascot' : 'contain'))
 const voiceCharacterName = computed(() => voiceSettings.value.characterName || 'AURA')
 const voiceCharacterSubtitle = computed(() => voiceSettings.value.characterSubtitle || 'AI Stylist Voice Call')
 const voiceHintText = computed(() => voiceSettings.value.hintText || 'Nói bất cứ điều gì để bắt đầu tư vấn')
@@ -1557,10 +1560,11 @@ onMounted(() => {
             : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px]'"
         >
           <Live2DSnapshot
-            :key="`voice-static-${live2dModelUrl}`"
+            :key="`voice-static-${live2dModelUrl}-${live2dSnapshotWidth}-${live2dSnapshotHeight}-${live2dSnapshotFitMode}-${live2dScale}-${live2dOffsetY}`"
             :model-url="live2dModelUrl"
-            :width="440"
-            :height="520"
+            :width="live2dSnapshotWidth"
+            :height="live2dSnapshotHeight"
+            :fit-mode="live2dSnapshotFitMode"
             :live2d-scale="live2dScale"
             :live2d-offset-y="live2dOffsetY"
             class="h-full w-full bg-transparent"

@@ -1381,9 +1381,9 @@ useSeoMeta({
                 <!-- Character live preview -->
                 <div class="h-80 w-56 rounded-[28px] border border-white/10 bg-white/[0.04] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <Live2DCanvasPreview
-                    v-if="selectedCharacterPreset.modelUrl"
-                    :key="`${selectedCharacterPreset.modelUrl}-${voiceConfig.live2dScale}-${voiceConfig.live2dOffsetY}`"
-                    :model-url="selectedCharacterPreset.modelUrl"
+                    v-if="voiceConfig.live2dModelUrl"
+                    :key="`${voiceConfig.live2dModelUrl}-${voiceConfig.live2dScale}-${voiceConfig.live2dOffsetY}`"
+                    :model-url="voiceConfig.live2dModelUrl"
                     fit-mode="mascot"
                     :live2d-scale="voiceConfig.live2dScale"
                     :live2d-offset-y="voiceConfig.live2dOffsetY"

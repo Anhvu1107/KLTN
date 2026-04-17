@@ -7,6 +7,7 @@ import type { MaybeRefOrGetter, Ref } from 'vue'
 import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
 import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
 import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
+import { computeLive2DLayout, getLive2DRenderBounds } from '~/utils/live2d-layout'
 import {
   buildCommonLive2DBehaviorProfile,
   loadLive2DModelDefinition,
@@ -138,55 +139,24 @@ export function useLive2D(
     return { width, height }
   }
 
-  const getModelIntrinsicSize = () => {
-    const internalWidth = Number(model?.internalModel?.width) || 0
-    const internalHeight = Number(model?.internalModel?.height) || 0
-
-    if (internalWidth > 0 && internalHeight > 0) {
-      return {
-        width: internalWidth,
-        height: internalHeight,
-      }
-    }
-
-    try {
-      const bounds = model?.getLocalBounds?.()
-      if (bounds?.width && bounds?.height) {
-        return {
-          width: Math.max(bounds.width, 1),
-          height: Math.max(bounds.height, 1),
-        }
-      }
-    } catch {
-      // Pixi bounds can be unavailable before the first render.
-    }
-
-    return {
-      width: Math.max(Number(model?.width) || 1, 1),
-      height: Math.max(Number(model?.height) || 1, 1),
-    }
-  }
-
   const layoutModel = () => {
     if (!model || !app) return
 
     const screenW = Math.max(app.renderer.screen.width || canvasRef.value?.clientWidth || 320, 1)
     const screenH = Math.max(app.renderer.screen.height || canvasRef.value?.clientHeight || 400, 1)
-    const modelSize = getModelIntrinsicSize()
-    const fitMode = resolvedFitMode.value
-    const maxWidth = screenW * (fitMode === 'mascot' ? 0.92 : 0.86)
-    const maxHeight = screenH * (fitMode === 'mascot' ? 0.92 : 0.88)
-    
-    const customScale = resolvedLive2DScale.value
-    const customOffsetY = resolvedLive2DOffsetY.value
+    const bounds = getLive2DRenderBounds(model)
+    const layout = computeLive2DLayout({
+      viewportWidth: screenW,
+      viewportHeight: screenH,
+      bounds,
+      fitMode: resolvedFitMode.value,
+      customScale: resolvedLive2DScale.value,
+      customOffsetY: resolvedLive2DOffsetY.value,
+    })
 
-    const baseScale = Math.max(0.01, Math.min(maxWidth / modelSize.width, maxHeight / modelSize.height))
-    const finalScale = baseScale * customScale
-
-    model.anchor?.set?.(0.5, 0.5)
-    model.scale.set(finalScale)
-    model.x = screenW / 2
-    model.y = (screenH / 2) + customOffsetY
+    model.scale.set(layout.scale)
+    model.x = layout.x
+    model.y = layout.y
   }
 
   const waitFrames = async (count = 1) => {

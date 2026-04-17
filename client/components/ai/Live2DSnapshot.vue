@@ -11,6 +11,7 @@
 
 import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
 import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
+import { computeLive2DLayout, getLive2DRenderBounds } from '~/utils/live2d-layout'
 
 const props = defineProps<{
   modelUrl: string
@@ -22,7 +23,7 @@ const props = defineProps<{
   live2dOffsetY?: number
 }>()
 
-const SNAPSHOT_CACHE_VERSION = 'v6-transparent-edge-cleanup'
+const SNAPSHOT_CACHE_VERSION = 'v7-shared-layout'
 
 const canvasWidth = computed(() => props.width || props.size || 200)
 const canvasHeight = computed(() => props.height || props.size || 200)
@@ -93,29 +94,6 @@ function enqueueRender(task: () => Promise<void>) {
 const waitFrames = async (count = 2) => {
   for (let i = 0; i < count; i++) {
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
-  }
-}
-
-const getModelRenderBounds = (model: any) => {
-  try {
-    const bounds = model?.getLocalBounds?.()
-    if (bounds?.width && bounds?.height) {
-      return {
-        x: Number(bounds.x) || 0,
-        y: Number(bounds.y) || 0,
-        width: Math.max(Number(bounds.width) || 1, 1),
-        height: Math.max(Number(bounds.height) || 1, 1),
-      }
-    }
-  } catch {
-    // Bounds can be unavailable until the model finishes its first layout pass.
-  }
-
-  return {
-    x: 0,
-    y: 0,
-    width: Math.max(Number(model?.internalModel?.width) || Number(model?.width) || 1, 1),
-    height: Math.max(Number(model?.internalModel?.height) || Number(model?.height) || 1, 1),
   }
 }
 
@@ -300,18 +278,27 @@ const doRender = async (request: RenderRequest) => {
 
     app.stage.addChild(model)
 
-    const screenW = Math.max(app.renderer.screen.width || request.width, 1)
-    const screenH = Math.max(app.renderer.screen.height || request.height, 1)
-    const bounds = getModelRenderBounds(model)
-    const maxWidth = screenW * (request.fitMode === 'mascot' ? 0.92 : 0.84)
-    const maxHeight = screenH * (request.fitMode === 'mascot' ? 0.92 : 0.84)
-    const baseScale = Math.max(0.01, Math.min(maxWidth / bounds.width, maxHeight / bounds.height))
-    const scale = baseScale * request.live2dScale
+    const applyLayout = () => {
+      const screenW = Math.max(app.renderer.screen.width || request.width, 1)
+      const screenH = Math.max(app.renderer.screen.height || request.height, 1)
+      const bounds = getLive2DRenderBounds(model)
+      const layout = computeLive2DLayout({
+        viewportWidth: screenW,
+        viewportHeight: screenH,
+        bounds,
+        fitMode: request.fitMode,
+        customScale: request.live2dScale,
+        customOffsetY: request.live2dOffsetY,
+      })
 
-    model.anchor?.set?.(0.5, 0.5)
-    model.scale.set(scale)
-    model.x = screenW / 2
-    model.y = (screenH / 2) + request.live2dOffsetY
+      model.scale.set(layout.scale)
+      model.x = layout.x
+      model.y = layout.y
+    }
+
+    applyLayout()
+    await waitFrames(1)
+    applyLayout()
 
     // Give WebGL one full paint cycle before reading the canvas buffer.
     await waitFrames(2)

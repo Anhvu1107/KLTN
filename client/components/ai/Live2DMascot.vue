@@ -21,6 +21,12 @@ const configuredModelUrl = ref(DEFAULT_LIVE2D_MODEL_URL)
 const live2dScale = ref(1.0)
 const live2dOffsetY = ref(0)
 
+const clampVoiceNumber = (value: unknown, min: number, max: number, fallback: number) => {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.min(max, Math.max(min, parsed))
+}
+
 const loadConfiguredModel = async () => {
   try {
     const res = await $fetch<{
@@ -28,14 +34,14 @@ const loadConfiguredModel = async () => {
       data?: {
         voiceSettings?: {
           live2dModelUrl?: string
-          live2dScale?: number
-          live2dOffsetY?: number
+          live2dScale?: number | string
+          live2dOffsetY?: number | string
         }
       }
       voiceSettings?: {
         live2dModelUrl?: string
-        live2dScale?: number
-        live2dOffsetY?: number
+        live2dScale?: number | string
+        live2dOffsetY?: number | string
       }
     }>(`${config.public.apiUrl}/chat/voice-settings?t=${Date.now()}`, {
       cache: 'no-store',
@@ -47,13 +53,9 @@ const loadConfiguredModel = async () => {
     if (nextModelUrl) {
       configuredModelUrl.value = nextModelUrl
     }
-    
-    if (typeof settings?.live2dScale === 'number') {
-      live2dScale.value = settings.live2dScale
-    }
-    if (typeof settings?.live2dOffsetY === 'number') {
-      live2dOffsetY.value = settings.live2dOffsetY
-    }
+
+    live2dScale.value = clampVoiceNumber(settings?.live2dScale, 0.1, 5, 1)
+    live2dOffsetY.value = clampVoiceNumber(settings?.live2dOffsetY, -1000, 1000, 0)
   } catch {
     // Fallback to default on error
   }
@@ -139,13 +141,13 @@ const onClick = () => {
     <div
       class="relative w-56 h-80 transition-all duration-300"
       :class="{
-        'scale-105': isHovered,
+        'drop-shadow-[0_10px_24px_rgba(16,185,129,0.24)]': isHovered,
       }"
     >
       <div class="live2d-mascot__stage absolute inset-0 overflow-visible bg-transparent">
         <Live2DSnapshot
           v-if="!hasVisibleFrame"
-          :key="`mascot-static-${configuredModelUrl}`"
+          :key="`mascot-static-${configuredModelUrl}-${live2dScale}-${live2dOffsetY}`"
           :model-url="configuredModelUrl"
           :width="448"
           :height="640"
