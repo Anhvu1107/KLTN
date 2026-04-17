@@ -100,7 +100,12 @@ const waitFrames = async (count = 2) => {
 
 const readCachedSnapshot = (key: string) => {
   try {
-    return sessionStorage.getItem(key)
+    const cached = sessionStorage.getItem(key)
+    // A valid base64 PNG data URL should be significantly longer than 'data:,'
+    if (cached && cached.length > 50 && cached.startsWith('data:image/')) {
+      return cached
+    }
+    return null
   } catch {
     return null
   }
@@ -310,6 +315,10 @@ const doRender = async (request: RenderRequest) => {
     // Capture canvas to data URL
     const dataUrl = captureTransparentSnapshot(canvas)
     if (request.requestId !== latestRequestId) return
+
+    if (!dataUrl || dataUrl.length < 50 || !dataUrl.startsWith('data:image/')) {
+      throw new Error('Captured snapshot data URL is invalid or empty')
+    }
 
     snapshotUrl.value = dataUrl
     hasError.value = false
