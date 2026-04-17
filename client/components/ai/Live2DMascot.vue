@@ -91,7 +91,6 @@ const {
   isLoading,
   playIdle,
   playGreeting,
-  playMotionByNumber,
   handlePointerMove,
 } = useLive2D(mascotCanvas, {
   modelUrl: configuredModelUrl,
@@ -108,13 +107,10 @@ watch(isModelReady, (ready) => {
   }
 })
 
-// Play random motion on hover
+// Keep hover response subtle so mascot framing remains stable.
 const onMouseEnter = () => {
   isHovered.value = true
-  if (isModelReady.value) {
-    const randomMotion = Math.ceil(Math.random() * 5) // M01-M05
-    playMotionByNumber(randomMotion)
-  }
+  if (isModelReady.value) playIdle()
 }
 
 const onMouseLeave = () => {
@@ -181,10 +177,10 @@ const onClick = () => {
 
       <!-- Chat prompt badge -->
       <div
-        class="absolute -top-4 -left-6 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap shadow-lg"
+        class="absolute -top-11 left-1/2 z-20 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap shadow-lg"
         :class="{
-          'border border-neutral-200 bg-white/95 text-neutral-800 scale-100': !isHovered,
-          'bg-emerald-500 text-white scale-110': isHovered,
+          'border border-neutral-200 bg-white/95 text-neutral-800': !isHovered,
+          'bg-emerald-500 text-white': isHovered,
         }"
       >
         {{ isHovered ? 'Tư vấn ngay! ✨' : 'Chào bạn 👋' }}
