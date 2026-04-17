@@ -587,7 +587,12 @@ export function useLive2D(
 
     if (!model || group === undefined || group === null || count === 0) return
 
-    const index = Math.floor(Math.random() * count)
+    // If we're using a large group of unclassified motions ("" group usually has all motions),
+    // we should only play index 0 (which is almost always the true idle motion),
+    // otherwise the model will spam random talk/action gestures when it should be idle.
+    const isUnclassifiedGroup = group === '' && count > 5
+    const index = isUnclassifiedGroup ? 0 : Math.floor(Math.random() * count)
+    
     setMood('soft')
     playMotion(group, index, 2)
   }
