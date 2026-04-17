@@ -59,6 +59,11 @@ export function useLive2D(
   let resizeObserver: ResizeObserver | null = null
   let idleMotionTimer: ReturnType<typeof setTimeout> | null = null
   let autoFitScaleFactor = 1
+  let baseModelX = 0
+  let baseModelY = 0
+  let ambientPhase = Math.random() * Math.PI * 2
+  let ambientTicker: ((delta: number) => void) | null = null
+  let suspendAmbientMotion = false
 
   // Track current lipsync target level; applied every frame via beforeModelUpdate.
   let currentLipLevel = 0
@@ -79,8 +84,51 @@ export function useLive2D(
     idleMotionTimer = null
   }
 
+  const removeAmbientTicker = () => {
+    if (!app || !ambientTicker) return
+    try {
+      app.ticker?.remove?.(ambientTicker)
+    } catch {
+      // Ignore ticker teardown errors.
+    }
+    ambientTicker = null
+  }
+
+  const applyAmbientTransform = () => {
+    if (!model || !app) return
+
+    if (suspendAmbientMotion) {
+      model.x = baseModelX
+      model.y = baseModelY
+      return
+    }
+
+    const screenHeight = Math.max(Number(app?.renderer?.screen?.height) || 400, 1)
+    const amplitudeY = Math.min(Math.max(screenHeight * 0.0075, 1.6), 4.5)
+    const amplitudeX = amplitudeY * 0.22
+    const offsetY = Math.sin(ambientPhase) * amplitudeY
+    const offsetX = Math.sin(ambientPhase * 0.62) * amplitudeX
+
+    model.x = baseModelX + offsetX
+    model.y = baseModelY + offsetY
+  }
+
+  const attachAmbientTicker = () => {
+    if (!app || ambientTicker) return
+
+    ambientTicker = (delta = 1) => {
+      if (!model || isUnmounted || !isModelReady.value) return
+
+      ambientPhase += 0.012 * Math.max(delta, 0.5)
+      applyAmbientTransform()
+    }
+
+    app.ticker?.add?.(ambientTicker)
+  }
+
   const destroyCurrentModel = () => {
     clearIdleMotionLoop()
+    removeAmbientTicker()
 
     if (model) {
       try {
@@ -102,6 +150,10 @@ export function useLive2D(
 
     resetBehaviorProfile()
     autoFitScaleFactor = 1
+    baseModelX = 0
+    baseModelY = 0
+    ambientPhase = Math.random() * Math.PI * 2
+    suspendAmbientMotion = false
     activeModelUrl = ''
     isModelReady.value = false
     hasVisibleFrame.value = false
@@ -157,8 +209,9 @@ export function useLive2D(
     })
 
     model.scale.set(layout.scale)
-    model.x = layout.x
-    model.y = layout.y
+    baseModelX = layout.x
+    baseModelY = layout.y
+    applyAmbientTransform()
   }
 
   const waitFrames = async (count = 1) => {
@@ -220,23 +273,29 @@ export function useLive2D(
       autoFitScaleFactor = 1
     }
 
-    for (let pass = 0; pass < 6; pass++) {
-      if (!app || !model || isUnmounted || token !== initToken) return
+    suspendAmbientMotion = true
+    try {
+      for (let pass = 0; pass < 6; pass++) {
+        if (!app || !model || isUnmounted || token !== initToken) return
 
-      layoutModel()
-      app.render()
-      await waitFrames(1)
+        layoutModel()
+        app.render()
+        await waitFrames(1)
 
-      if (!rendererTouchesEdge()) {
-        break
+        if (!rendererTouchesEdge()) {
+          break
+        }
+
+        autoFitScaleFactor = Math.max(0.4, autoFitScaleFactor * 0.92)
       }
 
-      autoFitScaleFactor = Math.max(0.4, autoFitScaleFactor * 0.92)
+      if (!app || !model || isUnmounted || token !== initToken) return
+      layoutModel()
+      app.render()
+    } finally {
+      suspendAmbientMotion = false
+      applyAmbientTransform()
     }
-
-    if (!app || !model || isUnmounted || token !== initToken) return
-    layoutModel()
-    app.render()
   }
 
   const verifyVisibleFrame = async (token: number) => {
@@ -399,6 +458,7 @@ export function useLive2D(
       await autoFitModelToViewport(token, { reset: true })
       activeModelUrl = modelUrl
       isModelReady.value = true
+      attachAmbientTicker()
       isLoading.value = false
       hasVisibleFrame.value = false
       errorMessage.value = ''
