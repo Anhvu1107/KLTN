@@ -45,32 +45,6 @@ export const patchPixiWebGL = (PIXI: any) => {
       }
     }
   }
-
-  // Patch 2: Handle WebGL context lost/restored gracefully
-  if (typeof document !== 'undefined') {
-    const handleContextLost = (e: Event) => {
-      console.warn('[Live2D] WebGL context lost, preventing default')
-      e.preventDefault()
-    }
-
-    // Attach to all current and future canvases
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const node of Array.from(mutation.addedNodes)) {
-          if (node instanceof HTMLCanvasElement) {
-            node.addEventListener('webglcontextlost', handleContextLost, false)
-          }
-        }
-      }
-    })
-
-    observer.observe(document.body, { childList: true, subtree: true })
-
-    // Patch existing canvases
-    document.querySelectorAll('canvas').forEach((canvas) => {
-      canvas.addEventListener('webglcontextlost', handleContextLost, false)
-    })
-  }
 }
 
 /**
