@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><body>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
+<canvas id="canvas" width="400" height="400"></canvas>
+<script>
+async function run() {
+  const app = new PIXI.Application({ view: document.getElementById('canvas') });
+  const model = await PIXI.live2d.Live2DModel.from('client/public/live2d/miku/miku_sample_t04.model3.json', { autoInteract: false });
+  app.stage.addChild(model);
+  
+  model.internalModel.motionManager.on('motionFinish', () => {
+    console.log('MOTION FINISH FIRED!');
+  });
+  
+  const success = await model.internalModel.motionManager.startMotion('Idle', 0, 2);
+  console.log('Started:', success);
+}
+run();
+</script>
+</body></html>

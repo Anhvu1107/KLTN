@@ -104,8 +104,10 @@ export function useLive2D(
     }
 
     const screenHeight = Math.max(Number(app?.renderer?.screen?.height) || 400, 1)
-    const amplitudeY = Math.min(Math.max(screenHeight * 0.0075, 1.6), 4.5)
-    const amplitudeX = amplitudeY * 0.22
+    
+    // Significantly increased amplitudes so subtle models (like Miku) still look actively floating and alive
+    const amplitudeY = Math.min(Math.max(screenHeight * 0.012, 4.0), 8.0) 
+    const amplitudeX = amplitudeY * 0.35
     const offsetY = Math.sin(ambientPhase) * amplitudeY
     const offsetX = Math.sin(ambientPhase * 0.62) * amplitudeX
 
@@ -116,11 +118,26 @@ export function useLive2D(
   const attachAmbientTicker = () => {
     if (!app || ambientTicker) return
 
+    let lastFocusChangeAt = 0
+
     ambientTicker = (delta = 1) => {
       if (!model || isUnmounted || !isModelReady.value) return
 
-      ambientPhase += 0.012 * Math.max(delta, 0.5)
+      ambientPhase += 0.015 * Math.max(delta, 0.5)
       applyAmbientTransform()
+
+      // Dynamically make the model look around every 2-4 seconds to look alive on touch devices
+      const now = Date.now()
+      if (now - lastFocusChangeAt > 3000) {
+        if (Math.random() > 0.4) {
+          const rx = (Math.random() * 2 - 1) * 300 // Simulate X tracking
+          const ry = (Math.random() * 2 - 1) * 300 // Simulate Y tracking
+          model.focus(rx, ry)
+        } else {
+          model.focus(0, 0) // Look forward
+        }
+        lastFocusChangeAt = now + Math.random() * 2000
+      }
     }
 
     app.ticker?.add?.(ambientTicker)
