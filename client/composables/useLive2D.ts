@@ -169,13 +169,24 @@ export function useLive2D(
     clearIdleMotionLoop()
     if (isUnmounted || !model || !isModelReady.value) return
 
+    // Fallback timer: in case motionFinish fails to fire or playIdle returns false
     idleMotionTimer = setTimeout(() => {
       idleMotionTimer = null
       if (isUnmounted || !model || !isModelReady.value) return
-
       playIdle()
-      scheduleIdleMotionLoop(7000 + Math.floor(Math.random() * 4500))
     }, delayMs)
+  }
+
+  const triggerNextIdle = () => {
+    // Only schedule the next idle if we are not destroyed
+    if (isUnmounted || !isModelReady.value) return
+    // Clear any fallback timers
+    clearIdleMotionLoop()
+    idleMotionTimer = setTimeout(() => {
+      idleMotionTimer = null
+      if (isUnmounted || !model || !isModelReady.value) return
+      playIdle()
+    }, 1000) // 1 second gap between natural idle loops
   }
 
   const getCanvasDisplaySize = (canvas: HTMLCanvasElement) => {
@@ -440,10 +451,22 @@ export function useLive2D(
         gestureMap: behaviorProfile.value.gestureMap,
       })
 
+      // Disable native idle loop since we handle it customly to support unclassified groups.
+      if (model.internalModel?.motionManager) {
+        // Prevent native loop from interfering
+        model.internalModel.motionManager.groups.idle = 'DISABLED_NATIVE_IDLE'
+        
+        // Listen to motion finish to cleanly resume idle looping
+        model.internalModel.motionManager.on('motionFinish', () => {
+          if (!isUnmounted && isModelReady.value) {
+            triggerNextIdle()
+          }
+        })
+      }
+
       setTimeout(() => {
         if (!isUnmounted && token === initToken) {
           playIdle()
-          scheduleIdleMotionLoop()
         }
       }, 500)
     } catch (error) {
@@ -486,8 +509,8 @@ export function useLive2D(
   /**
    * Play a motion by group and index.
    */
-  const playMotion = async (group: string, index = 0, priority = 3, retries = 1) => {
-    if (!model?.internalModel?.motionManager) return
+  const playMotion = async (group: string, index = 0, priority = 3, retries = 1): Promise<boolean> => {
+    if (!model?.internalModel?.motionManager) return false
 
     try {
       const motionManager = model.internalModel.motionManager
@@ -496,13 +519,15 @@ export function useLive2D(
         // Motion may need to be fetched on-demand; retry after a short delay.
         await new Promise(resolve => setTimeout(resolve, 600))
         if (!isUnmounted && isModelReady.value) {
-          await playMotion(group, index, priority, retries - 1)
+          return await playMotion(group, index, priority, retries - 1)
         }
-        return
+        return false
       }
       console.log(`[Live2D] Motion group='${group}', index=${index}, priority=${priority} -> ${success}`)
+      return success
     } catch (error) {
       console.warn('[Live2D] Motion error:', error)
+      return false
     }
   }
 
@@ -519,9 +544,9 @@ export function useLive2D(
     return selected
   }
 
-  const playGesture = (
-    gesture: CommonGesture | string,
-    options: { priority?: number; cooldownMs?: number; mood?: string; force?: boolean } = {},
+  const playGesture = async (
+    semanticGesture: CommonGesture,
+    options: { mood?: CommonMood, priority?: number, cooldownMs?: number, force?: boolean } = {},
   ) => {
     if (!model) return
 
@@ -540,31 +565,40 @@ export function useLive2D(
       setMood(options.mood)
     }
 
-    const semanticGesture = (gesture in behaviorProfile.value.gestureMap ? gesture : 'subtleTalk') as CommonGesture
-    const plan = behaviorProfile.value.gestureMap[semanticGesture]
+    const semanticGesturePlan = (semanticGesture in behaviorProfile.value.gestureMap ? semanticGesture : 'subtleTalk') as CommonGesture
+    const plan = behaviorProfile.value.gestureMap[semanticGesturePlan]
       || behaviorProfile.value.gestureMap.subtleTalk
 
-    if (!plan || plan.group === undefined || plan.group === null) return
+    if (!plan || plan.group === undefined || plan.group === null) {
+      await playRandomMotion(options.priority ?? 3)
+      return
+    }
 
     const motionCandidates = plan.motions?.length
       ? plan.motions.map(motion => ({ group: motion.group, index: motion.index }))
       : plan.indexes.map(index => ({ group: plan.group, index }))
 
-    if (!motionCandidates.length) return
+    if (!motionCandidates.length) {
+      await playRandomMotion(options.priority ?? 3)
+      return
+    }
 
-    const selectedMotion = pickGestureMotion(semanticGesture, motionCandidates)
-    if (!selectedMotion) return
+    const selectedMotion = pickGestureMotion(semanticGesturePlan, motionCandidates)
+    if (!selectedMotion) {
+      await playRandomMotion(options.priority ?? 3)
+      return
+    }
 
-    playMotion(selectedMotion.group, selectedMotion.index, options.priority ?? 3)
-    scheduleIdleMotionLoop(8500)
+    const success = await playMotion(selectedMotion.group, selectedMotion.index, options.priority ?? 3)
+    if (success === false) scheduleIdleMotionLoop(5000)
   }
 
-  const playRandomMotion = (priority = 3) => {
+  const playRandomMotion = async (priority = 3) => {
     const semanticMotions = behaviorProfile.value.primaryGestureMotions
     if (model && semanticMotions.length) {
       const motion = semanticMotions[Math.floor(Math.random() * semanticMotions.length)]
-      playMotion(motion.group, motion.index, priority)
-      scheduleIdleMotionLoop(8500)
+      const success = await playMotion(motion.group, motion.index, priority)
+      if (success === false) scheduleIdleMotionLoop(5000)
       return
     }
 
@@ -573,11 +607,11 @@ export function useLive2D(
     if (!model || primaryGroup === undefined || primaryGroup === null || count === 0) return
 
     const index = Math.floor(Math.random() * count)
-    playMotion(primaryGroup, index, priority)
-    scheduleIdleMotionLoop(8500)
+    const success = await playMotion(primaryGroup, index, priority)
+    if (success === false) scheduleIdleMotionLoop(5000)
   }
 
-  const playIdle = () => {
+  const playIdle = async () => {
     const idleGroup = behaviorProfile.value.idleGroup
     const idleCount = behaviorProfile.value.idleMotionCount
     const fallbackGroup = behaviorProfile.value.primaryGestureGroup
@@ -585,7 +619,7 @@ export function useLive2D(
     const group = idleCount > 0 ? idleGroup : fallbackGroup
     const count = idleCount > 0 ? idleCount : fallbackCount
 
-    if (!model || group === undefined || group === null || count === 0) return
+    if (!model || group === undefined || group === null || count === 0) return false
 
     // If we're using a large group of unclassified motions ("" group usually has all motions),
     // we should only play index 0 (which is almost always the true idle motion),
@@ -594,7 +628,13 @@ export function useLive2D(
     const index = isUnclassifiedGroup ? 0 : Math.floor(Math.random() * count)
     
     setMood('soft')
-    playMotion(group, index, 2)
+    const success = await playMotion(group, index, 2)
+    
+    // If it failed to start, motionFinish won't fire. Set a fallback timer to try again.
+    if (success === false) {
+      scheduleIdleMotionLoop(5000)
+    }
+    return success !== false
   }
 
   const playGreeting = () => {
@@ -665,14 +705,14 @@ export function useLive2D(
     playGesture('nod', { mood: 'smile', priority: 3, cooldownMs: 200, force: true })
   }
 
-  const playMotionByNumber = (num: number) => {
+  const playMotionByNumber = async (num: number) => {
     const primaryGroup = behaviorProfile.value.primaryGestureGroup
     const count = behaviorProfile.value.primaryGestureMotionCount
     if (num < 1 || primaryGroup === undefined || primaryGroup === null || count === 0) return
 
     const index = (num - 1) % count
-    playMotion(primaryGroup, index, 3)
-    scheduleIdleMotionLoop(8500)
+    const success = await playMotion(primaryGroup, index, 3)
+    if (success === false) scheduleIdleMotionLoop(5000)
   }
 
   const setExpression = (index: number) => {
