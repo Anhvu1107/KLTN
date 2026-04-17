@@ -365,7 +365,7 @@ export function useLive2D(
       if (isUnmounted || token !== initToken) return
 
       // Wait for WebGL context to be truly ready (prevents crash on context-limited devices)
-      const webglReady = await waitForWebGLContext(canvas, 8, 400)
+      const webglReady = await waitForWebGLContext(8, 400)
       if (!webglReady) {
         console.warn('[Live2D] WebGL context not ready after retries, proceeding anyway')
       }

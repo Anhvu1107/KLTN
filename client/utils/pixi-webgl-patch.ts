@@ -74,32 +74,41 @@ export const patchPixiWebGL = (PIXI: any) => {
 }
 
 /**
- * Check if a canvas element has a usable WebGL context.
+ * Check if the browser can allocate a usable WebGL context right now.
  * Returns true if we can get a GL context and query basic parameters.
+ * Uses a dummy canvas to avoid poisoning the real canvas's context options.
  */
-export const isWebGLContextReady = (canvas: HTMLCanvasElement): boolean => {
+export const isWebGLContextReady = (): boolean => {
   try {
-    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+    const dummy = document.createElement('canvas')
+    // Get context with minimal requirements
+    const gl = dummy.getContext('webgl2') || dummy.getContext('webgl')
     if (!gl) return false
+    
     const maxTextures = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)
-    return typeof maxTextures === 'number' && maxTextures > 0
+    const isValid = typeof maxTextures === 'number' && maxTextures > 0
+    
+    // Explicitly lose context immediately so we don't consume the browser's context limit
+    const ext = gl.getExtension('WEBGL_lose_context')
+    if (ext) ext.loseContext()
+    
+    return isValid
   } catch {
     return false
   }
 }
 
 /**
- * Wait until a canvas element has a usable WebGL context, with retries.
- * This is useful when the browser is recovering from a context limit.
+ * Wait until the browser can allocate a usable WebGL context, with retries.
+ * This is useful when the browser is recovering from a context limit after destroying a previous one.
  */
 export const waitForWebGLContext = async (
-  canvas: HTMLCanvasElement,
   maxRetries = 5,
   delayMs = 300,
 ): Promise<boolean> => {
   for (let i = 0; i < maxRetries; i++) {
-    if (isWebGLContextReady(canvas)) return true
+    if (isWebGLContextReady()) return true
     await new Promise(resolve => setTimeout(resolve, delayMs))
   }
-  return isWebGLContextReady(canvas)
+  return isWebGLContextReady()
 }
