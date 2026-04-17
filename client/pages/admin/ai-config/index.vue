@@ -1010,7 +1010,9 @@ useSeoMeta({
             <div class="aspect-square overflow-hidden bg-gradient-to-b from-neutral-100 to-neutral-50 relative">
               <Live2DSnapshot
                 :model-url="preset.modelUrl"
-                :size="200"
+                :width="220"
+                :height="220"
+                fit-mode="mascot"
                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
               <!-- Selected Badge -->

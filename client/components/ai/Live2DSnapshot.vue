@@ -23,7 +23,7 @@ const props = defineProps<{
   live2dOffsetY?: number
 }>()
 
-const SNAPSHOT_CACHE_VERSION = 'v8-auto-fit'
+const SNAPSHOT_CACHE_VERSION = 'v9-thumb-refit'
 
 const canvasWidth = computed(() => props.width || props.size || 200)
 const canvasHeight = computed(() => props.height || props.size || 200)
