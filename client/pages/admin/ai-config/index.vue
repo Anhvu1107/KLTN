@@ -1389,6 +1389,8 @@ useSeoMeta({
                     fit-mode="mascot"
                     :live2d-scale="voiceConfig.live2dScale"
                     :live2d-offset-y="voiceConfig.live2dOffsetY"
+                    :width="224"
+                    :height="320"
                     class="w-full h-full"
                   />
                   <div v-else class="w-full h-full flex items-center justify-center">

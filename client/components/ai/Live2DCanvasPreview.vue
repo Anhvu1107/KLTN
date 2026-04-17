@@ -4,9 +4,13 @@ const props = defineProps<{
   fitMode?: 'contain' | 'mascot'
   live2dScale?: number
   live2dOffsetY?: number
+  width?: number
+  height?: number
 }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
+const canvasWidth = computed(() => props.width || 224)
+const canvasHeight = computed(() => props.height || 320)
 
 const {
   isLoading,
@@ -32,8 +36,8 @@ const {
       v-if="!isModelReady"
       :key="`preview-static-${props.modelUrl}-${props.fitMode || 'contain'}-${props.live2dScale ?? 1}-${props.live2dOffsetY ?? 0}`"
       :model-url="props.modelUrl"
-      :width="224"
-      :height="320"
+      :width="canvasWidth"
+      :height="canvasHeight"
       :fit-mode="props.fitMode || 'contain'"
       :live2d-scale="props.live2dScale ?? 1"
       :live2d-offset-y="props.live2dOffsetY ?? 0"
@@ -42,6 +46,8 @@ const {
 
     <canvas
       ref="canvas"
+      :width="canvasWidth"
+      :height="canvasHeight"
       class="relative z-10 w-full h-full bg-transparent transition-opacity duration-300"
       :class="isModelReady || hasVisibleFrame ? 'opacity-100' : 'opacity-0'"
     />

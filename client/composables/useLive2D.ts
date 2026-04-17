@@ -361,7 +361,7 @@ export function useLive2D(
       console.log('[Live2D] Loading model:', modelUrl)
       model = await Live2DModel.from(modelUrl, {
         autoInteract: false,
-        motionPreload: MotionPreloadStrategy.NONE,
+        motionPreload: MotionPreloadStrategy.IDLE,
       })
 
       if (isUnmounted || token !== initToken) {
@@ -486,12 +486,20 @@ export function useLive2D(
   /**
    * Play a motion by group and index.
    */
-  const playMotion = async (group: string, index = 0, priority = 3) => {
+  const playMotion = async (group: string, index = 0, priority = 3, retries = 1) => {
     if (!model?.internalModel?.motionManager) return
 
     try {
       const motionManager = model.internalModel.motionManager
       const success = await motionManager.startMotion(group, index, priority)
+      if (!success && retries > 0) {
+        // Motion may need to be fetched on-demand; retry after a short delay.
+        await new Promise(resolve => setTimeout(resolve, 600))
+        if (!isUnmounted && isModelReady.value) {
+          await playMotion(group, index, priority, retries - 1)
+        }
+        return
+      }
       console.log(`[Live2D] Motion group='${group}', index=${index}, priority=${priority} -> ${success}`)
     } catch (error) {
       console.warn('[Live2D] Motion error:', error)
@@ -612,6 +620,46 @@ export function useLive2D(
     playGesture('goodbye', { mood: 'smile', priority: 3, cooldownMs: 250, force: true })
   }
 
+  const playSurprised = () => {
+    playGesture('surprised', { mood: 'curious', priority: 3, cooldownMs: 250, force: true })
+  }
+
+  const playShy = () => {
+    playGesture('shy', { mood: 'soft', priority: 3, cooldownMs: 250, force: true })
+  }
+
+  const playExcited = () => {
+    playGesture('excited', { mood: 'delighted', priority: 3, cooldownMs: 250, force: true })
+  }
+
+  const playConfused = () => {
+    playGesture('confused', { mood: 'curious', priority: 3, cooldownMs: 300, force: true })
+  }
+
+  const playAngry = () => {
+    playGesture('angry', { mood: 'serious', priority: 3, cooldownMs: 250, force: true })
+  }
+
+  const playSad = () => {
+    playGesture('sad', { mood: 'soft', priority: 3, cooldownMs: 300, force: true })
+  }
+
+  const playApologize = () => {
+    playGesture('apologize', { mood: 'soft', priority: 3, cooldownMs: 250, force: true })
+  }
+
+  const playEncourage = () => {
+    playGesture('encourage', { mood: 'smile', priority: 3, cooldownMs: 250, force: true })
+  }
+
+  const playListen = () => {
+    playGesture('listen', { mood: 'soft', priority: 3, cooldownMs: 400, force: true })
+  }
+
+  const playAgree = () => {
+    playGesture('nod', { mood: 'smile', priority: 3, cooldownMs: 200, force: true })
+  }
+
   const playMotionByNumber = (num: number) => {
     const primaryGroup = behaviorProfile.value.primaryGestureGroup
     const count = behaviorProfile.value.primaryGestureMotionCount
@@ -730,6 +778,16 @@ export function useLive2D(
     playIntroduceProduct,
     playRecommendProduct,
     playGoodbye,
+    playSurprised,
+    playShy,
+    playExcited,
+    playConfused,
+    playAngry,
+    playSad,
+    playApologize,
+    playEncourage,
+    playListen,
+    playAgree,
     playMotionByNumber,
     setExpression,
     setExpressionByName,

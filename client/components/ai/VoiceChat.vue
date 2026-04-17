@@ -91,6 +91,16 @@ const {
   playIntroduceProduct,
   playRecommendProduct,
   playGoodbye,
+  playSurprised,
+  playShy,
+  playExcited,
+  playConfused,
+  playAngry,
+  playSad,
+  playApologize,
+  playEncourage,
+  playListen,
+  playAgree,
   handlePointerMove: onLive2DPointerMove,
   handleTap: onLive2DTap,
 } = useLive2D(live2dCanvas, {
@@ -1011,20 +1021,26 @@ const triggerAnimation = (animation: string) => {
   switch (animation) {
     case 'wave':
     case 'greeting':
+    case 'hello':
+    case 'chao':
       playGreeting()
       break
     case 'nod':
     case 'agree':
+    case 'dong_y':
       playNod()
       break
     case 'think':
     case 'thinking':
+    case 'suy_nghi':
       playThinking()
       break
     case 'happy':
     case 'excited':
     case 'smile':
     case 'laugh':
+    case 'vui':
+    case 'cuoi':
       playHappy()
       break
     case 'product':
@@ -1034,17 +1050,84 @@ const triggerAnimation = (animation: string) => {
     case 'introduce':
     case 'introduce_product':
     case 'show_product':
+    case 'gioi_thieu':
       playIntroduceProduct()
       break
     case 'recommend':
     case 'recommend_product':
     case 'suggest':
     case 'suggest_product':
+    case 'goi_y':
+    case 'tu_van':
       playRecommendProduct()
       break
     case 'goodbye':
     case 'bye':
+    case 'tam_biet':
       playGoodbye()
+      break
+    case 'surprised':
+    case 'surprise':
+    case 'shock':
+    case 'wow':
+    case 'ngac_nhien':
+      playSurprised()
+      break
+    case 'shy':
+    case 'blush':
+    case 'embarrassed':
+    case 'nguong':
+    case 'mac_co':
+      playShy()
+      break
+    case 'hype':
+    case 'celebrate':
+    case 'yay':
+    case 'hao_hung':
+    case 'phan_khoi':
+      playExcited()
+      break
+    case 'confused':
+    case 'what':
+    case 'huh':
+    case 'boi_roi':
+    case 'khong_hieu':
+      playConfused()
+      break
+    case 'angry':
+    case 'mad':
+    case 'upset':
+    case 'gian':
+    case 'tuc':
+      playAngry()
+      break
+    case 'sad':
+    case 'cry':
+    case 'sorry':
+    case 'buon':
+    case 'tiec':
+      playSad()
+      break
+    case 'apologize':
+    case 'xin_loi':
+      playApologize()
+      break
+    case 'encourage':
+    case 'cheer':
+    case 'co_len':
+    case 'co_gang':
+      playEncourage()
+      break
+    case 'listen':
+    case 'lang_nghe':
+    case 'nghe':
+      playListen()
+      break
+    case 'deny':
+    case 'refuse':
+    case 'khong':
+    case 'tu_choi':
+      playAgree()
       break
     default:
       playRandomMotion()
@@ -1287,21 +1370,89 @@ const cueSalesEnergy = (text: string) => {
   if (now - lastSalesCueAt < 1400) return
 
   const normalized = text.toLowerCase()
-  if (/(thêm vào giỏ|checkout|chốt đơn|mở giỏ)/i.test(normalized)) {
+
+  // --- Closing / Buy intention ---
+  if (/(thêm vào giỏ|checkout|chốt đơn|mở giỏ|thanh toán|đặt mua|mua ngay|đặt hàng)/i.test(normalized)) {
     lastSalesCueAt = now
     playGesture('closing', { mood: 'delighted', cooldownMs: 200, force: true })
     return
   }
 
-  if (/(mình tìm được|gợi ý|rất hợp|phù hợp|ưu tiên mẫu này)/i.test(normalized)) {
+  // --- Recommend / Suggest ---
+  if (/(mình tìm được|gợi ý|rất hợp|phù hợp|ưu tiên mẫu này|đề xuất|rất đẹp|nên thử|giá tốt)/i.test(normalized)) {
     lastSalesCueAt = now
     playRecommendProduct()
     return
   }
 
-  if (/(để mình tìm|mình kiểm tra|để mình xem)/i.test(normalized)) {
+  // --- Thinking / Searching ---
+  if (/(để mình tìm|mình kiểm tra|để mình xem|chờ chút|để xem|đang tìm|kiểm tra xem)/i.test(normalized)) {
     lastSalesCueAt = now
     playGesture('think', { mood: 'curious', cooldownMs: 200, force: true })
+    return
+  }
+
+  // --- Apologize ---
+  if (/(xin lỗi|rất tiếc|thật ra|không thể|hết hàng|không có sẵn|thông cảm)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playApologize()
+    return
+  }
+
+  // --- Happy / Excited ---
+  if (/(tuyệt vời|xuất sắc|quá đẹp|hoàn hảo|siêu|cực kỳ|wow|yay|quá tốt|rất vui|mừng)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playExcited()
+    return
+  }
+
+  // --- Surprised ---
+  if (/(ồ|óa|woa|trời ơi|ôi|bất ngờ|thật sao|không thể tin)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playSurprised()
+    return
+  }
+
+  // --- Encourage ---
+  if (/(cố lên|đừng lo|yên tâm|sẽ giúp|sẽ tìm giúp|mình hỗ trợ|đừng ngại)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playEncourage()
+    return
+  }
+
+  // --- Sad / Empathy ---
+  if (/(buồn|tiếc|thương|đáng tiếc|không may|đã hết)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playSad()
+    return
+  }
+
+  // --- Introduce product ---
+  if (/(giới thiệu|trình bày|xem qua|có mẫu|đây là|sản phẩm này|mẫu mới|bộ sưu tập)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playIntroduceProduct()
+    return
+  }
+
+  // --- Greeting / Welcome ---
+  if (/(chào bạn|xin chào|chào mừng|rất vui|hân hạnh)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playGreeting()
+    return
+  }
+
+  // --- Agreement / Nodding ---
+  if (/(đúng rồi|vâng|chính xác|đồng ý|được luôn|ok|tốt lắm)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playAgree()
+    return
+  }
+
+  // --- Listening ---
+  if (/(mình hiểu|mình nghe|mình lắng nghe|mình biết rồi|mình nắm rồi)/i.test(normalized)) {
+    lastSalesCueAt = now
+    playListen()
+    return
   }
 }
 

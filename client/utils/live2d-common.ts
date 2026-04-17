@@ -37,6 +37,10 @@ export const COMMON_EXPRESSION_BY_MOOD = {
   soft: 'exp_04',
   curious: 'exp_05',
   delighted: 'exp_06',
+  shy: 'exp_07',
+  sad: 'exp_08',
+  angry: 'exp_09',
+  surprised: 'exp_10',
 } as const
 
 export const COMMON_GESTURE_VARIANTS = {
@@ -49,6 +53,16 @@ export const COMMON_GESTURE_VARIANTS = {
   closing: [0, 5],
   goodbye: [7, 4],
   subtleTalk: [1, 8],
+  surprised: [3, 6],
+  shy: [1, 4],
+  excited: [5, 7],
+  confused: [2, 3],
+  angry: [0, 9],
+  sad: [1, 3],
+  apologize: [0, 1],
+  encourage: [5, 6, 10],
+  listen: [0, 1],
+  deny: [2, 7],
 } as const
 
 export type CommonMood = keyof typeof COMMON_EXPRESSION_BY_MOOD
@@ -93,6 +107,10 @@ const MOOD_ALIAS_CANDIDATES: Record<CommonMood, string[]> = {
   soft: ['exp04', 'soft', 'gentle', 'calm', 'blushing', 'shy', 'kind'],
   curious: ['exp05', 'curious', 'surprised', 'surprise', 'wonder', 'thinking', 'question'],
   delighted: ['exp06', 'delighted', 'excited', 'happy', 'joy', 'smile', 'sparkle'],
+  shy: ['exp07', 'shy', 'blushing', 'embarrassed', 'timid', 'bashful'],
+  sad: ['exp08', 'sad', 'cry', 'unhappy', 'melancholy', 'sorry', 'regret'],
+  angry: ['exp09', 'angry', 'mad', 'irritated', 'furious', 'upset', 'stern'],
+  surprised: ['exp10', 'surprise', 'shocked', 'amazed', 'astonished', 'wow'],
 }
 
 const MOOD_FALLBACKS: Record<CommonMood, CommonMood[]> = {
@@ -102,6 +120,10 @@ const MOOD_FALLBACKS: Record<CommonMood, CommonMood[]> = {
   soft: ['neutral', 'smile'],
   curious: ['neutral', 'soft'],
   delighted: ['smile', 'neutral'],
+  shy: ['soft', 'neutral'],
+  sad: ['soft', 'neutral'],
+  angry: ['serious', 'neutral'],
+  surprised: ['curious', 'neutral'],
 }
 
 const PRIMARY_GESTURE_GROUP_CANDIDATES = [
@@ -134,18 +156,38 @@ const GESTURE_GROUP_CANDIDATES: Record<CommonGesture, string[]> = {
   closing: ['Close', 'Closing', 'Buy', 'Cart', 'Checkout', 'Flick@Body', 'Tap@Body', 'FlickDown@Body', 'Flick', 'Tap', ''],
   goodbye: ['Goodbye', 'Bye', 'Wave', 'Flick', 'FlickUp', 'Tap', 'Flick@Body', '', DEFAULT_IDLE_GROUP],
   subtleTalk: ['Talk', 'Explain', 'Tap', '', DEFAULT_IDLE_GROUP, 'Flick'],
+  surprised: ['Surprised', 'Shock', 'Gasp', 'FlickUp', 'FlickUp@Head', 'Flick', 'Tap', ''],
+  shy: ['Shy', 'Blush', 'Embarrassed', 'FlickDown', 'FlickDown@Body', 'Tap', DEFAULT_IDLE_GROUP, ''],
+  excited: ['Excited', 'Happy', 'Celebrate', 'Flick', 'FlickUp', 'Tap', ''],
+  confused: ['Confused', 'Question', 'Think', 'FlickUp@Head', 'Tap@Head', 'Tap', '', DEFAULT_IDLE_GROUP],
+  angry: ['Angry', 'Mad', 'Upset', 'Tap@Body', 'Flick@Body', 'Tap', ''],
+  sad: ['Sad', 'Cry', 'Sorry', 'FlickDown', 'FlickDown@Body', 'Tap', DEFAULT_IDLE_GROUP, ''],
+  apologize: ['Apologize', 'Sorry', 'Bow', 'FlickDown', 'FlickDown@Body', 'Tap', DEFAULT_IDLE_GROUP, ''],
+  encourage: ['Encourage', 'Cheer', 'Happy', 'Flick', 'FlickUp', 'Tap', ''],
+  listen: ['Listen', 'Attentive', 'Nod', 'Tap@Head', 'Tap', DEFAULT_IDLE_GROUP, ''],
+  deny: ['Deny', 'No', 'Refuse', 'Flick', 'FlickDown', 'Tap@Head', 'Tap', ''],
 }
 
 const GESTURE_TOKEN_ALIASES: Record<CommonGesture, string[]> = {
-  greeting: ['greeting', 'hello', 'hi', 'wave', 'handwave', 'welcome', 'aisatsu'],
-  nod: ['nod', 'agree', 'yes', 'ok', 'taphead'],
-  think: ['think', 'thinking', 'question', 'curious', 'wonder', 'hmm', 'flickuphead'],
-  happy: ['happy', 'smile', 'laugh', 'joy', 'excited', 'delight', 'kime'],
-  introduceProduct: ['introduce', 'presentation', 'present', 'product', 'show', 'recommend', 'explain', 'talk', 'guide'],
-  recommendProduct: ['recommend', 'product', 'suggest', 'choice', 'match', 'present', 'explain', 'talk'],
-  closing: ['closing', 'close', 'cart', 'checkout', 'buy', 'order', 'tapbody', 'flickbody'],
-  goodbye: ['goodbye', 'bye', 'wave', 'handwave', 'farewell'],
-  subtleTalk: ['talk', 'speak', 'explain', 'idle', 'normal'],
+  greeting: ['greeting', 'hello', 'hi', 'wave', 'handwave', 'welcome', 'aisatsu', 'chao', 'xinchao', 'chaomung', 'vaytay'],
+  nod: ['nod', 'agree', 'yes', 'ok', 'taphead', 'gatdau', 'dongtinh', 'dong', 'tottho', 'dung', 'duocluon'],
+  think: ['think', 'thinking', 'question', 'curious', 'wonder', 'hmm', 'flickuphead', 'suynghi', 'nghisuy', 'timhieu', 'xemthu', 'raxem'],
+  happy: ['happy', 'smile', 'laugh', 'joy', 'excited', 'delight', 'kime', 'vui', 'cuoi', 'vuive', 'tuyet', 'tot'],
+  introduceProduct: ['introduce', 'presentation', 'present', 'product', 'show', 'recommend', 'explain', 'talk', 'guide', 'gioithieu', 'sanpham', 'giaitrinh', 'trinhbay'],
+  recommendProduct: ['recommend', 'product', 'suggest', 'choice', 'match', 'present', 'explain', 'talk', 'tuvan', 'goiy', 'decu', 'phuhop', 'dexuat'],
+  closing: ['closing', 'close', 'cart', 'checkout', 'buy', 'order', 'tapbody', 'flickbody', 'chotdon', 'muangay', 'datmua', 'thanhtoan'],
+  goodbye: ['goodbye', 'bye', 'wave', 'handwave', 'farewell', 'tammiet', 'hengan', 'tambiet', 'chaonhe'],
+  subtleTalk: ['talk', 'speak', 'explain', 'idle', 'normal', 'noichuyen', 'troichuyen', 'binhthuong'],
+  surprised: ['surprise', 'surprised', 'shock', 'amazed', 'wow', 'gasp', 'bingo', 'ngacnhien', 'ngoo', 'kinh', 'oi', 'troi', 'a'],
+  shy: ['shy', 'blush', 'embarrassed', 'timid', 'bashful', 'macho', 'enguong', 'ngainam', 'ngượng', 'macho'],
+  excited: ['excited', 'hype', 'celebrate', 'yay', 'awesome', 'haohung', 'phankhoai', 'suong', 'qua', 'manhnhat'],
+  confused: ['confused', 'huh', 'what', 'lost', 'baffled', 'boiro', 'roir', 'khonghieu', 'sao', 'gi'],
+  angry: ['angry', 'mad', 'furious', 'upset', 'irritated', 'giandoi', 'tuc', 'bucluc', 'buc', 'chan'],
+  sad: ['sad', 'cry', 'unhappy', 'sorry', 'regret', 'buon', 'tiec', 'thuongthay', 'kho', 'thuong'],
+  apologize: ['apologize', 'sorry', 'forgive', 'bow', 'excuse', 'xinloi', 'thatbai', 'xinthai', 'xin', 'thatday'],
+  encourage: ['encourage', 'cheer', 'support', 'motivate', 'fight', 'colen', 'cogang', 'codo', 'colengayvuive', 'gioi', 'tuyetvoi'],
+  listen: ['listen', 'attentive', 'hear', 'focus', 'langnghe', 'nghe', 'chuy', 'taptrung'],
+  deny: ['deny', 'no', 'refuse', 'reject', 'disagree', 'khong', 'tucho', 'khongphai', 'khongduoc'],
 }
 
 export type Live2DMotionCatalogItem = {
@@ -440,6 +482,26 @@ const scoreMotionForGesture = (motion: Live2DMotionCatalogItem, gesture: CommonG
       return tokenScore + groupScore + genericIndexScore + features.arm * 1 + features.body * 0.85 + features.face * 0.45 + features.duration
     case 'goodbye':
       return tokenScore + groupScore + genericIndexScore + features.arm * 1.2 + features.headZ * 0.55 + features.duration
+    case 'surprised':
+      return tokenScore + groupScore + genericIndexScore + features.face * 1.2 + features.eyes * 0.9 + features.headY * 0.55 + features.body * 0.35 + features.duration
+    case 'shy':
+      return tokenScore + groupScore + genericIndexScore + features.face * 1.1 + features.headX * 0.7 + features.headZ * 0.55 + features.body * 0.35 + features.duration
+    case 'excited':
+      return tokenScore + groupScore + genericIndexScore + features.arm * 1.1 + features.face * 0.85 + features.body * 0.65 + features.headZ * 0.45 + features.duration
+    case 'confused':
+      return tokenScore + groupScore + genericIndexScore + features.headY * 0.9 + features.headX * 0.7 + features.face * 0.6 + features.eyes * 0.45 + features.duration
+    case 'angry':
+      return tokenScore + groupScore + genericIndexScore + features.face * 1.15 + features.body * 0.75 + features.arm * 0.55 + features.headX * 0.4 + features.duration
+    case 'sad':
+      return tokenScore + groupScore + genericIndexScore + features.face * 1.1 + features.headX * 0.65 + features.eyes * 0.55 + features.body * 0.4 + features.duration
+    case 'apologize':
+      return tokenScore + groupScore + genericIndexScore + features.headX * 1.15 + features.body * 0.85 + features.face * 0.55 + features.duration
+    case 'encourage':
+      return tokenScore + groupScore + genericIndexScore + features.arm * 1.1 + features.face * 0.85 + features.body * 0.55 + features.headZ * 0.35 + features.duration
+    case 'listen':
+      return tokenScore + groupScore + genericIndexScore + features.headX * 0.65 + features.eyes * 0.55 + features.face * 0.45 + features.duration
+    case 'deny':
+      return tokenScore + groupScore + genericIndexScore + features.headZ * 0.95 + features.headY * 0.7 + features.arm * 0.55 + features.face * 0.4 + features.duration
     case 'subtleTalk':
     default:
       return tokenScore + groupScore + genericIndexScore + features.face * 0.85 + features.headY * 0.45 + features.body * 0.35 + features.duration
@@ -608,6 +670,10 @@ const createEmptyBehaviorProfile = (): CommonLive2DBehaviorProfile => ({
     soft: null,
     curious: null,
     delighted: null,
+    shy: null,
+    sad: null,
+    angry: null,
+    surprised: null,
   },
   gestureMap: {
     greeting: { group: '', indexes: [], motions: [] },
@@ -619,6 +685,16 @@ const createEmptyBehaviorProfile = (): CommonLive2DBehaviorProfile => ({
     closing: { group: '', indexes: [], motions: [] },
     goodbye: { group: '', indexes: [], motions: [] },
     subtleTalk: { group: '', indexes: [], motions: [] },
+    surprised: { group: '', indexes: [], motions: [] },
+    shy: { group: '', indexes: [], motions: [] },
+    excited: { group: '', indexes: [], motions: [] },
+    confused: { group: '', indexes: [], motions: [] },
+    angry: { group: '', indexes: [], motions: [] },
+    sad: { group: '', indexes: [], motions: [] },
+    apologize: { group: '', indexes: [], motions: [] },
+    encourage: { group: '', indexes: [], motions: [] },
+    listen: { group: '', indexes: [], motions: [] },
+    deny: { group: '', indexes: [], motions: [] },
   },
   compatibility: {
     hasLipSync: false,
