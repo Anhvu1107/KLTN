@@ -91,6 +91,7 @@ const {
   isLoading,
   playIdle,
   playGreeting,
+  playRandomMotion,
   handlePointerMove,
 } = useLive2D(mascotCanvas, {
   modelUrl: configuredModelUrl,
@@ -103,14 +104,14 @@ const {
 // Play greeting when model is ready
 watch(isModelReady, (ready) => {
   if (ready) {
-    playGreeting()
+    setTimeout(() => playGreeting(), 180)
   }
 })
 
-// Keep hover response subtle so mascot framing remains stable.
+// Use real model motions on hover; framing is still controlled by the shared layout.
 const onMouseEnter = () => {
   isHovered.value = true
-  if (isModelReady.value) playIdle()
+  if (isModelReady.value) playRandomMotion()
 }
 
 const onMouseLeave = () => {
@@ -142,7 +143,7 @@ const onClick = () => {
     >
       <div class="live2d-mascot__stage absolute inset-0 overflow-visible bg-transparent">
         <Live2DSnapshot
-          v-if="!hasVisibleFrame"
+          v-if="!isModelReady"
           :key="`mascot-static-${configuredModelUrl}-${live2dScale}-${live2dOffsetY}`"
           :model-url="configuredModelUrl"
           :width="448"
@@ -161,8 +162,8 @@ const onClick = () => {
         height="640"
         class="live2d-mascot__canvas relative z-10 w-full h-full bg-transparent"
         :class="{
-          'opacity-0': isLoading || !hasVisibleFrame,
-          'opacity-100': hasVisibleFrame,
+          'opacity-0': isLoading || !(isModelReady || hasVisibleFrame),
+          'opacity-100': !isLoading && (isModelReady || hasVisibleFrame),
         }"
         style="transition: opacity 0.5s ease-in;"
       />

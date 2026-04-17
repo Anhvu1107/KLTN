@@ -96,6 +96,7 @@ const {
 } = useLive2D(live2dCanvas, {
   modelUrl: live2dModelUrl,
   fallbackModelUrl: DEFAULT_LIVE2D_MODEL_URL,
+  fitMode: live2dSnapshotFitMode,
   live2dScale,
   live2dOffsetY,
 })
@@ -1573,7 +1574,7 @@ onMounted(() => {
         />
 
         <div
-          v-if="!hasVisibleFrame"
+          v-if="!isModelReady"
           class="voice-live2d-layer pointer-events-none absolute z-0 flex items-center justify-center overflow-visible bg-transparent"
           :class="isMinimized
             ? 'h-80 w-56'
@@ -1602,8 +1603,8 @@ onMounted(() => {
               ? 'h-80 w-56 border-0 bg-transparent shadow-none'
               : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px] border-0 bg-transparent',
             {
-              'opacity-0': !hasVisibleFrame,
-              'opacity-100': hasVisibleFrame,
+              'opacity-0': !(isModelReady || hasVisibleFrame),
+              'opacity-100': isModelReady || hasVisibleFrame,
             },
           ]"
         />

@@ -29,7 +29,7 @@ const {
     @pointerdown="handleTap"
   >
     <Live2DSnapshot
-      v-if="!hasVisibleFrame"
+      v-if="!isModelReady"
       :key="`preview-static-${props.modelUrl}-${props.fitMode || 'contain'}-${props.live2dScale ?? 1}-${props.live2dOffsetY ?? 0}`"
       :model-url="props.modelUrl"
       :width="448"
@@ -43,11 +43,11 @@ const {
     <canvas
       ref="canvas"
       class="relative z-10 w-full h-full bg-transparent transition-opacity duration-300"
-      :class="hasVisibleFrame ? 'opacity-100' : 'opacity-0'"
+      :class="isModelReady || hasVisibleFrame ? 'opacity-100' : 'opacity-0'"
     />
 
     <div
-      v-if="isLoading && !hasVisibleFrame"
+      v-if="isLoading && !isModelReady"
       class="absolute inset-0 z-20 flex items-center justify-center bg-transparent"
     >
       <div class="w-6 h-6 rounded-full border-2 border-neutral-200 border-t-neutral-700 bg-white/75 shadow-sm animate-spin" />

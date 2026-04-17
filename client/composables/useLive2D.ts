@@ -480,9 +480,9 @@ export function useLive2D(
 
       activeModelUrl = modelUrl
       isModelReady.value = true
+      hasVisibleFrame.value = true
       attachAmbientTicker()
       isLoading.value = false
-      hasVisibleFrame.value = false
       errorMessage.value = ''
       observeCanvasResize()
       verifyVisibleFrame(token)
