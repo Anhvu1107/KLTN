@@ -12,6 +12,7 @@
 import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
 import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
 import { computeLive2DLayout, getLive2DRenderBounds } from '~/utils/live2d-layout'
+import { patchPixiWebGL } from '~/utils/pixi-webgl-patch'
 
 const props = defineProps<{
   modelUrl: string
@@ -240,6 +241,9 @@ const doRender = async (request: RenderRequest) => {
     if (request.requestId !== latestRequestId) return
     ;(window as any).PIXI = PIXI
 
+    // Patch PixiJS to prevent checkMaxIfStatementsInShader crash
+    patchPixiWebGL(PIXI)
+
     const { Live2DModel, MotionPreloadStrategy } = await import('pixi-live2d-display/cubism4')
     if (request.requestId !== latestRequestId) return
 
@@ -333,6 +337,10 @@ const doRender = async (request: RenderRequest) => {
     if (canvas?.parentNode) {
       canvas.parentNode.removeChild(canvas)
     }
+
+    // Give the browser time to reclaim the WebGL context
+    // before the mascot's useLive2D tries to create a new one
+    await new Promise(r => setTimeout(r, 150))
 
     if (request.requestId === latestRequestId) {
       isRendering.value = false

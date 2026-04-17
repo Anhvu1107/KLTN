@@ -8,6 +8,7 @@ import { DEFAULT_LIVE2D_MODEL_URL } from '~/utils/voice-config'
 import { resolveLive2DAssetUrl } from '~/utils/live2d-assets'
 import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
 import { computeLive2DLayout, getLive2DRenderBounds } from '~/utils/live2d-layout'
+import { patchPixiWebGL, waitForWebGLContext } from '~/utils/pixi-webgl-patch'
 import {
   buildCommonLive2DBehaviorProfile,
   loadLive2DMotionCatalog,
@@ -356,7 +357,18 @@ export function useLive2D(
       // Expose PIXI globally; required by pixi-live2d-display.
       ;(window as any).PIXI = PIXI
 
+      // Patch PixiJS to prevent checkMaxIfStatementsInShader crash
+      // when WebGL context returns 0 for MAX_TEXTURE_IMAGE_UNITS
+      patchPixiWebGL(PIXI)
+
       const { Live2DModel, MotionPreloadStrategy } = await import('pixi-live2d-display/cubism4')
+      if (isUnmounted || token !== initToken) return
+
+      // Wait for WebGL context to be truly ready (prevents crash on context-limited devices)
+      const webglReady = await waitForWebGLContext(canvas, 8, 400)
+      if (!webglReady) {
+        console.warn('[Live2D] WebGL context not ready after retries, proceeding anyway')
+      }
       if (isUnmounted || token !== initToken) return
 
       const canvasSize = getCanvasDisplaySize(canvas)
