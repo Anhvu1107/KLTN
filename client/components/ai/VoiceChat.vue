@@ -88,6 +88,8 @@ const {
   playNod,
   playThinking,
   playHappy,
+  playIntroduceProduct,
+  playRecommendProduct,
   playGoodbye,
   handlePointerMove: onLive2DPointerMove,
   handleTap: onLive2DTap,
@@ -257,6 +259,10 @@ const updateSuggestedProducts = (products: any[] = []) => {
 
   if (suggestedProducts.value.length > 1) {
     maximizeVoiceWidget()
+  }
+
+  if (suggestedProducts.value.length) {
+    playIntroduceProduct()
   }
 }
 
@@ -964,9 +970,6 @@ const handleToolCall = async (toolCall: any) => {
       const toolData = res.data || {}
       if (call.name === 'search_products') {
         updateSuggestedProducts(toolData.products)
-        if (suggestedProducts.value.length) {
-          playHappy()
-        }
       }
 
       responses.push({
@@ -1019,7 +1022,24 @@ const triggerAnimation = (animation: string) => {
       break
     case 'happy':
     case 'excited':
+    case 'smile':
+    case 'laugh':
       playHappy()
+      break
+    case 'product':
+    case 'products':
+    case 'present':
+    case 'presentation':
+    case 'introduce':
+    case 'introduce_product':
+    case 'show_product':
+      playIntroduceProduct()
+      break
+    case 'recommend':
+    case 'recommend_product':
+    case 'suggest':
+    case 'suggest_product':
+      playRecommendProduct()
       break
     case 'goodbye':
     case 'bye':
@@ -1274,7 +1294,7 @@ const cueSalesEnergy = (text: string) => {
 
   if (/(mình tìm được|gợi ý|rất hợp|phù hợp|ưu tiên mẫu này)/i.test(normalized)) {
     lastSalesCueAt = now
-    playGesture('happy', { mood: 'delighted', cooldownMs: 200, force: true })
+    playRecommendProduct()
     return
   }
 

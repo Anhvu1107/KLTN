@@ -488,6 +488,8 @@ LIVE2D VÀ CỬ CHỈ:
 - Đồng ý, xác nhận -> play_animation animation="nod"
 - Đang suy nghĩ, tìm kiếm -> play_animation animation="think"
 - Tìm được món hay, vui -> play_animation animation="happy"
+- Giới thiệu/trình bày sản phẩm -> play_animation animation="introduce_product"
+- Đề xuất sản phẩm phù hợp -> play_animation animation="recommend_product"
 - Tạm biệt -> end_call
 
 HỖ TRỢ KHÁCH:
@@ -609,13 +611,13 @@ const getToolDeclarations = () => {
         },
         {
             name: 'play_animation',
-            description: 'Điều khiển biểu cảm/cử chỉ Live2D: wave, nod, think, happy, goodbye.',
+            description: 'Điều khiển biểu cảm/cử chỉ Live2D: wave, nod, think, happy, introduce_product, recommend_product, goodbye.',
             parameters: {
                 type: 'object',
                 properties: {
                     animation: {
                         type: 'string',
-                        enum: ['wave', 'nod', 'think', 'happy', 'goodbye'],
+                        enum: ['wave', 'nod', 'think', 'happy', 'introduce_product', 'recommend_product', 'goodbye'],
                     },
                 },
                 required: ['animation'],

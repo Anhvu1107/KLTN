@@ -10,6 +10,7 @@ import { ensureLive2DCubismCoreLoaded } from '~/utils/live2d-loader'
 import { computeLive2DLayout, detectLive2DEdgeContact, getLive2DRenderBounds } from '~/utils/live2d-layout'
 import {
   buildCommonLive2DBehaviorProfile,
+  loadLive2DMotionCatalog,
   loadLive2DModelDefinition,
   type CommonGesture,
   type CommonLive2DBehaviorProfile,
@@ -456,6 +457,27 @@ export function useLive2D(
       app.stage.addChild(model)
       autoFitScaleFactor = 1
       await autoFitModelToViewport(token, { reset: true })
+
+      const motionMgr = model.internalModel.motionManager
+      const runtimeMotionDefinitions = motionMgr?.definitions || {}
+      const modelDefinition = await modelDefinitionPromise
+      if (isUnmounted || token !== initToken) {
+        destroyCurrentModel()
+        return
+      }
+      const motionCatalog = await loadLive2DMotionCatalog(modelUrl, modelDefinition)
+      if (isUnmounted || token !== initToken) {
+        destroyCurrentModel()
+        return
+      }
+
+      behaviorProfile.value = buildCommonLive2DBehaviorProfile({
+        modelDefinition,
+        runtimeMotionDefinitions,
+        motionCatalog,
+      })
+      resolvedLipSyncParamId = null
+
       activeModelUrl = modelUrl
       isModelReady.value = true
       attachAmbientTicker()
@@ -465,20 +487,6 @@ export function useLive2D(
       observeCanvasResize()
       verifyVisibleFrame(token)
 
-      const motionMgr = model.internalModel.motionManager
-      const runtimeMotionDefinitions = motionMgr?.definitions || {}
-      const modelDefinition = await modelDefinitionPromise
-      if (isUnmounted || token !== initToken) {
-        destroyCurrentModel()
-        return
-      }
-
-      behaviorProfile.value = buildCommonLive2DBehaviorProfile({
-        modelDefinition,
-        runtimeMotionDefinitions,
-      })
-      resolvedLipSyncParamId = null
-
       const availableGroups = Object.keys(runtimeMotionDefinitions)
       console.log('[Live2D] Motion groups:', availableGroups)
       console.log('[Live2D] Behavior profile:', {
@@ -486,8 +494,10 @@ export function useLive2D(
         idleMotionCount: behaviorProfile.value.idleMotionCount,
         primaryGestureGroup: behaviorProfile.value.primaryGestureGroup,
         primaryGestureMotionCount: behaviorProfile.value.primaryGestureMotionCount,
+        primaryGestureMotions: behaviorProfile.value.primaryGestureMotions,
         lipSyncParamIds: behaviorProfile.value.lipSyncParamIds,
         expressionByMood: behaviorProfile.value.expressionByMood,
+        gestureMap: behaviorProfile.value.gestureMap,
       })
 
       setTimeout(() => {
@@ -548,13 +558,16 @@ export function useLive2D(
     }
   }
 
-  const pickGestureIndex = (gesture: string, candidates: number[]) => {
-    if (!candidates.length) return 0
+  const pickGestureMotion = (
+    gesture: string,
+    candidates: Array<{ group: string; index: number }>,
+  ) => {
+    if (!candidates.length) return null
     if (candidates.length === 1) return candidates[0]
 
-    const pool = candidates.filter(index => `${gesture}:${index}` !== lastGestureKey)
+    const pool = candidates.filter(motion => `${gesture}:${motion.group}:${motion.index}` !== lastGestureKey)
     const selected = pool[Math.floor(Math.random() * pool.length)] ?? candidates[0]
-    lastGestureKey = `${gesture}:${selected}`
+    lastGestureKey = `${gesture}:${selected.group}:${selected.index}`
     return selected
   }
 
@@ -583,14 +596,30 @@ export function useLive2D(
     const plan = behaviorProfile.value.gestureMap[semanticGesture]
       || behaviorProfile.value.gestureMap.subtleTalk
 
-    if (!plan || plan.group === undefined || plan.group === null || !plan.indexes.length) return
+    if (!plan || plan.group === undefined || plan.group === null) return
 
-    const rawIndex = pickGestureIndex(semanticGesture, plan.indexes)
-    playMotion(plan.group, rawIndex, options.priority ?? 3)
+    const motionCandidates = plan.motions?.length
+      ? plan.motions.map(motion => ({ group: motion.group, index: motion.index }))
+      : plan.indexes.map(index => ({ group: plan.group, index }))
+
+    if (!motionCandidates.length) return
+
+    const selectedMotion = pickGestureMotion(semanticGesture, motionCandidates)
+    if (!selectedMotion) return
+
+    playMotion(selectedMotion.group, selectedMotion.index, options.priority ?? 3)
     scheduleIdleMotionLoop(8500)
   }
 
   const playRandomMotion = (priority = 3) => {
+    const semanticMotions = behaviorProfile.value.primaryGestureMotions
+    if (model && semanticMotions.length) {
+      const motion = semanticMotions[Math.floor(Math.random() * semanticMotions.length)]
+      playMotion(motion.group, motion.index, priority)
+      scheduleIdleMotionLoop(8500)
+      return
+    }
+
     const primaryGroup = behaviorProfile.value.primaryGestureGroup
     const count = behaviorProfile.value.primaryGestureMotionCount
     if (!model || primaryGroup === undefined || primaryGroup === null || count === 0) return
@@ -629,6 +658,14 @@ export function useLive2D(
 
   const playHappy = () => {
     playGesture('happy', { mood: 'delighted', priority: 3, cooldownMs: 250, force: true })
+  }
+
+  const playIntroduceProduct = () => {
+    playGesture('introduceProduct', { mood: 'delighted', priority: 3, cooldownMs: 250, force: true })
+  }
+
+  const playRecommendProduct = () => {
+    playGesture('recommendProduct', { mood: 'delighted', priority: 3, cooldownMs: 250, force: true })
   }
 
   const playGoodbye = () => {
@@ -755,6 +792,8 @@ export function useLive2D(
     playNod,
     playThinking,
     playHappy,
+    playIntroduceProduct,
+    playRecommendProduct,
     playGoodbye,
     playMotionByNumber,
     setExpression,

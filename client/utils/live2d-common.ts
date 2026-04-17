@@ -3,7 +3,11 @@ type Live2DExpressionDefinition = {
   File?: string
 }
 
-type Live2DMotionDefinition = Record<string, unknown>
+type Live2DMotionDefinition = {
+  File?: string
+  Sound?: string
+  [key: string]: unknown
+}
 
 type Live2DGroupDefinition = {
   Target?: string
@@ -40,6 +44,8 @@ export const COMMON_GESTURE_VARIANTS = {
   nod: [0, 8],
   think: [2, 9],
   happy: [5, 6],
+  introduceProduct: [10, 11, 12, 16],
+  recommendProduct: [5, 10, 16, 21],
   closing: [0, 5],
   goodbye: [7, 4],
   subtleTalk: [1, 8],
@@ -48,9 +54,16 @@ export const COMMON_GESTURE_VARIANTS = {
 export type CommonMood = keyof typeof COMMON_EXPRESSION_BY_MOOD
 export type CommonGesture = keyof typeof COMMON_GESTURE_VARIANTS
 
+type GestureMotionRef = {
+  group: string
+  index: number
+  score?: number
+}
+
 type GesturePlan = {
   group: string
   indexes: number[]
+  motions: GestureMotionRef[]
 }
 
 export type CommonLive2DBehaviorProfile = {
@@ -60,6 +73,7 @@ export type CommonLive2DBehaviorProfile = {
   idleMotionCount: number
   primaryGestureGroup: string
   primaryGestureMotionCount: number
+  primaryGestureMotions: GestureMotionRef[]
   expressionByMood: Record<CommonMood, string | null>
   gestureMap: Record<CommonGesture, GesturePlan>
   compatibility: {
@@ -70,6 +84,7 @@ export type CommonLive2DBehaviorProfile = {
 }
 
 const DEFAULT_IDLE_GROUP = 'Idle'
+const MAX_SEMANTIC_MOTIONS_PER_GESTURE = 4
 
 const MOOD_ALIAS_CANDIDATES: Record<CommonMood, string[]> = {
   neutral: ['exp00', 'normal', 'neutral', 'default', 'base', 'plain', 'standard'],
@@ -91,6 +106,13 @@ const MOOD_FALLBACKS: Record<CommonMood, CommonMood[]> = {
 
 const PRIMARY_GESTURE_GROUP_CANDIDATES = [
   '',
+  'Greeting',
+  'Wave',
+  'Hello',
+  'Talk',
+  'Explain',
+  'Recommend',
+  'Presentation',
   'Tap',
   'Flick',
   'Tap@Head',
@@ -103,13 +125,36 @@ const PRIMARY_GESTURE_GROUP_CANDIDATES = [
 ]
 
 const GESTURE_GROUP_CANDIDATES: Record<CommonGesture, string[]> = {
-  greeting: ['Flick', 'FlickUp', 'Tap', '', 'Tap@Head', 'Flick@Body'],
-  nod: ['Tap@Head', 'Tap', 'FlickDown', 'FlickDown@Head', '', DEFAULT_IDLE_GROUP],
-  think: ['Tap@Head', 'FlickUp@Head', 'FlickUp', 'Tap', '', DEFAULT_IDLE_GROUP],
-  happy: ['Flick', 'Tap', 'FlickUp', '', DEFAULT_IDLE_GROUP],
-  closing: ['Flick@Body', 'Tap@Body', 'FlickDown@Body', 'Flick', 'Tap', ''],
-  goodbye: ['Flick', 'FlickUp', 'Tap', 'Flick@Body', '', DEFAULT_IDLE_GROUP],
-  subtleTalk: ['Tap', '', DEFAULT_IDLE_GROUP, 'Flick'],
+  greeting: ['Greeting', 'Hello', 'Wave', 'Flick', 'FlickUp', 'Tap', '', 'Tap@Head', 'Flick@Body'],
+  nod: ['Nod', 'Agree', 'Tap@Head', 'Tap', 'FlickDown', 'FlickDown@Head', '', DEFAULT_IDLE_GROUP],
+  think: ['Think', 'Thinking', 'Question', 'Tap@Head', 'FlickUp@Head', 'FlickUp', 'Tap', '', DEFAULT_IDLE_GROUP],
+  happy: ['Happy', 'Smile', 'Laugh', 'Excited', 'Flick', 'Tap', 'FlickUp', '', DEFAULT_IDLE_GROUP],
+  introduceProduct: ['Introduce', 'Presentation', 'Present', 'Recommend', 'Explain', 'Talk', 'Tap@Body', 'Flick@Body', 'Tap', 'Flick', ''],
+  recommendProduct: ['Recommend', 'Product', 'Present', 'Explain', 'Talk', 'Tap@Body', 'Flick@Body', 'Flick', 'Tap', ''],
+  closing: ['Close', 'Closing', 'Buy', 'Cart', 'Checkout', 'Flick@Body', 'Tap@Body', 'FlickDown@Body', 'Flick', 'Tap', ''],
+  goodbye: ['Goodbye', 'Bye', 'Wave', 'Flick', 'FlickUp', 'Tap', 'Flick@Body', '', DEFAULT_IDLE_GROUP],
+  subtleTalk: ['Talk', 'Explain', 'Tap', '', DEFAULT_IDLE_GROUP, 'Flick'],
+}
+
+const GESTURE_TOKEN_ALIASES: Record<CommonGesture, string[]> = {
+  greeting: ['greeting', 'hello', 'hi', 'wave', 'handwave', 'welcome', 'aisatsu'],
+  nod: ['nod', 'agree', 'yes', 'ok', 'taphead'],
+  think: ['think', 'thinking', 'question', 'curious', 'wonder', 'hmm', 'flickuphead'],
+  happy: ['happy', 'smile', 'laugh', 'joy', 'excited', 'delight', 'kime'],
+  introduceProduct: ['introduce', 'presentation', 'present', 'product', 'show', 'recommend', 'explain', 'talk', 'guide'],
+  recommendProduct: ['recommend', 'product', 'suggest', 'choice', 'match', 'present', 'explain', 'talk'],
+  closing: ['closing', 'close', 'cart', 'checkout', 'buy', 'order', 'tapbody', 'flickbody'],
+  goodbye: ['goodbye', 'bye', 'wave', 'handwave', 'farewell'],
+  subtleTalk: ['talk', 'speak', 'explain', 'idle', 'normal'],
+}
+
+export type Live2DMotionCatalogItem = {
+  group: string
+  index: number
+  file: string
+  tokens: string[]
+  duration: number
+  parameterRanges: Record<string, number>
 }
 
 const stripFileExtension = (value = '') =>
@@ -143,6 +188,96 @@ const toExpressionTokens = (expression: Live2DExpressionDefinition) =>
       .map(normalizeKey)
       .filter(Boolean),
   )
+
+const toMotionTokens = (group: string, definition: Live2DMotionDefinition) =>
+  unique(
+    [group, definition.File, getFileBaseName(definition.File), definition.Sound, getFileBaseName(definition.Sound)]
+      .filter((value): value is string => Boolean(value))
+      .flatMap(value => [
+        normalizeKey(value),
+        ...stripFileExtension(getFileBaseName(value))
+          .split(/[^a-zA-Z0-9]+/)
+          .map(normalizeKey),
+      ])
+      .filter(Boolean),
+  )
+
+const resolveLive2DRelativeUrl = (baseUrl: string, relativePath = '') => {
+  if (!relativePath) return ''
+
+  try {
+    const base = new URL(
+      baseUrl,
+      typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'http://localhost',
+    )
+    return new URL(relativePath, base).toString()
+  } catch {
+    const base = baseUrl.replace(/\\/g, '/').replace(/\/[^/]*$/, '/')
+    return `${base}${relativePath}`.replace(/([^:]\/)\/+/g, '$1')
+  }
+}
+
+const getMotionParameterRanges = (motionJson: any) => {
+  const parameterRanges: Record<string, number> = {}
+  const curves = Array.isArray(motionJson?.Curves) ? motionJson.Curves : []
+
+  for (const curve of curves) {
+    const id = typeof curve?.Id === 'string' ? curve.Id : ''
+    const segments = Array.isArray(curve?.Segments) ? curve.Segments : []
+    if (!id || !segments.length) continue
+
+    const values: number[] = []
+    for (let i = 1; i < segments.length; i += 3) {
+      const value = Number(segments[i])
+      if (Number.isFinite(value)) values.push(value)
+    }
+    for (let i = 2; i < segments.length; i += 3) {
+      const value = Number(segments[i])
+      if (Number.isFinite(value)) values.push(value)
+    }
+
+    if (!values.length) continue
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    parameterRanges[id] = Math.max(parameterRanges[id] || 0, max - min)
+  }
+
+  return parameterRanges
+}
+
+const loadMotionCatalogItem = async (
+  modelUrl: string,
+  group: string,
+  index: number,
+  definition: Live2DMotionDefinition,
+): Promise<Live2DMotionCatalogItem> => {
+  const file = definition.File || ''
+  const motionUrl = resolveLive2DRelativeUrl(modelUrl, file)
+  let duration = 0
+  let parameterRanges: Record<string, number> = {}
+
+  if (motionUrl) {
+    try {
+      const response = await fetch(motionUrl, { cache: 'no-store' })
+      if (response.ok) {
+        const motionJson = await response.json()
+        duration = Number(motionJson?.Meta?.Duration) || 0
+        parameterRanges = getMotionParameterRanges(motionJson)
+      }
+    } catch {
+      // Motion metadata is best-effort. Group/file names are still useful.
+    }
+  }
+
+  return {
+    group,
+    index,
+    file,
+    tokens: toMotionTokens(group, definition),
+    duration,
+    parameterRanges,
+  }
+}
 
 const findMatchingExpression = (
   expressions: Array<{ name: string; tokens: string[] }>,
@@ -188,6 +323,152 @@ const findMatchingGroupName = (availableGroups: string[], candidates: string[]) 
   }
 
   return null
+}
+
+const scoreDurationFit = (duration: number, min = 1.2, max = 6.5) => {
+  if (!duration) return 0
+  if (duration >= min && duration <= max) return 1
+
+  const distance = duration < min ? min - duration : duration - max
+  return Math.max(0, 1 - distance / 4)
+}
+
+const sumParameterRange = (motion: Live2DMotionCatalogItem, aliases: string[]) => {
+  const normalizedAliases = aliases.map(normalizeKey).filter(Boolean)
+  let total = 0
+
+  Object.entries(motion.parameterRanges).forEach(([paramId, range]) => {
+    const normalizedParam = normalizeKey(paramId)
+    if (normalizedAliases.some(alias => normalizedParam.includes(alias))) {
+      total += Math.abs(Number(range) || 0)
+    }
+  })
+
+  return total
+}
+
+const capScore = (value: number, divisor: number, max = 8) =>
+  Math.min(max, Math.max(0, value / divisor))
+
+const getMotionFeatures = (motion: Live2DMotionCatalogItem) => {
+  const headX = sumParameterRange(motion, ['paramanglex', 'anglex'])
+  const headY = sumParameterRange(motion, ['paramangley', 'angley'])
+  const headZ = sumParameterRange(motion, ['paramanglez', 'anglez'])
+  const body = sumParameterRange(motion, ['body', 'bodyupper', 'bodyposition'])
+  const arm = sumParameterRange(motion, [
+    'arm',
+    'hand',
+    'shoulder',
+    'elbow',
+    'wrist',
+    'watch',
+    'glass',
+    'leg',
+  ])
+  const face = sumParameterRange(motion, [
+    'mouth',
+    'smile',
+    'cheek',
+    'brow',
+    'face',
+    'tere',
+    'eyeform',
+    'eyesmile',
+  ])
+  const eyes = sumParameterRange(motion, ['eyeball', 'eyeopen', 'eyel', 'eyer'])
+
+  return {
+    headX: capScore(headX, 10),
+    headY: capScore(headY, 10),
+    headZ: capScore(headZ, 10),
+    body: capScore(body, 14),
+    arm: capScore(arm, 18),
+    face: capScore(face, 8),
+    eyes: capScore(eyes, 12),
+    duration: scoreDurationFit(motion.duration),
+  }
+}
+
+const scoreTokenMatch = (motion: Live2DMotionCatalogItem, aliases: string[]) => {
+  const normalizedAliases = aliases.map(normalizeKey).filter(Boolean)
+  let score = 0
+
+  normalizedAliases.forEach((alias) => {
+    if (motion.tokens.some(token => token === alias)) score += 5
+    else if (motion.tokens.some(token => token.includes(alias) || alias.includes(token))) score += 2
+  })
+
+  return score
+}
+
+const scoreGroupMatch = (group: string, candidates: string[]) => {
+  const normalizedGroup = normalizeKey(group)
+  if (!normalizedGroup && candidates.includes('')) return 1.5
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeKey(candidate)
+    if (!normalizedCandidate) continue
+    if (normalizedGroup === normalizedCandidate) return 4
+    if (normalizedGroup.includes(normalizedCandidate) || normalizedCandidate.includes(normalizedGroup)) return 2
+  }
+
+  return 0
+}
+
+const scoreMotionForGesture = (motion: Live2DMotionCatalogItem, gesture: CommonGesture) => {
+  const features = getMotionFeatures(motion)
+  const tokenScore = scoreTokenMatch(motion, GESTURE_TOKEN_ALIASES[gesture])
+  const groupScore = scoreGroupMatch(motion.group, GESTURE_GROUP_CANDIDATES[gesture])
+  const genericIndexScore = COMMON_GESTURE_VARIANTS[gesture].includes(motion.index)
+    ? 1.75
+    : 0
+
+  switch (gesture) {
+    case 'greeting':
+      return tokenScore + groupScore + genericIndexScore + features.arm * 1.15 + features.headZ * 0.55 + features.headY * 0.35 + features.duration
+    case 'nod':
+      return tokenScore + groupScore + genericIndexScore + features.headX * 1.2 + features.body * 0.55 + features.duration
+    case 'think':
+      return tokenScore + groupScore + genericIndexScore + features.headX * 0.8 + features.headY * 0.55 + features.face * 0.7 + features.eyes * 0.35 + features.duration
+    case 'happy':
+      return tokenScore + groupScore + genericIndexScore + features.face * 1.1 + features.arm * 0.55 + features.headZ * 0.45 + features.duration
+    case 'introduceProduct':
+      return tokenScore + groupScore + genericIndexScore + features.arm * 1.35 + features.body * 0.75 + features.headY * 0.55 + features.duration
+    case 'recommendProduct':
+      return tokenScore + groupScore + genericIndexScore + features.arm * 1.05 + features.face * 0.75 + features.body * 0.65 + features.headY * 0.55 + features.duration
+    case 'closing':
+      return tokenScore + groupScore + genericIndexScore + features.arm * 1 + features.body * 0.85 + features.face * 0.45 + features.duration
+    case 'goodbye':
+      return tokenScore + groupScore + genericIndexScore + features.arm * 1.2 + features.headZ * 0.55 + features.duration
+    case 'subtleTalk':
+    default:
+      return tokenScore + groupScore + genericIndexScore + features.face * 0.85 + features.headY * 0.45 + features.body * 0.35 + features.duration
+  }
+}
+
+const selectSemanticMotions = (
+  gesture: CommonGesture,
+  motionCatalog: Live2DMotionCatalogItem[],
+  idleGroup: string,
+) => {
+  const hasNonIdleMotions = motionCatalog.some(motion => motion.group !== idleGroup)
+  const scored = motionCatalog
+    .filter(motion => gesture === 'subtleTalk' || motion.group !== idleGroup || !hasNonIdleMotions)
+    .map(motion => ({
+      group: motion.group,
+      index: motion.index,
+      score: scoreMotionForGesture(motion, gesture),
+    }))
+    .filter(motion => motion.score > 0)
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+
+  if (!scored.length) return []
+
+  const bestScore = scored[0].score || 0
+  const minScore = Math.max(2, bestScore * 0.62)
+  return scored
+    .filter(motion => (motion.score || 0) >= minScore)
+    .slice(0, MAX_SEMANTIC_MOTIONS_PER_GESTURE)
 }
 
 const buildIndexPool = (count: number, preferredIndexes: readonly number[] = []) => {
@@ -267,7 +548,23 @@ const resolveGesturePlan = (
   availableGroups: string[],
   primaryGestureGroup: string,
   idleGroup: string,
+  motionCatalog: Live2DMotionCatalogItem[] = [],
 ) => {
+  const semanticMotions = motionCatalog.length
+    ? selectSemanticMotions(gesture, motionCatalog, idleGroup)
+    : []
+
+  if (semanticMotions.length) {
+    const firstGroup = semanticMotions[0].group
+    return {
+      group: firstGroup,
+      indexes: semanticMotions
+        .filter(motion => motion.group === firstGroup)
+        .map(motion => motion.index),
+      motions: semanticMotions,
+    }
+  }
+
   const groupCandidates = GESTURE_GROUP_CANDIDATES[gesture]
   const preferredGroup = findMatchingGroupName(availableGroups, groupCandidates)
   const primaryCount = motionDefinitions[primaryGestureGroup]?.length || 0
@@ -289,6 +586,10 @@ const resolveGesturePlan = (
   return {
     group: fallbackGroup,
     indexes: buildIndexPool(motionCount, preferredIndexes),
+    motions: buildIndexPool(motionCount, preferredIndexes).map(index => ({
+      group: fallbackGroup,
+      index,
+    })),
   }
 }
 
@@ -299,6 +600,7 @@ const createEmptyBehaviorProfile = (): CommonLive2DBehaviorProfile => ({
   idleMotionCount: 0,
   primaryGestureGroup: '',
   primaryGestureMotionCount: 0,
+  primaryGestureMotions: [],
   expressionByMood: {
     neutral: null,
     smile: null,
@@ -308,13 +610,15 @@ const createEmptyBehaviorProfile = (): CommonLive2DBehaviorProfile => ({
     delighted: null,
   },
   gestureMap: {
-    greeting: { group: '', indexes: [] },
-    nod: { group: '', indexes: [] },
-    think: { group: '', indexes: [] },
-    happy: { group: '', indexes: [] },
-    closing: { group: '', indexes: [] },
-    goodbye: { group: '', indexes: [] },
-    subtleTalk: { group: '', indexes: [] },
+    greeting: { group: '', indexes: [], motions: [] },
+    nod: { group: '', indexes: [], motions: [] },
+    think: { group: '', indexes: [], motions: [] },
+    happy: { group: '', indexes: [], motions: [] },
+    introduceProduct: { group: '', indexes: [], motions: [] },
+    recommendProduct: { group: '', indexes: [], motions: [] },
+    closing: { group: '', indexes: [], motions: [] },
+    goodbye: { group: '', indexes: [], motions: [] },
+    subtleTalk: { group: '', indexes: [], motions: [] },
   },
   compatibility: {
     hasLipSync: false,
@@ -326,9 +630,11 @@ const createEmptyBehaviorProfile = (): CommonLive2DBehaviorProfile => ({
 export const buildCommonLive2DBehaviorProfile = ({
   modelDefinition,
   runtimeMotionDefinitions,
+  motionCatalog,
 }: {
   modelDefinition?: Live2DModelDefinition | null
   runtimeMotionDefinitions?: Record<string, Live2DMotionDefinition[]>
+  motionCatalog?: Live2DMotionCatalogItem[]
 } = {}) => {
   const baseProfile = createEmptyBehaviorProfile()
   const motionDefinitions = runtimeMotionDefinitions || modelDefinition?.FileReferences?.Motions || {}
@@ -354,6 +660,9 @@ export const buildCommonLive2DBehaviorProfile = ({
   baseProfile.idleMotionCount = motionDefinitions[idleGroup]?.length || 0
   baseProfile.primaryGestureGroup = primaryGestureGroup
   baseProfile.primaryGestureMotionCount = motionDefinitions[primaryGestureGroup]?.length || 0
+  baseProfile.primaryGestureMotions = (motionCatalog || [])
+    .filter(motion => motion.group !== idleGroup || primaryGestureGroup === idleGroup)
+    .map(motion => ({ group: motion.group, index: motion.index }))
   baseProfile.expressionByMood = expressionByMood
 
   ;(Object.keys(COMMON_GESTURE_VARIANTS) as CommonGesture[]).forEach((gesture) => {
@@ -363,16 +672,34 @@ export const buildCommonLive2DBehaviorProfile = ({
       availableGroups,
       primaryGestureGroup,
       idleGroup,
+      motionCatalog,
     )
   })
 
   baseProfile.compatibility = {
     hasLipSync: Boolean(lipSyncGroup?.Ids?.length),
     matchedMoods: Object.values(expressionByMood).filter(Boolean).length,
-    mappedGestures: (Object.values(baseProfile.gestureMap) as GesturePlan[]).filter(plan => plan.indexes.length > 0).length,
+    mappedGestures: (Object.values(baseProfile.gestureMap) as GesturePlan[])
+      .filter(plan => plan.indexes.length > 0 || plan.motions.length > 0).length,
   }
 
   return baseProfile
+}
+
+export const loadLive2DMotionCatalog = async (
+  modelUrl: string,
+  modelDefinition?: Live2DModelDefinition | null,
+) => {
+  const motionDefinitions = modelDefinition?.FileReferences?.Motions || {}
+  const jobs: Array<Promise<Live2DMotionCatalogItem>> = []
+
+  Object.entries(motionDefinitions).forEach(([group, definitions]) => {
+    definitions.forEach((definition, index) => {
+      jobs.push(loadMotionCatalogItem(modelUrl, group, index, definition))
+    })
+  })
+
+  return await Promise.all(jobs)
 }
 
 export const loadLive2DModelDefinition = async (modelUrl: string) => {
