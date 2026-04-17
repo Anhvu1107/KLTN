@@ -43,8 +43,12 @@ const suggestedProducts = ref<any[]>([])
 const suggestedProductsRail = ref<HTMLElement | null>(null)
 const sessionId = ref('')
 const isMinimized = ref(props.startMinimized)
+const isSettingsReady = ref(false)
 const voiceSettings = ref<VoiceConfig>(cloneDefaultVoiceConfig())
-const live2dModelUrl = computed(() => voiceSettings.value.live2dModelUrl)
+const live2dModelUrl = computed(() => {
+  if (!isSettingsReady.value) return null
+  return voiceSettings.value?.live2dModelUrl || DEFAULT_LIVE2D_MODEL_URL
+})
 const live2dScale = computed(() => voiceSettings.value.live2dScale)
 const live2dOffsetY = computed(() => voiceSettings.value.live2dOffsetY)
 const live2dSnapshotWidth = computed(() => (isMinimized.value ? 224 : 440))
@@ -500,6 +504,7 @@ const startVoiceSession = async () => {
 
     const { apiKey, model, fallbackModels = [], systemPrompt, greetingMessage, tools, voiceSettings: fetchedVoiceSettings } = configRes.data
     voiceSettings.value = normalizeVoiceConfig(fetchedVoiceSettings)
+    isSettingsReady.value = true
     console.log('[Voice] Models available:', model, fallbackModels.length ? `fallbacks: ${fallbackModels.join(', ')}` : 'no fallbacks')
 
     // 2. Connect to Gemini Live API via WebSocket (direct API key)
@@ -1732,6 +1737,7 @@ onMounted(() => {
             : 'h-[42dvh] min-h-[280px] max-h-[520px] w-full max-w-[440px]'"
         >
           <Live2DSnapshot
+            v-if="live2dModelUrl"
             :key="`voice-static-${live2dModelUrl}-${live2dSnapshotWidth}-${live2dSnapshotHeight}-${live2dSnapshotFitMode}-${live2dScale}-${live2dOffsetY}`"
             :model-url="live2dModelUrl"
             :width="live2dSnapshotWidth"

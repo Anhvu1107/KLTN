@@ -402,7 +402,7 @@ const handleImageError = () => {
   hasError.value = true
   snapshotUrl.value = ''
   try {
-    sessionStorage.removeItem(getCacheKey(resolvedUrl.value))
+    sessionStorage.removeItem(cacheKey.value)
   } catch {}
 }
 

@@ -39,7 +39,10 @@ export function useLive2D(
   const isLoading = ref(true)
   const errorMessage = ref('')
   const behaviorProfile = ref<CommonLive2DBehaviorProfile>(buildCommonLive2DBehaviorProfile())
-  const resolvedModelUrl = computed(() => resolveModelUrl(toValue(options.modelUrl) || DEFAULT_LIVE2D_MODEL_URL))
+  const resolvedModelUrl = computed(() => {
+    const rawUrl = toValue(options.modelUrl)
+    return rawUrl === null ? null : resolveModelUrl(rawUrl || DEFAULT_LIVE2D_MODEL_URL)
+  })
   const resolvedFallbackModelUrl = computed(() =>
     resolveModelUrl(toValue(options.fallbackModelUrl) || DEFAULT_LIVE2D_MODEL_URL),
   )
@@ -149,8 +152,13 @@ export function useLive2D(
     removeAmbientTicker()
 
     if (model) {
+      if (app && app.stage) {
+        try {
+          app.stage.removeChild(model)
+        } catch {}
+      }
       try {
-        model.destroy()
+        model.destroy({ children: true, texture: false, baseTexture: false })
       } catch {
         // Ignore model destroy errors during teardown.
       }
@@ -801,6 +809,14 @@ export function useLive2D(
     isUnmounted = true
     disconnectResizeObserver()
     destroyCurrentModel()
+    if (app) {
+      try {
+        app.destroy(true, { children: true })
+      } catch (e) {
+        console.warn('[Live2D] Error destroying PIXI app:', e)
+      }
+      app = null
+    }
   }
 
   watch(

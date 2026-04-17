@@ -17,7 +17,7 @@ const isHovered = ref(false)
 
 // Fetch admin-configured model URL from voice settings
 const config = useRuntimeConfig()
-const configuredModelUrl = ref(DEFAULT_LIVE2D_MODEL_URL)
+const configuredModelUrl = ref<string | null>(null)
 const live2dScale = ref(1.0)
 const live2dOffsetY = ref(0)
 
@@ -52,12 +52,15 @@ const loadConfiguredModel = async () => {
     const nextModelUrl = settings?.live2dModelUrl
     if (nextModelUrl) {
       configuredModelUrl.value = nextModelUrl
+    } else {
+      configuredModelUrl.value = DEFAULT_LIVE2D_MODEL_URL
     }
 
     live2dScale.value = clampVoiceNumber(settings?.live2dScale, 0.1, 5, 1)
     live2dOffsetY.value = clampVoiceNumber(settings?.live2dOffsetY, -1000, 1000, 0)
   } catch {
     // Fallback to default on error
+    configuredModelUrl.value = DEFAULT_LIVE2D_MODEL_URL
   }
 }
 
@@ -143,7 +146,7 @@ const onClick = () => {
     >
       <div class="live2d-mascot__stage absolute inset-0 overflow-hidden bg-transparent">
         <Live2DSnapshot
-          v-if="!isModelReady"
+          v-if="!isModelReady && configuredModelUrl"
           :key="`mascot-static-${configuredModelUrl}-${live2dScale}-${live2dOffsetY}`"
           :model-url="configuredModelUrl"
           :width="224"
