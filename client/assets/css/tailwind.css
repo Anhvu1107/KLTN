@@ -14,6 +14,16 @@
     @apply scroll-smooth;
   }
 
+  /* Hide scrollbars globally for a cleaner, luxurious look */
+  * {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+
   body {
     @apply font-sans text-neutral-800 bg-aura-white antialiased;
   }
