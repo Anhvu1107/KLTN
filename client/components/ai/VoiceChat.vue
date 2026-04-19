@@ -1832,7 +1832,7 @@ onMounted(() => {
         </div>
         <div
           ref="suggestedProductsRail"
-          class="flex touch-pan-x snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-1 pb-3 [scrollbar-width:thin]"
+          class="scrollbar-hide flex touch-pan-x snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-1 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           @wheel="handleSuggestedProductsWheel"
         >
           <article
