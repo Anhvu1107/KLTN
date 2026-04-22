@@ -143,7 +143,7 @@ const applyFilters = () => {
   if (category.value) query.category = category.value
   if (subcategory.value) query.subcategory = subcategory.value
   if (brand.value) query.brand = brand.value
-  if (sort.value !== 'newest') query.sort = sort.value
+  if (sort.value) query.sort = sort.value
   if (minPrice.value !== null) query.minPrice = minPrice.value
   if (maxPrice.value !== null) query.maxPrice = maxPrice.value
   if (size.value) query.size = size.value
@@ -151,6 +151,20 @@ const applyFilters = () => {
   router.push({ query })
   refresh()
 }
+
+// Sync refs when route query changes (e.g. back/forward navigation)
+watch(() => route.query, (q) => {
+  sort.value = (q.sort as string) || 'newest'
+  category.value = (q.category as string) || ''
+  subcategory.value = (q.subcategory as string) || ''
+  brand.value = (q.brand as string) || ''
+  search.value = (q.search as string) || ''
+  minPrice.value = q.minPrice ? Number(q.minPrice) : null
+  maxPrice.value = q.maxPrice ? Number(q.maxPrice) : null
+  size.value = (q.size as string) || ''
+  color.value = (q.color as string) || ''
+  page.value = Number(q.page) || 1
+})
 
 // Clear filters
 const clearFilters = () => {
