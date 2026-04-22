@@ -270,12 +270,19 @@ const updateSessionStats = async (sessionId, lastMessage, userId = null) => {
     });
 
     if (session) {
-        await session.update({
+        const updateData = {
             last_message: lastMessage?.substring(0, 200) || session.last_message,
             last_activity: new Date(),
             message_count: session.message_count + 1,
             is_read: false, // New message = unread
-        });
+        };
+
+        // If session had no user but now we have one (guest logged in), claim it
+        if (!session.user_id && userId) {
+            updateData.user_id = userId;
+        }
+
+        await session.update(updateData);
     }
 };
 

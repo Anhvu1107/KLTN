@@ -139,6 +139,8 @@ export const useAuthStore = defineStore('auth', {
             if (process.client) {
                 localStorage.removeItem('token')
                 localStorage.removeItem('auth')
+                // Clear AI chat session so next user gets a fresh conversation
+                localStorage.removeItem('aura_chat_session_id')
             }
             // Use external: true to force full page reload and prevent layout glitches
             navigateTo('/', { external: true })

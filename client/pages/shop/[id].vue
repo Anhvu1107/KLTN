@@ -28,11 +28,53 @@ const { data, pending, error } = await useFetch<{
 
 const product = computed(() => data.value?.data?.product)
 
-const availableVariants = computed(() => product.value?.variants?.filter((v: any) => v.status === 'AVAILABLE') || [])
+// --- Size grouping & selection ---
+
+// Group ALL variants by size (including sold ones, so we can show them as disabled)
+const sizeGroups = computed(() => {
+  const groups = new Map<string, any[]>()
+  for (const v of product.value?.variants || []) {
+    if (!groups.has(v.size)) {
+      groups.set(v.size, [])
+    }
+    groups.get(v.size)!.push(v)
+  }
+  return groups
+})
+
+// Sizes that have at least 1 AVAILABLE variant
+const availableSizes = computed(() => {
+  return [...sizeGroups.value.entries()]
+    .filter(([_, variants]) => variants.some((v: any) => v.status === 'AVAILABLE'))
+    .map(([size]) => size)
+})
+
+// All unique sizes (for rendering selector buttons)
+const allSizes = computed(() => [...sizeGroups.value.keys()])
+
+// Selected size — default to first available size
+const selectedSize = ref('')
+
+watch(() => availableSizes.value, (sizes) => {
+  if (sizes.length && !sizes.includes(selectedSize.value)) {
+    selectedSize.value = sizes[0]
+  }
+}, { immediate: true })
+
+// Whether this product has multiple sizes (show selector or not)
+const hasMultipleSizes = computed(() => allSizes.value.length > 1)
+
+// Variants of the SELECTED size only
+const sizeVariants = computed(() => sizeGroups.value.get(selectedSize.value) || [])
+
+// Available (in stock) variants of the selected size
+const availableVariants = computed(() => sizeVariants.value.filter((v: any) => v.status === 'AVAILABLE'))
 const availableQuantity = computed(() => availableVariants.value.length)
 
-// Choose the first available variant to put in cart, or fallback to the first one if all are sold
-const variant = computed(() => availableVariants.value[0] || product.value?.variants?.[0])
+// The representative variant (for displaying color, material, SKU)
+const variant = computed(() => availableVariants.value[0] || sizeVariants.value[0] || product.value?.variants?.[0])
+
+// --- End size grouping ---
 
 // Add a helper for translating database values like colors and materials
 const tValue = (dict: string, val: string) => {
@@ -43,25 +85,29 @@ const tValue = (dict: string, val: string) => {
   return translated === fullPath ? val : translated
 }
 
-// How many of these identical items are already in the cart?
+// How many of the SELECTED SIZE are already in the cart?
 const inCartCount = computed(() => {
   return availableVariants.value.filter((v: any) => cartStore.isInCart(v.id)).length
 })
 
-// Max amount we can still add to cart
+// Max amount we can still add to cart (of selected size)
 const maxCanAdd = computed(() => availableQuantity.value - inCartCount.value)
 
 // User selected quantity
 const selectedQuantity = ref(1)
 
-// Reset quantity when maxCanAdd changes to avoid invalid state
+// Reset quantity when size changes or maxCanAdd changes
 watch(maxCanAdd, (newMax) => {
   if (selectedQuantity.value > newMax) {
     selectedQuantity.value = Math.max(1, newMax)
   }
 })
 
-// Check if item is fully in cart or sold out
+watch(selectedSize, () => {
+  selectedQuantity.value = 1
+})
+
+// Check if item is fully in cart or sold out (for selected size)
 const isFullyInCart = computed(() => maxCanAdd.value === 0 && availableQuantity.value > 0)
 const isSold = computed(() => availableQuantity.value === 0)
 
@@ -80,7 +126,7 @@ const handleAddToCart = () => {
     return
   }
 
-  // Find variants to add
+  // Find variants to add — only from the SELECTED SIZE
   const variantsToAdd = availableVariants.value
     .filter((v: any) => !cartStore.isInCart(v.id))
     .slice(0, selectedQuantity.value)
@@ -118,7 +164,7 @@ const handleBuyNow = () => {
     return
   }
 
-  // Add selected quantity to cart
+  // Add selected quantity to cart — only from the SELECTED SIZE
   const variantsToAdd = availableVariants.value
     .filter((v: any) => !cartStore.isInCart(v.id))
     .slice(0, selectedQuantity.value)
@@ -363,10 +409,32 @@ useSeoMeta({
             </p>
           </div>
 
+          <!-- Size Selector (only show if product has multiple sizes) -->
+          <div v-if="hasMultipleSizes" class="mb-6">
+            <p class="text-caption text-neutral-500 uppercase mb-2">{{ t('shop.selectSize', 'Chọn kích thước') }}</p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="size in allSizes"
+                :key="size"
+                @click="availableSizes.includes(size) ? selectedSize = size : null"
+                :disabled="!availableSizes.includes(size)"
+                class="min-w-[3rem] px-4 py-2.5 border text-body-sm font-medium rounded-sm transition-all duration-200"
+                :class="{
+                  'border-aura-black bg-aura-black text-white': selectedSize === size,
+                  'border-neutral-300 hover:border-aura-black text-aura-black': selectedSize !== size && availableSizes.includes(size),
+                  'border-neutral-200 text-neutral-300 cursor-not-allowed line-through': !availableSizes.includes(size),
+                }"
+              >
+                {{ formatSizeLabel(size) }}
+              </button>
+            </div>
+          </div>
+
           <!-- Variant Info -->
           <div v-if="variant" class="mb-6 space-y-3">
             <div class="flex gap-8">
-              <div>
+              <!-- Only show static size label when there's no multi-size selector -->
+              <div v-if="!hasMultipleSizes">
                 <p class="text-caption text-neutral-500 uppercase">{{ t('shop.size') }}</p>
                 <p class="text-body font-medium">{{ formatSizeLabel(variant.size) }}</p>
               </div>
