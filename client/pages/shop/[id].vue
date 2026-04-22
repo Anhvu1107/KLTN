@@ -331,7 +331,7 @@ useSeoMeta({
           <nav class="text-caption text-neutral-500 mb-4">
             <NuxtLink to="/shop" class="hover:text-aura-black">{{ t('common.shop') }}</NuxtLink>
             <span class="mx-2">/</span>
-            <span>{{ product.category }}</span>
+            <span>{{ tValue('categories', product.category) }}</span>
           </nav>
 
           <!-- Brand -->
@@ -522,8 +522,8 @@ useSeoMeta({
             <h3 class="text-body font-medium text-aura-black mb-3">{{ t('shop.details') }}</h3>
             <ul class="space-y-2 text-body-sm text-neutral-600">
               <li><span class="text-neutral-500">{{ t('shop.sku') }}:</span> {{ variant?.sku || 'N/A' }}</li>
-              <li><span class="text-neutral-500">{{ t('shop.category') }}:</span> {{ product.category }}</li>
-              <li><span class="text-neutral-500">{{ t('shop.subcategory') }}:</span> {{ product.subcategory }}</li>
+              <li><span class="text-neutral-500">{{ t('shop.category') }}:</span> {{ tValue('categories', product.category) }}</li>
+              <li><span class="text-neutral-500">{{ t('shop.subcategory') }}:</span> {{ tValue('categories', product.subcategory) }}</li>
             </ul>
           </div>
         </div>
