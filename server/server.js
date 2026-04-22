@@ -215,8 +215,25 @@ const startServer = async () => {
 
         // Production: sync tables (create if not exist)
         if (process.env.NODE_ENV === 'production') {
-            await db.syncDatabase({ alter: true });
+            const syncOk = await db.syncDatabase({ alter: true });
+            if (!syncOk) {
+                logger.warn('Main sync reported failure — attempting individual model sync...');
+            }
             logger.info('Database synced for production');
+
+            // Safety-net: ensure every model table exists individually.
+            // Supabase pgbouncer can silently drop DDL during bulk sync.
+            const modelNames = Object.keys(db).filter(
+                (k) => db[k]?.sync && typeof db[k].sync === 'function' && k !== 'Sequelize' && k !== 'sequelize',
+            );
+            for (const name of modelNames) {
+                try {
+                    await db[name].sync({ alter: true });
+                } catch (modelSyncErr) {
+                    logger.warn(`[Sync] Failed to sync model ${name}: ${modelSyncErr.message}`);
+                }
+            }
+            logger.info(`Individual model sync complete (${modelNames.length} models checked)`);
 
             // Auto-seed if database is empty (no users found)
             try {
