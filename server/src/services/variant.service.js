@@ -63,7 +63,7 @@ const createVariant = async (productId, variantData) => {
 const updateVariant = async (variantId, updateData) => {
     const variant = await Variant.findByPk(variantId);
     if (!variant) {
-        throw new AppError('Variant not found', 404);
+        throw new AppError(`Variant not found for ID: ${variantId}`, 404);
     }
 
     // Only allow updating certain fields
@@ -86,7 +86,7 @@ const updateVariant = async (variantId, updateData) => {
 const deleteVariant = async (variantId) => {
     const variant = await Variant.findByPk(variantId);
     if (!variant) {
-        throw new AppError('Variant not found', 404);
+        return { message: 'Variant already deleted' };
     }
 
     // Check if variant is sold - cannot delete sold items

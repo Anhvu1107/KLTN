@@ -409,7 +409,7 @@ const fetchProduct = async () => {
             status: v.status,
             isNew: false,
             isDeleted: false,
-            quantity: 1,
+            quantity: v.stock_quantity !== undefined ? v.stock_quantity : 1,
           }
         })
       } else {
@@ -477,20 +477,17 @@ const saveProduct = async () => {
         })
       } else if (v.isNew && !v.isDeleted) {
         // Create new variant
-        const qty = v.quantity || 1;
-        for (let i = 0; i < qty; i++) {
-          await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: { size: actualSize, color: actualColor, material: actualMaterial, status: v.status },
-          })
-        }
+        await $fetch(`${config.public.apiUrl}/admin/products/${productId}/variants`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: { size: actualSize, color: actualColor, material: actualMaterial, status: v.status, stock_quantity: v.quantity || 1 },
+        })
       } else if (v.id && !v.isDeleted) {
         // Update existing variant
         await $fetch(`${config.public.apiUrl}/admin/variants/${v.id}`, {
           method: 'PUT',
           headers: { Authorization: `Bearer ${token}` },
-          body: { size: actualSize, color: actualColor, material: actualMaterial, status: v.status },
+          body: { size: actualSize, color: actualColor, material: actualMaterial, status: v.status, stock_quantity: v.quantity || 1 },
         })
       }
     }
