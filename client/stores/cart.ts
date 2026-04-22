@@ -13,6 +13,7 @@ const LEGACY_CART_STORAGE_KEY = 'cart'
 let trackTimer: ReturnType<typeof setTimeout> | null = null
 const TRACK_DEBOUNCE_MS = 5000 // Wait 5s of inactivity before sending
 
+
 export interface CartItem {
     id: string // variant ID
     productId: string
@@ -22,6 +23,7 @@ export interface CartItem {
     variantSize: string
     variantColor: string
     price: number
+    quantity: number
     addedAt: string
 }
 
@@ -56,13 +58,13 @@ export const useCartStore = defineStore('cart', {
         /**
          * Get cart item count
          */
-        itemCount: (state): number => state.items.length,
+        itemCount: (state): number => state.items.reduce((sum, item) => sum + item.quantity, 0),
 
         /**
          * Get cart subtotal
          */
         subtotal: (state): number => {
-            return state.items.reduce((total, item) => total + item.price, 0)
+            return state.items.reduce((total, item) => total + (item.price * item.quantity), 0)
         },
 
         /**
@@ -86,8 +88,8 @@ export const useCartStore = defineStore('cart', {
         /**
          * Get items formatted for checkout
          */
-        checkoutItems: (state): { variantId: string }[] => {
-            return state.items.map(item => ({ variantId: item.id }))
+        checkoutItems: (state): { variantId: string; quantity: number }[] => {
+            return state.items.map(item => ({ variantId: item.id, quantity: item.quantity }))
         },
     },
 
@@ -178,20 +180,19 @@ export const useCartStore = defineStore('cart', {
 
         /**
          * Add item to cart
-         * Returns false if item already exists (unique items only)
          */
         addToCart(item: Omit<CartItem, 'addedAt'>): boolean {
-            // Check if item already exists in cart (unique item model)
-            const exists = this.items.some(cartItem => cartItem.id === item.id)
+            const existingItem = this.items.find(cartItem => cartItem.id === item.id)
 
-            if (exists) {
-                return false
+            if (existingItem) {
+                existingItem.quantity += item.quantity || 1
+            } else {
+                this.items.push({
+                    ...item,
+                    quantity: item.quantity || 1,
+                    addedAt: new Date().toISOString(),
+                })
             }
-
-            this.items.push({
-                ...item,
-                addedAt: new Date().toISOString(),
-            })
 
             this.persistCartForUser()
             this.debouncedTrackAbandonedCart()
@@ -210,6 +211,19 @@ export const useCartStore = defineStore('cart', {
                 }
                 this.persistCartForUser()
                 this.debouncedTrackAbandonedCart()
+            }
+        },
+
+        updateQuantity(variantId: string, quantity: number): void {
+            const item = this.items.find(i => i.id === variantId)
+            if (item) {
+                if (quantity <= 0) {
+                    this.removeFromCart(variantId)
+                } else {
+                    item.quantity = quantity
+                    this.persistCartForUser()
+                    this.debouncedTrackAbandonedCart()
+                }
             }
         },
 
@@ -385,6 +399,7 @@ export const useCartStore = defineStore('cart', {
                             price: item.price,
                             variantSize: item.variantSize,
                             variantColor: item.variantColor,
+                            quantity: item.quantity,
                         })),
                         totalAmount: this.subtotal,
                         email: authStore.user?.email || null,

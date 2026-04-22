@@ -68,8 +68,8 @@ const hasMultipleSizes = computed(() => allSizes.value.length > 1)
 const sizeVariants = computed(() => sizeGroups.value.get(selectedSize.value) || [])
 
 // Available (in stock) variants of the selected size
-const availableVariants = computed(() => sizeVariants.value.filter((v: any) => v.status === 'AVAILABLE'))
-const availableQuantity = computed(() => availableVariants.value.length)
+const availableVariants = computed(() => sizeVariants.value.filter((v: any) => v.status === 'AVAILABLE' && v.stock_quantity > 0))
+const availableQuantity = computed(() => availableVariants.value.reduce((sum, v) => sum + (v.stock_quantity || 1), 0))
 
 // The representative variant (for displaying color, material, SKU)
 const variant = computed(() => availableVariants.value[0] || sizeVariants.value[0] || product.value?.variants?.[0])
@@ -87,7 +87,10 @@ const tValue = (dict: string, val: string) => {
 
 // How many of the SELECTED SIZE are already in the cart?
 const inCartCount = computed(() => {
-  return availableVariants.value.filter((v: any) => cartStore.isInCart(v.id)).length
+  return availableVariants.value.reduce((sum, v) => {
+    const itemInCart = cartStore.items.find(i => i.id === v.id);
+    return sum + (itemInCart ? itemInCart.quantity : 0);
+  }, 0)
 })
 
 // Max amount we can still add to cart (of selected size)
@@ -126,14 +129,9 @@ const handleAddToCart = () => {
     return
   }
 
-  // Find variants to add — only from the SELECTED SIZE
-  const variantsToAdd = availableVariants.value
-    .filter((v: any) => !cartStore.isInCart(v.id))
-    .slice(0, selectedQuantity.value)
-
-  let count = 0
-  for (const v of variantsToAdd) {
-    const success = cartStore.addToCart({
+  const v = availableVariants.value[0];
+  if (v) {
+    cartStore.addToCart({
       id: v.id,
       productId: product.value.id,
       productName: product.value.name,
@@ -142,11 +140,9 @@ const handleAddToCart = () => {
       variantSize: v.size,
       variantColor: v.color,
       price: parseFloat(product.value.sale_price || product.value.base_price),
+      quantity: selectedQuantity.value
     })
-    if (success) count++
-  }
-
-  if (count > 0) {
+    
     addedToCart.value = true
     setTimeout(() => {
       addedToCart.value = false
@@ -164,12 +160,8 @@ const handleBuyNow = () => {
     return
   }
 
-  // Add selected quantity to cart — only from the SELECTED SIZE
-  const variantsToAdd = availableVariants.value
-    .filter((v: any) => !cartStore.isInCart(v.id))
-    .slice(0, selectedQuantity.value)
-
-  for (const v of variantsToAdd) {
+  const v = availableVariants.value[0];
+  if (v) {
     cartStore.addToCart({
       id: v.id,
       productId: product.value.id,
@@ -179,6 +171,7 @@ const handleBuyNow = () => {
       variantSize: v.size,
       variantColor: v.color,
       price: parseFloat(product.value.sale_price || product.value.base_price),
+      quantity: selectedQuantity.value
     })
   }
 

@@ -870,14 +870,13 @@ useSeoMeta({
                 </select>
               </div>
               
-              <div v-if="v.isNew">
+              <div>
                 <label class="input-label text-sm">{{ $t('admin.quantity', 'Số lượng') }}</label>
                 <input
                   v-model.number="v.quantity"
                   type="number"
-                  min="1"
+                  min="0"
                   class="input-field"
-                  :title="$t('admin.duplicateDesc', 'T\u1ea1o nhi\u1ec1u b\u1ea3n sao cho s\u1ea3n ph\u1ea9m n\u00e0y')"
                 />
               </div>
             </div>

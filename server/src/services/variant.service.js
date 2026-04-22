@@ -51,6 +51,7 @@ const createVariant = async (productId, variantData) => {
         material: variantData.material || null,
         price_adjustment: variantData.price_adjustment || 0,
         status: variantData.status || 'AVAILABLE',
+        stock_quantity: variantData.stock_quantity !== undefined ? variantData.stock_quantity : 1,
     });
 
     return variant;
@@ -66,7 +67,7 @@ const updateVariant = async (variantId, updateData) => {
     }
 
     // Only allow updating certain fields
-    const allowedFields = ['size', 'color', 'material', 'price_adjustment', 'status'];
+    const allowedFields = ['size', 'color', 'material', 'price_adjustment', 'status', 'stock_quantity'];
     const filteredData = {};
 
     for (const field of allowedFields) {

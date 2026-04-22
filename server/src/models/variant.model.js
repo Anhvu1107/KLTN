@@ -45,6 +45,12 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 'AVAILABLE',
             allowNull: false,
         },
+        stock_quantity: {
+            type: DataTypes.INTEGER,
+            defaultValue: 1,
+            allowNull: false,
+            comment: 'Available stock count for this variant',
+        },
         reserved_at: {
             type: DataTypes.DATE,
             allowNull: true,
