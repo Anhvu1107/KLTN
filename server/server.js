@@ -199,9 +199,7 @@ const startServer = async () => {
             process.exit(1);
         }
 
-        await ensureCouponSchema(db, logger);
-
-        // Sync database in development (creates tables if not exist)
+        // Sync database FIRST (creates all base tables)
         if (process.env.NODE_ENV === 'development') {
             // Add PAYPAL to payment_method enum (PostgreSQL doesn't auto-add enum values)
             try {
@@ -292,6 +290,9 @@ const startServer = async () => {
                 logger.warn('Auto-seed failed (non-fatal):', seedErr.message);
             }
         }
+
+        // Run coupon schema migrations AFTER all tables are created
+        await ensureCouponSchema(db, logger);
 
         // Auto-seed default settings (creates missing settings, won't overwrite existing)
         try {
