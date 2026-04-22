@@ -63,10 +63,11 @@ module.exports = {
             freezeTableName: true,
         },
         pool: {
-            max: 20,
-            min: 5,
-            acquire: 60000,
-            idle: 10000,
+            max: 5,          // Supabase free tier: keep connections low
+            min: 0,          // Release ALL idle connections (saves resources)
+            acquire: 30000,  // 30s timeout to acquire connection
+            idle: 5000,      // Release idle connections after 5s
+            evict: 10000,    // Check for idle connections every 10s
         },
         dialectOptions: {
             ssl: {
