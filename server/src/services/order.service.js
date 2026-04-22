@@ -394,7 +394,8 @@ const cancelOrder = async (orderId, userId) => {
 /**
  * Check item availability
  */
-const checkAvailability = async (variantIds) => {
+const checkAvailability = async (items) => {
+    const variantIds = items.map(i => i.variantId || i.id);
     const variants = await Variant.findAll({
         where: { id: { [Op.in]: variantIds } },
         include: [{
@@ -404,13 +405,33 @@ const checkAvailability = async (variantIds) => {
         }],
     });
 
-    const results = variants.map(variant => ({
-        variantId: variant.id,
-        productName: variant.product?.name,
-        status: variant.status,
-        stock_quantity: variant.stock_quantity,
-        isAvailable: variant.status === 'AVAILABLE' && variant.stock_quantity > 0,
-    }));
+    const foundVariantIds = new Set(variants.map(v => v.id));
+
+    const results = variants.map(variant => {
+        const item = items.find(i => (i.variantId || i.id) === variant.id);
+        const requestedQty = item ? (item.quantity || 1) : 1;
+        return {
+            variantId: variant.id,
+            productName: variant.product?.name,
+            status: variant.status,
+            stock_quantity: variant.stock_quantity,
+            availableQuantity: variant.stock_quantity,
+            isAvailable: variant.status === 'AVAILABLE' && variant.stock_quantity >= requestedQty,
+        };
+    });
+
+    // Add missing variants as unavailable
+    for (const vId of variantIds) {
+        if (!foundVariantIds.has(vId)) {
+            results.push({
+                variantId: vId,
+                productName: 'Unknown Item',
+                status: 'NOT_FOUND',
+                stock_quantity: 0,
+                isAvailable: false,
+            });
+        }
+    }
 
     return results;
 };

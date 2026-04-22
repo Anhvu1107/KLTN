@@ -276,19 +276,25 @@ export const useCartStore = defineStore('cart', {
                     success: boolean
                     data: {
                         allAvailable: boolean
-                        items: { variantId: string; productName: string; isAvailable: boolean }[]
+                        items: { variantId: string; productName: string; isAvailable: boolean; availableQuantity?: number }[]
                     }
                 }>(`${config.public.apiUrl}/orders/check-availability`, {
                     method: 'POST',
                     headers: token ? { Authorization: `Bearer ${token}` } : {},
-                    body: { variantIds: this.variantIds },
+                    body: { items: this.checkoutItems },
                 })
 
                 const unavailable = response.data.items.filter(item => !item.isAvailable)
 
-                // Remove unavailable items from cart
+                // Handle unavailable items
                 for (const item of unavailable) {
-                    this.removeFromCart(item.variantId)
+                    if (item.availableQuantity !== undefined && item.availableQuantity > 0) {
+                        // Reduce quantity to max available
+                        this.updateQuantity(item.variantId, item.availableQuantity)
+                    } else {
+                        // Completely out of stock or missing
+                        this.removeFromCart(item.variantId)
+                    }
                 }
 
                 if (unavailable.length > 0) {

@@ -126,16 +126,16 @@ const cancelOrder = catchAsync(async (req, res) => {
  * Check if items are still available
  */
 const checkAvailability = catchAsync(async (req, res) => {
-    const { variantIds } = req.body;
+    const { items } = req.body;
 
-    if (!variantIds || !Array.isArray(variantIds)) {
+    if (!items || !Array.isArray(items)) {
         return res.status(400).json({
             success: false,
-            message: 'variantIds array is required',
+            message: 'items array is required',
         });
     }
 
-    const results = await orderService.checkAvailability(variantIds);
+    const results = await orderService.checkAvailability(items);
 
     const allAvailable = results.every(r => r.isAvailable);
 
