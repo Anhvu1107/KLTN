@@ -68,8 +68,8 @@ const hasMultipleSizes = computed(() => allSizes.value.length > 1)
 const sizeVariants = computed(() => sizeGroups.value.get(selectedSize.value) || [])
 
 // Available (in stock) variants of the selected size
-const availableVariants = computed(() => sizeVariants.value.filter((v: any) => v.status === 'AVAILABLE' && v.stock_quantity > 0))
-const availableQuantity = computed(() => availableVariants.value.reduce((sum, v) => sum + (v.stock_quantity || 1), 0))
+const availableVariants = computed(() => sizeVariants.value.filter((v: any) => v.status === 'AVAILABLE' && Number(v.stock_quantity) > 0))
+const availableQuantity = computed(() => availableVariants.value.reduce((sum, v) => sum + Number(v.stock_quantity || 1), 0))
 
 // The representative variant (for displaying color, material, SKU)
 const variant = computed(() => availableVariants.value[0] || sizeVariants.value[0] || product.value?.variants?.[0])
