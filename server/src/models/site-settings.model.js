@@ -75,6 +75,8 @@ module.exports = (sequelize, DataTypes) => {
         { key: 'social_instagram', value: '', type: 'text', group: 'social', label: 'Instagram URL' },
         { key: 'social_tiktok', value: '', type: 'text', group: 'social', label: 'TikTok URL' },
         { key: 'social_youtube', value: '', type: 'text', group: 'social', label: 'YouTube URL' },
+        { key: 'zalo_link', value: '', type: 'text', group: 'social', label: 'Zalo link' },
+        { key: 'messenger_link', value: '', type: 'text', group: 'social', label: 'Messenger link' },
 
         // SEO
         { key: 'seo_title', value: 'AURA ARCHIVE | Luxury Resell Fashion', type: 'text', group: 'seo', label: 'SEO Title' },

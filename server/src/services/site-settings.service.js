@@ -60,6 +60,7 @@ const getPublicSettings = async () => {
         'site_name', 'site_tagline', 'site_logo', 'site_favicon',
         'contact_phone', 'contact_email', 'contact_address',
         'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube',
+        'zalo_link', 'messenger_link',
         'seo_title', 'seo_description', 'seo_keywords',
         'google_analytics', 'facebook_pixel',
         'bank_accounts', 'payment_methods',

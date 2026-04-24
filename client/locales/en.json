@@ -631,6 +631,8 @@
         "social_instagram": "Instagram URL",
         "social_tiktok": "TikTok URL",
         "social_youtube": "YouTube URL",
+        "zalo_link": "Zalo link",
+        "messenger_link": "Messenger link",
         "seo_title": "SEO Title",
         "seo_description": "SEO Description",
         "seo_keywords": "SEO Keywords",

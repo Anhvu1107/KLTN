@@ -9,25 +9,11 @@ const route = useRoute()
 const isAdminPage = computed(() => route.path.startsWith('/admin'))
 
 // Contact links — loaded from site settings, with safe defaults
-const config = useRuntimeConfig()
-const zaloLink = ref('')
-const messengerLink = ref('')
+const { fetchSettings, zaloLink, messengerLink } = useSiteSettings()
 
-// Load contact links from admin settings
-const loadContactLinks = async () => {
-  try {
-    const res = await $fetch<{ success: boolean; data: any }>(
-      `${config.public.apiUrl}/settings`
-    )
-    const settings = res.data?.settings || res.data || {}
-    if (settings.zalo_link) zaloLink.value = settings.zalo_link
-    if (settings.messenger_link) messengerLink.value = settings.messenger_link
-  } catch {
-    // Keep widget available even when settings are temporarily unavailable.
-  }
-}
-
-onMounted(loadContactLinks)
+onMounted(() => {
+  fetchSettings()
+})
 
 const toggleChat = () => {
   showOptions.value = !showOptions.value
