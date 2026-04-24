@@ -12,6 +12,7 @@ const { t } = useI18n()
 const route = useRoute()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
+const { fetchSettings, siteName, logoUrl } = useSiteSettings()
 
 // Navigation items with i18n
 const navItems = computed(() => [
@@ -36,6 +37,7 @@ const isAdmin = computed(() => authStore.isAdmin)
 const isScrolled = ref(false)
 
 onMounted(() => {
+  fetchSettings()
   window.addEventListener('scroll', () => {
     isScrolled.value = window.scrollY > 20
   })
@@ -84,9 +86,15 @@ onMounted(() => {
         <div class="flex items-center justify-between py-5">
           
           <!-- Left: Logo -->
-          <NuxtLink to="/" class="flex-shrink-0">
-            <h1 class="font-serif text-2xl lg:text-[1.75rem] tracking-[0.2em] text-aura-black">
-              AURA ARCHIVE
+          <NuxtLink to="/" class="flex h-10 flex-shrink-0 items-center">
+            <img
+              v-if="logoUrl"
+              :src="logoUrl"
+              :alt="siteName"
+              class="h-10 w-auto max-w-[220px] object-contain"
+            />
+            <h1 v-else class="font-serif text-2xl lg:text-[1.75rem] tracking-[0.2em] text-aura-black">
+              {{ siteName }}
             </h1>
           </NuxtLink>
 

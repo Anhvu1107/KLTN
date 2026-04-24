@@ -9,6 +9,7 @@
 // Use Nuxt's built-in useLoadingIndicator
 const { isLoading } = useLoadingIndicator()
 const route = useRoute()
+const { fetchSettings, seoTitle, seoDescription, faviconUrl } = useSiteSettings()
 
 // Create reactive loading state
 const isPageLoading = ref(false)
@@ -20,6 +21,15 @@ const SHOW_DELAY = 150    // Only show if loading takes > 150ms (avoid flash)
 const MIN_DISPLAY = 250   // Show for at least 250ms once visible (smooth)
 
 let loadStartTime = 0
+
+const faviconHref = computed(() => faviconUrl.value || '/favicon.ico')
+const faviconType = computed(() => {
+  const cleanUrl = faviconHref.value.split('?')[0].toLowerCase()
+  if (cleanUrl.endsWith('.ico')) return 'image/x-icon'
+  if (cleanUrl.endsWith('.webp')) return 'image/webp'
+  if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) return 'image/jpeg'
+  return 'image/png'
+})
 
 // Watch the native loading indicator
 watch(isLoading, (loading) => {
@@ -59,6 +69,22 @@ watch(isLoading, (loading) => {
 
 // Provide loading state to layouts
 provide('isPageLoading', isPageLoading)
+
+onMounted(() => {
+  fetchSettings()
+})
+
+useHead(() => ({
+  title: seoTitle.value,
+  meta: [
+    { name: 'description', content: seoDescription.value },
+  ],
+  link: [
+    { key: 'icon', rel: 'icon', type: faviconType.value, href: faviconHref.value },
+    { key: 'shortcut-icon', rel: 'shortcut icon', type: faviconType.value, href: faviconHref.value },
+    { key: 'apple-touch-icon', rel: 'apple-touch-icon', href: faviconHref.value },
+  ],
+}))
 
 const layoutName = computed(() => {
   const layoutName = route.meta.layout

@@ -25,6 +25,11 @@ cloudinary.config({
 // ---------------------------------------------------------------------------
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const ALLOWED_SITE_ASSET_TYPES = [
+    ...ALLOWED_TYPES,
+    'image/x-icon',
+    'image/vnd.microsoft.icon',
+];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 // ---------------------------------------------------------------------------
@@ -49,6 +54,10 @@ const validateMagicBytes = (buffer) => {
             return 'image/webp';
         }
     }
+    // ICO
+    if (buffer[0] === 0x00 && buffer[1] === 0x00 && buffer[2] === 0x01 && buffer[3] === 0x00) {
+        return 'image/x-icon';
+    }
 
     return false;
 };
@@ -64,6 +73,17 @@ const imageFileFilter = (_req, file, cb) => {
         cb(null, true);
     } else {
         cb(new Error('Invalid file type. Only JPEG, PNG and WebP are allowed.'), false);
+    }
+};
+
+const siteAssetFileFilter = (_req, file, cb) => {
+    const isIcoFile = /\.ico$/i.test(file.originalname || '') &&
+        (!file.mimetype || file.mimetype === 'application/octet-stream');
+
+    if (ALLOWED_SITE_ASSET_TYPES.includes(file.mimetype) || isIcoFile) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, WebP and ICO are allowed.'), false);
     }
 };
 
@@ -86,6 +106,13 @@ const uploadBanner = multer({
     storage: memoryStorage,
     limits: { fileSize: 10 * 1024 * 1024, files: 1 },
     fileFilter: imageFileFilter,
+});
+
+/** Multer instance for site logo/favicon upload */
+const uploadSiteAsset = multer({
+    storage: memoryStorage,
+    limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    fileFilter: siteAssetFileFilter,
 });
 
 // ---------------------------------------------------------------------------
@@ -189,11 +216,13 @@ module.exports = {
     uploadProductImages,
     uploadAvatar,
     uploadBanner,
+    uploadSiteAsset,
     validateMagicBytes,
     validateAndUpload,
     deleteFile,
     getFileUrl,
     processUploadedFiles,
     ALLOWED_TYPES,
+    ALLOWED_SITE_ASSET_TYPES,
     MAX_FILE_SIZE,
 };

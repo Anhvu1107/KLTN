@@ -15,8 +15,10 @@ const { t } = useI18n()
 
 const config = useRuntimeConfig()
 const { getToken } = useAuthToken()
+const { getImageUrl } = useImageUrl()
 
 const settings = ref<Record<string, any[]>>({})
+const publicSiteSettings = useState<Record<string, string | null | undefined>>('public-site-settings', () => ({}))
 const isLoading = ref(true)
 const isSaving = ref(false)
 const saveMessage = ref('')
@@ -64,6 +66,39 @@ const filterLegacySettings = (groups: Record<string, any[]>) => {
   )
 }
 
+const imageAcceptForSetting = (setting: any) => {
+  return setting.key === 'site_favicon'
+    ? 'image/jpeg,image/png,image/webp,image/x-icon,image/vnd.microsoft.icon,.ico'
+    : 'image/jpeg,image/png,image/webp'
+}
+
+const imageHintForSetting = (setting: any) => {
+  return setting.key === 'site_favicon'
+    ? 'PNG, WebP hoặc ICO, tối đa 2MB'
+    : t('admin.aiConfig.avatarHint')
+}
+
+const isAllowedImageFile = (file: File, setting: any) => {
+  const baseTypes = ['image/jpeg', 'image/png', 'image/webp']
+  const faviconTypes = [...baseTypes, 'image/x-icon', 'image/vnd.microsoft.icon']
+  const allowedTypes = setting.key === 'site_favicon' ? faviconTypes : baseTypes
+
+  return allowedTypes.includes(file.type) || (setting.key === 'site_favicon' && file.name.toLowerCase().endsWith('.ico'))
+}
+
+const saveSingleSetting = async (key: string, value: string) => {
+  await $fetch(`${config.public.apiUrl}/admin/settings`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: { settings: [{ key, value }] },
+  })
+
+  publicSiteSettings.value = {
+    ...publicSiteSettings.value,
+    [key]: value,
+  }
+}
+
 // Fetch settings
 const fetchSettings = async () => {
   try {
@@ -92,7 +127,7 @@ const handleImageUpload = async (event: Event, setting: any) => {
   const file = target.files[0]
   
   // Validate file type
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+  if (!isAllowedImageFile(file, setting)) {
     saveMessage.value = t('admin.invalidImageType')
     setTimeout(() => { saveMessage.value = '' }, 3000)
     target.value = ''
@@ -111,9 +146,9 @@ const handleImageUpload = async (event: Event, setting: any) => {
     uploadingStates.value[setting.key] = true
     
     const formData = new FormData()
-    formData.append('images', file)
+    formData.append('image', file)
 
-    const response = await $fetch<{ success: boolean; data: { urls: string[] } }>(`${config.public.apiUrl}/upload`, {
+    const response = await $fetch<{ success: boolean; data: { url?: string; urls?: string[] } }>(`${config.public.apiUrl}/admin/upload/site-asset`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -121,9 +156,11 @@ const handleImageUpload = async (event: Event, setting: any) => {
       body: formData,
     })
 
-    if (response.data.urls.length > 0) {
-      setting.value = response.data.urls[0]
-      // Trigger a small save automatically for better UX
+    const uploadedUrl = response.data.url || response.data.urls?.[0]
+
+    if (uploadedUrl) {
+      setting.value = uploadedUrl
+      await saveSingleSetting(setting.key, uploadedUrl)
       saveMessage.value = t('admin.uploadSuccess') || 'Uploaded successfully'
       setTimeout(() => { saveMessage.value = '' }, 3000)
     }
@@ -153,6 +190,11 @@ const saveSettings = async () => {
       headers: { Authorization: `Bearer ${getToken()}` },
       body: { settings: allSettings },
     })
+
+    publicSiteSettings.value = {
+      ...publicSiteSettings.value,
+      ...Object.fromEntries(allSettings.map((setting) => [setting.key, setting.value])),
+    }
 
     saveMessage.value = t('admin.settings.saveSuccess')
     setTimeout(() => { saveMessage.value = '' }, 3000)
@@ -278,7 +320,7 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
                 <div class="space-y-4">
                 <!-- Current Image Preview -->
                 <div v-if="setting.value" class="w-24 h-24 bg-neutral-100 rounded border border-neutral-200 overflow-hidden relative group">
-                  <img :src="setting.value" :alt="setting.label" class="w-full h-full object-contain p-2" />
+                  <img :src="getImageUrl(setting.value)" :alt="setting.label" class="w-full h-full object-contain p-2" />
                   <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <button @click="setting.value = ''" class="text-white hover:text-red-400 p-2" :title="t('common.remove')">
                       <Icon name="ph:trash-fill" class="w-5 h-5" />
@@ -298,12 +340,12 @@ useSeoMeta({ title: `${t('admin.settings.title')} | Admin` })
                     <Icon v-else name="ph:upload-simple-bold" class="w-5 h-5 mr-2" />
                     {{ uploadingStates[setting.key] ? t('admin.aiConfig.uploading') : t('admin.aiConfig.uploadAvatar') }}
                   </button>
-                  <p class="text-caption text-neutral-500">{{ t('admin.aiConfig.avatarHint') }}</p>
+                  <p class="text-caption text-neutral-500">{{ imageHintForSetting(setting) }}</p>
                   
                   <input
                     type="file"
                     :ref="(el) => { if (el) fileInputs[setting.key] = el as HTMLInputElement }"
-                    accept="image/jpeg, image/png, image/webp"
+                    :accept="imageAcceptForSetting(setting)"
                     class="hidden"
                     @change="(e) => handleImageUpload(e, setting)"
                   />

@@ -6,6 +6,7 @@
 
 const { t } = useI18n()
 const config = useRuntimeConfig()
+const { fetchSettings, siteName, logoUrl } = useSiteSettings()
 
 // Newsletter form
 const newsletterEmail = ref('')
@@ -61,6 +62,10 @@ const companyLinks = computed(() => [
   { name: t('footer.privacy'), href: '/privacy' },
   { name: t('footer.terms'), href: '/terms' },
 ])
+
+onMounted(() => {
+  fetchSettings()
+})
 </script>
 
 <template>
@@ -175,8 +180,16 @@ const companyLinks = computed(() => [
     <div class="border-t border-neutral-800">
       <div class="container-aura py-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <!-- Logo -->
-        <NuxtLink to="/" class="font-serif text-lg tracking-[0.2em] text-white">
-          AURA ARCHIVE
+        <NuxtLink to="/" class="flex h-9 items-center">
+          <img
+            v-if="logoUrl"
+            :src="logoUrl"
+            :alt="siteName"
+            class="h-9 w-auto max-w-[180px] object-contain"
+          />
+          <span v-else class="font-serif text-lg tracking-[0.2em] text-white">
+            {{ siteName }}
+          </span>
         </NuxtLink>
         
         <!-- Copyright -->
