@@ -367,6 +367,7 @@
     "paypalDesc": "Thanh toán quốc tế qua PayPal",
     "orderSummary": "Tóm tắt đơn hàng",
     "placeOrder": "Đặt hàng",
+    "placeFreeOrder": "Đặt hàng miễn phí",
     "processing": "Đang xử lý...",
     "orderSuccess": "Đặt hàng thành công!",
     "redirecting": "Đang chuyển đến trang đơn hàng...",
@@ -442,7 +443,9 @@
     "bankTransferQR": "💳 Quét QR để thanh toán",
     "bankTransferQRDesc": "Quét mã QR bên dưới bằng app ngân hàng để chuyển khoản nhanh",
     "bankTransferNote": "Vui lòng ghi đúng nội dung chuyển khoản để đơn hàng được xác nhận nhanh nhất",
-    "transferContent": "Nội dung CK"
+    "transferContent": "Nội dung CK",
+    "freeOrderTitle": "Đơn hàng miễn phí",
+    "freeOrderDesc": "Tổng thanh toán là 0 đ. Bạn không cần chuyển khoản hay thanh toán thêm."
   },
   "profile": {
     "title": "Chỉnh sửa hồ sơ",

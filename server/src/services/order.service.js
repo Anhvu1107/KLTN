@@ -48,6 +48,39 @@ const normalizeOrderItems = (items = []) => {
     return Array.from(itemMap.values());
 };
 
+const toNonNegativeAmount = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return parsed;
+};
+
+const markZeroTotalOrdersPaid = async (orders = []) => {
+    const zeroTotalPendingOrders = orders.filter(order =>
+        order?.payment_status === 'PENDING' && toNonNegativeAmount(order.total_amount) === 0
+    );
+
+    if (zeroTotalPendingOrders.length === 0) return;
+
+    const orderIds = zeroTotalPendingOrders.map(order => order.id);
+    await Order.update(
+        {
+            payment_status: 'PAID',
+            payment_transaction_id: 'FREE_ORDER',
+        },
+        {
+            where: {
+                id: { [Op.in]: orderIds },
+                payment_status: 'PENDING',
+            },
+        }
+    );
+
+    for (const order of zeroTotalPendingOrders) {
+        order.setDataValue('payment_status', 'PAID');
+        order.setDataValue('payment_transaction_id', order.payment_transaction_id || 'FREE_ORDER');
+    }
+};
+
 /**
  * Create a new order with transaction support
  * Implements the "Unique Item" logic for resell platform
@@ -130,7 +163,7 @@ const createOrder = async (userId, items, orderData) => {
             });
         }
 
-        const shippingFee = Number(orderData.shippingFee || 0);
+        const shippingFee = toNonNegativeAmount(orderData.shippingFee);
 
         // Step 3: Validate coupons and calculate discounts (server-side)
         let discountAmount = 0;
@@ -169,7 +202,8 @@ const createOrder = async (userId, items, orderData) => {
             });
         }
 
-        const totalAmount = subtotal + shippingFee - discountAmount - shippingDiscountAmount;
+        const totalAmount = toNonNegativeAmount(subtotal + shippingFee - discountAmount - shippingDiscountAmount);
+        const isFreeOrder = totalAmount === 0;
 
         // Step 3: Generate order number
         const date = new Date();
@@ -188,7 +222,8 @@ const createOrder = async (userId, items, orderData) => {
             shipping_discount_amount: shippingDiscountAmount,
             total_amount: totalAmount,
             payment_method: orderData.paymentMethod,
-            payment_status: 'PENDING',
+            payment_status: isFreeOrder ? 'PAID' : 'PENDING',
+            payment_transaction_id: isFreeOrder ? 'FREE_ORDER' : null,
             shipping_address: orderData.shippingAddress,
             billing_address: orderData.billingAddress || null,
             notes: orderData.notes || null,
@@ -312,6 +347,8 @@ const getUserOrders = async (userId, options = {}) => {
         offset,
     });
 
+    await markZeroTotalOrdersPaid(rows);
+
     return {
         orders: rows,
         pagination: {
@@ -358,6 +395,8 @@ const getOrderById = async (orderId, userId = null) => {
     if (!order) {
         throw new AppError('Order not found', 404);
     }
+
+    await markZeroTotalOrdersPaid([order]);
 
     return order;
 };

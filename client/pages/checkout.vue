@@ -63,6 +63,12 @@ const productDiscountAmount = computed(() => appliedDiscountCoupon.value?.discou
 const shippingDiscountAmount = computed(() => appliedShippingCoupon.value?.shippingDiscountAmount || 0)
 const total = computed(() => Math.max(cartStore.subtotal + shippingFee.value - productDiscountAmount.value - shippingDiscountAmount.value, 0))
 
+const toNonNegativeAmount = (value: unknown) => {
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) return 0
+  return amount
+}
+
 const cities = VIETNAM_CITIES
 
 // All possible payment methods
@@ -360,10 +366,12 @@ const handleCheckout = async () => {
     }
 
     const orderId = result.order?.id
+    const orderTotal = toNonNegativeAmount(result.order?.total_amount ?? total.value)
+    const requiresPayment = orderTotal > 0
     const token = localStorage.getItem('token')
 
     // Handle payment redirect based on method
-    if (paymentMethod.value === 'VNPAY' && orderId) {
+    if (requiresPayment && paymentMethod.value === 'VNPAY' && orderId) {
       try {
         const res = await $fetch<{ success: boolean; data: { paymentUrl: string } }>(
           `${config.public.apiUrl}/payments/vnpay/create`,
@@ -375,7 +383,7 @@ const handleCheckout = async () => {
         }
       } catch (e: any) { console.error('VNPay error:', e) }
 
-    } else if (paymentMethod.value === 'MOMO' && orderId) {
+    } else if (requiresPayment && paymentMethod.value === 'MOMO' && orderId) {
       try {
         const res = await $fetch<{ success: boolean; data: { payUrl: string } }>(
           `${config.public.apiUrl}/payments/momo/create`,
@@ -387,7 +395,7 @@ const handleCheckout = async () => {
         }
       } catch (e: any) { console.error('MoMo error:', e) }
 
-    } else if ((paymentMethod.value === 'PAYPAL' || paymentMethod.value === 'CREDIT_CARD') && orderId) {
+    } else if (requiresPayment && (paymentMethod.value === 'PAYPAL' || paymentMethod.value === 'CREDIT_CARD') && orderId) {
       try {
         const res = await $fetch<{ success: boolean; data: { approvalUrl: string } }>(
           `${config.public.apiUrl}/payments/paypal/create`,
@@ -656,7 +664,7 @@ useSeoMeta({
               class="btn-primary w-full"
               :class="{ 'opacity-70 cursor-not-allowed': isProcessing }"
             >
-              {{ isProcessing ? $t('checkout.processing') : $t('checkout.placeOrder') }}
+              {{ isProcessing ? $t('checkout.processing') : total <= 0 ? $t('checkout.placeFreeOrder') : $t('checkout.placeOrder') }}
             </button>
           </div>
         </div>

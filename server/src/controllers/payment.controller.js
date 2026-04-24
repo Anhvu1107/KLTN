@@ -9,6 +9,34 @@ const paypalService = require('../services/paypal.service');
 const { Order } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 
+const getOrderAmountVND = (order) => {
+    const amount = Number(order?.total_amount);
+    if (!Number.isFinite(amount) || amount <= 0) return 0;
+    return Math.round(amount);
+};
+
+const markZeroAmountOrderPaid = async (order) => {
+    if (getOrderAmountVND(order) > 0 || order.payment_status === 'PAID') {
+        return false;
+    }
+
+    await order.update({
+        payment_status: 'PAID',
+        payment_transaction_id: order.payment_transaction_id || 'FREE_ORDER',
+    });
+
+    return true;
+};
+
+const sendZeroAmountPaidResponse = (res, order) => res.status(200).json({
+    success: true,
+    message: 'Order total is 0; no payment is required.',
+    data: {
+        alreadyPaid: true,
+        orderId: order.id,
+    },
+});
+
 // Prices in DB are stored in VND — no conversion needed
 
 /**
@@ -29,6 +57,11 @@ const createVNPayPayment = catchAsync(async (req, res) => {
             success: false,
             message: 'Order not found',
         });
+    }
+
+    if (getOrderAmountVND(order) === 0) {
+        await markZeroAmountOrderPaid(order);
+        return sendZeroAmountPaidResponse(res, order);
     }
 
     if (order.payment_status === 'PAID') {
@@ -100,7 +133,7 @@ const vnpayIPN = catchAsync(async (req, res) => {
     }
 
     // Verify amount (use integer math to avoid floating-point errors)
-    const expectedAmountVND = Math.round(order.total_amount);
+    const expectedAmountVND = getOrderAmountVND(order);
     if (Math.round(result.amount) !== expectedAmountVND) {
         return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
     }
@@ -139,6 +172,11 @@ const createMoMoPayment = catchAsync(async (req, res) => {
         });
     }
 
+    if (getOrderAmountVND(order) === 0) {
+        await markZeroAmountOrderPaid(order);
+        return sendZeroAmountPaidResponse(res, order);
+    }
+
     if (order.payment_status === 'PAID') {
         return res.status(400).json({
             success: false,
@@ -147,7 +185,7 @@ const createMoMoPayment = catchAsync(async (req, res) => {
     }
 
     // Prices already in VND
-    const amountVND = Math.round(order.total_amount);
+    const amountVND = getOrderAmountVND(order);
 
     const result = await momoService.createPaymentUrl({
         orderId: order.id.toString(),
@@ -261,6 +299,11 @@ const createPayPalPayment = catchAsync(async (req, res) => {
             success: false,
             message: 'Order not found',
         });
+    }
+
+    if (getOrderAmountVND(order) === 0) {
+        await markZeroAmountOrderPaid(order);
+        return sendZeroAmountPaidResponse(res, order);
     }
 
     if (order.payment_status === 'PAID') {

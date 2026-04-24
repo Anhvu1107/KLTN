@@ -357,6 +357,7 @@
     "paypalDesc": "International payment via PayPal",
     "orderSummary": "Order Summary",
     "placeOrder": "Place Order",
+    "placeFreeOrder": "Place Free Order",
     "processing": "Processing...",
     "orderSuccess": "Order placed successfully!",
     "redirecting": "Redirecting to your orders...",
@@ -432,7 +433,9 @@
     "bankTransferQR": "💳 Scan QR to Pay",
     "bankTransferQRDesc": "Scan the QR code below with your banking app to transfer quickly",
     "bankTransferNote": "Please include the correct transfer content so your order can be confirmed promptly",
-    "transferContent": "Transfer Content"
+    "transferContent": "Transfer Content",
+    "freeOrderTitle": "Order covered by discounts",
+    "freeOrderDesc": "Total due is 0 đ. No transfer or additional payment is required."
   },
   "profile": {
     "title": "Edit Profile",

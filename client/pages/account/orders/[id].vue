@@ -34,6 +34,20 @@ const order = computed(() => data.value?.data?.order)
 
 const { formatPrice } = useCurrency()
 
+const toNonNegativeAmount = (value: unknown) => {
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) return 0
+  return amount
+}
+
+const orderTotal = computed(() => toNonNegativeAmount(order.value?.total_amount))
+const isFreeOrder = computed(() => orderTotal.value === 0)
+const displayPaymentStatus = computed(() => {
+  if (!order.value) return ''
+  if (isFreeOrder.value && order.value.payment_status === 'PENDING') return 'PAID'
+  return order.value.payment_status || ''
+})
+
 const formatDate = (date: string) => {
   if (!date) return ''
   return new Date(date).toLocaleDateString('vi-VN', {
@@ -146,7 +160,8 @@ const vietQrUrl = computed(() => {
   if (!primaryBank.value || !order.value) return ''
   const bank = primaryBank.value
   const bankCode = getBankCode(bank.bankName)
-  const amount = Math.round(order.value.total_amount || 0) // Prices are already in VND
+  const amount = Math.round(orderTotal.value) // Prices are already in VND
+  if (amount <= 0) return ''
   const description = `DH ${order.value.order_number || order.value.id?.slice(0, 8)}`
   return `https://img.vietqr.io/image/${bankCode}-${bank.accountNumber}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(description)}&accountName=${encodeURIComponent(bank.accountHolder)}`
 })
@@ -154,7 +169,8 @@ const vietQrUrl = computed(() => {
 const showBankQR = computed(() => {
   return order.value?.payment_method === 'BANK_TRANSFER' && 
          order.value?.payment_status === 'PENDING' && 
-         primaryBank.value
+         orderTotal.value > 0 &&
+         !!primaryBank.value
 })
 
 // Fetch bank accounts from public settings
@@ -246,8 +262,8 @@ useSeoMeta({
               <span :class="getStatusClass(order.status)" class="px-3 py-1.5 text-caption font-medium rounded-sm">
                 {{ getOrderStatus(order.status) }}
               </span>
-              <span :class="getPaymentStatusClass(order.payment_status)" class="px-3 py-1.5 text-caption font-medium rounded-sm">
-                {{ getPaymentStatus(order.payment_status) }}
+              <span :class="getPaymentStatusClass(displayPaymentStatus)" class="px-3 py-1.5 text-caption font-medium rounded-sm">
+                {{ getPaymentStatus(displayPaymentStatus) }}
               </span>
             </div>
           </div>
@@ -262,6 +278,16 @@ useSeoMeta({
             >
               {{ isCancelling ? t('common.processing') : t('orders.cancelOrder') || 'Cancel Order' }}
             </button>
+          </div>
+        </div>
+
+        <!-- Free Order Notice -->
+        <div v-if="isFreeOrder" class="card p-6 border-2 border-green-200 bg-green-50/40">
+          <div class="text-center">
+            <h2 class="font-serif text-heading-4 text-aura-black mb-2">{{ t('orders.freeOrderTitle') || 'Đơn hàng miễn phí' }}</h2>
+            <p class="text-body-sm text-neutral-600">
+              {{ t('orders.freeOrderDesc') || 'Tổng thanh toán là 0 đ. Bạn không cần chuyển khoản hay thanh toán thêm.' }}
+            </p>
           </div>
         </div>
 
