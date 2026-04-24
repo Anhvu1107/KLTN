@@ -24,6 +24,8 @@ export interface CartItem {
     variantColor: string
     price: number
     quantity: number
+    stockQuantity?: number
+    stockStatus?: string
     addedAt: string
 }
 
@@ -47,6 +49,40 @@ const createEmptyPersistedCart = (): PersistedCartState => ({
     appliedCoupon: null,
 })
 
+const toPositiveInteger = (value: unknown, fallback = 1): number => {
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+    return Math.floor(parsed)
+}
+
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+}
+
+const normalizeCartItem = (item: Partial<CartItem> | null | undefined): CartItem | null => {
+    if (!item?.id || !item.productId) return null
+
+    const stockQuantity = item.stockQuantity === undefined
+        ? undefined
+        : Math.max(0, toPositiveInteger(item.stockQuantity, 0))
+
+    return {
+        id: String(item.id),
+        productId: String(item.productId),
+        productName: item.productName ? String(item.productName) : 'Unknown Item',
+        productBrand: item.productBrand ? String(item.productBrand) : '',
+        productImage: item.productImage ? String(item.productImage) : '',
+        variantSize: item.variantSize ? String(item.variantSize) : '',
+        variantColor: item.variantColor ? String(item.variantColor) : '',
+        price: toFiniteNumber(item.price, 0),
+        quantity: toPositiveInteger(item.quantity, 1),
+        stockQuantity,
+        stockStatus: item.stockStatus ? String(item.stockStatus) : undefined,
+        addedAt: item.addedAt ? String(item.addedAt) : new Date().toISOString(),
+    }
+}
+
 export const useCartStore = defineStore('cart', {
     state: (): CartState => ({
         items: [],
@@ -58,13 +94,15 @@ export const useCartStore = defineStore('cart', {
         /**
          * Get cart item count
          */
-        itemCount: (state): number => state.items.reduce((sum, item) => sum + item.quantity, 0),
+        itemCount: (state): number => state.items.reduce((sum, item) => sum + toPositiveInteger(item.quantity, 0), 0),
 
         /**
          * Get cart subtotal
          */
         subtotal: (state): number => {
-            return state.items.reduce((total, item) => total + (item.price * item.quantity), 0)
+            return state.items.reduce((total, item) => {
+                return total + (toFiniteNumber(item.price, 0) * toPositiveInteger(item.quantity, 0))
+            }, 0)
         },
 
         /**
@@ -88,8 +126,14 @@ export const useCartStore = defineStore('cart', {
         /**
          * Get items formatted for checkout
          */
-        checkoutItems: (state): { variantId: string; quantity: number }[] => {
-            return state.items.map(item => ({ variantId: item.id, quantity: item.quantity }))
+        checkoutItems: (state): { variantId: string; quantity: number; productName: string }[] => {
+            return state.items
+                .filter(item => item.id)
+                .map(item => ({
+                    variantId: item.id,
+                    quantity: toPositiveInteger(item.quantity, 1),
+                    productName: item.productName,
+                }))
         },
     },
 
@@ -106,7 +150,9 @@ export const useCartStore = defineStore('cart', {
             try {
                 const parsed = JSON.parse(raw)
                 return {
-                    items: Array.isArray(parsed?.items) ? parsed.items : [],
+                    items: Array.isArray(parsed?.items)
+                        ? parsed.items.map(normalizeCartItem).filter(Boolean) as CartItem[]
+                        : [],
                     appliedCoupon: parsed?.appliedCoupon ?? null,
                 }
             } catch (error) {
@@ -181,17 +227,29 @@ export const useCartStore = defineStore('cart', {
         /**
          * Add item to cart
          */
-        addToCart(item: Omit<CartItem, 'addedAt'>): boolean {
-            const existingItem = this.items.find(cartItem => cartItem.id === item.id)
+        addToCart(item: Omit<CartItem, 'addedAt' | 'quantity'> & { quantity?: number }): boolean {
+            const normalizedItem = normalizeCartItem({
+                ...item,
+                quantity: item.quantity ?? 1,
+                addedAt: new Date().toISOString(),
+            })
+
+            if (!normalizedItem) return false
+
+            const existingItem = this.items.find(cartItem => cartItem.id === normalizedItem.id)
 
             if (existingItem) {
-                existingItem.quantity += item.quantity || 1
+                existingItem.quantity = toPositiveInteger(existingItem.quantity, 0) + normalizedItem.quantity
+                existingItem.price = normalizedItem.price
+                existingItem.productName = normalizedItem.productName
+                existingItem.productBrand = normalizedItem.productBrand
+                existingItem.productImage = normalizedItem.productImage
+                existingItem.variantSize = normalizedItem.variantSize
+                existingItem.variantColor = normalizedItem.variantColor
+                existingItem.stockQuantity = normalizedItem.stockQuantity
+                existingItem.stockStatus = normalizedItem.stockStatus
             } else {
-                this.items.push({
-                    ...item,
-                    quantity: item.quantity || 1,
-                    addedAt: new Date().toISOString(),
-                })
+                this.items.push(normalizedItem)
             }
 
             this.persistCartForUser()
@@ -217,10 +275,11 @@ export const useCartStore = defineStore('cart', {
         updateQuantity(variantId: string, quantity: number): void {
             const item = this.items.find(i => i.id === variantId)
             if (item) {
-                if (quantity <= 0) {
+                const nextQuantity = toPositiveInteger(quantity, 0)
+                if (nextQuantity <= 0) {
                     this.removeFromCart(variantId)
                 } else {
-                    item.quantity = quantity
+                    item.quantity = nextQuantity
                     this.persistCartForUser()
                     this.debouncedTrackAbandonedCart()
                 }
@@ -263,7 +322,13 @@ export const useCartStore = defineStore('cart', {
          * Validate cart items availability
          * Returns unavailable items
          */
-        async validateAvailability(): Promise<{ variantId: string; productName: string }[]> {
+        async validateAvailability(adjustCart = true): Promise<{
+            variantId: string
+            productName: string
+            status?: string
+            requestedQuantity?: number
+            availableQuantity?: number
+        }[]> {
             if (this.items.length === 0) return []
 
             this.isLoading = true
@@ -276,7 +341,14 @@ export const useCartStore = defineStore('cart', {
                     success: boolean
                     data: {
                         allAvailable: boolean
-                        items: { variantId: string; productName: string; isAvailable: boolean; availableQuantity?: number }[]
+                        items: {
+                            variantId: string
+                            productName: string
+                            isAvailable: boolean
+                            status?: string
+                            requestedQuantity?: number
+                            availableQuantity?: number
+                        }[]
                     }
                 }>(`${config.public.apiUrl}/orders/check-availability`, {
                     method: 'POST',
@@ -284,26 +356,50 @@ export const useCartStore = defineStore('cart', {
                     body: { items: this.checkoutItems },
                 })
 
-                const unavailable = response.data.items.filter(item => !item.isAvailable)
+                const checkedItems = response.data.items || []
 
-                // Handle unavailable items
-                for (const item of unavailable) {
-                    if (item.availableQuantity !== undefined && item.availableQuantity > 0) {
-                        // Reduce quantity to max available
-                        this.updateQuantity(item.variantId, item.availableQuantity)
-                    } else {
-                        // Completely out of stock or missing
-                        this.removeFromCart(item.variantId)
+                for (const item of checkedItems) {
+                    const cartItem = this.items.find(i => i.id === item.variantId)
+                    if (!cartItem) continue
+
+                    if (item.productName) {
+                        cartItem.productName = item.productName
+                    }
+
+                    if (item.status) {
+                        cartItem.stockStatus = item.status
+                    }
+
+                    if (item.availableQuantity !== undefined) {
+                        cartItem.stockQuantity = Math.max(0, toPositiveInteger(item.availableQuantity, 0))
                     }
                 }
 
-                if (unavailable.length > 0) {
+                const unavailable = checkedItems.filter(item => !item.isAvailable)
+
+                // Handle unavailable items
+                if (adjustCart) {
+                    for (const item of unavailable) {
+                        if (item.availableQuantity !== undefined && item.availableQuantity > 0) {
+                            // Reduce quantity to max available
+                            this.updateQuantity(item.variantId, item.availableQuantity)
+                        } else {
+                            // Completely out of stock or missing
+                            this.removeFromCart(item.variantId)
+                        }
+                    }
+                }
+
+                if (checkedItems.length > 0 || unavailable.length > 0) {
                     this.persistCartForUser()
                 }
 
                 return unavailable.map(item => ({
                     variantId: item.variantId,
                     productName: item.productName || 'Unknown',
+                    status: item.status,
+                    requestedQuantity: item.requestedQuantity,
+                    availableQuantity: item.availableQuantity,
                 }))
             } catch (error) {
                 console.error('Failed to validate cart:', error)

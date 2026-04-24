@@ -17,33 +17,64 @@ const groupedItems = computed(() => {
   const groups = new Map()
   for (const item of cartStore.items) {
     // Generate a unique key for identical variants of the same product
-    const key = `${item.productId}-${item.variantSize}-${item.variantColor}`
+    const key = `${item.productId}-${item.variantSize}-${item.variantColor}-${item.price}`
+    const quantity = Number(item.quantity || 1)
+    const stockQuantity = item.stockQuantity === undefined ? undefined : Number(item.stockQuantity || 0)
+
     if (!groups.has(key)) {
       groups.set(key, { 
         ...item, 
-        quantity: 1, 
-        variantIds: [item.id] 
+        quantity,
+        stockQuantity,
+        stockStatus: item.stockStatus,
+        variantIds: [item.id],
+        lines: [{ id: item.id, quantity }],
       })
     } else {
       const g = groups.get(key)
-      g.quantity++
+      g.quantity += quantity
       g.variantIds.push(item.id)
+
+      g.lines.push({ id: item.id, quantity })
+
+      if (stockQuantity !== undefined) {
+        g.stockQuantity = g.stockQuantity === undefined ? stockQuantity : g.stockQuantity + stockQuantity
+      }
+
+      if (item.stockStatus && item.stockStatus !== 'AVAILABLE') {
+        g.stockStatus = item.stockStatus
+      }
     }
   }
   return Array.from(groups.values())
 })
 
+onMounted(() => {
+  if (process.client && localStorage.getItem('token')) {
+    cartStore.validateAvailability(false).catch((error) => {
+      console.error('Failed to refresh cart availability:', error)
+    })
+  }
+})
+
 // Remove group of items
 const removeGroup = (variantIds: string[]) => {
-  for (const id of variantIds) {
+  for (const id of [...new Set(variantIds)]) {
     cartStore.removeFromCart(id)
   }
 }
 
 // Decrease quantity by removing ONE variant
-const decreaseQuantity = (variantIds: string[]) => {
-  if (variantIds.length > 1) {
-    cartStore.removeFromCart(variantIds[variantIds.length - 1])
+const decreaseQuantity = (item: any) => {
+  if (item.quantity <= 1) return
+
+  const line = [...(item.lines || [])].reverse().find((cartLine: any) => cartLine.quantity > 0)
+  if (!line) return
+
+  if (line.quantity > 1) {
+    cartStore.updateQuantity(line.id, line.quantity - 1)
+  } else {
+    cartStore.removeFromCart(line.id)
   }
 }
 
@@ -64,13 +95,15 @@ const increaseQuantity = async (item: any) => {
       
       const matchingVariants = product.variants.filter((v: any) => 
         v.status === 'AVAILABLE' && 
+        Number(v.stock_quantity || 0) > 0 &&
         v.size === item.variantSize && 
         v.color === item.variantColor
       )
       
-      const availableToAdd = matchingVariants.find((v: any) => 
-        !cartStore.isInCart(v.id)
-      )
+      const availableToAdd = matchingVariants.find((v: any) => {
+        const inCart = Number(cartStore.items.find(i => i.id === v.id)?.quantity || 0)
+        return Number(v.stock_quantity || 0) > inCart
+      })
       
       if (availableToAdd) {
         cartStore.addToCart({
@@ -81,7 +114,10 @@ const increaseQuantity = async (item: any) => {
           productImage: item.productImage,
           variantSize: availableToAdd.size,
           variantColor: availableToAdd.color,
-          price: parseFloat(product.sale_price || product.base_price),
+          price: parseFloat(product.sale_price || product.base_price) + Number(availableToAdd.price_adjustment || 0),
+          quantity: 1,
+          stockQuantity: Number(availableToAdd.stock_quantity || 0),
+          stockStatus: availableToAdd.status,
         })
       } else {
         showDialog({
@@ -153,26 +189,40 @@ useSeoMeta({
                 <p class="text-body font-medium text-aura-black mb-4">
                   {{ formatPrice(item.price) }} <span v-if="item.quantity > 1" class="text-neutral-500 text-sm ml-1">({{ formatPrice(item.price * item.quantity) }})</span>
                 </p>
+                <p
+                  v-if="item.stockStatus && item.stockStatus !== 'AVAILABLE'"
+                  class="text-caption text-accent-burgundy mb-3"
+                >
+                  {{ $t('shop.soldOutMessage', 'Sản phẩm đã hết hàng') }}
+                </p>
+                <p
+                  v-else-if="item.stockQuantity !== undefined"
+                  class="text-caption mb-3"
+                  :class="item.quantity > item.stockQuantity ? 'text-accent-burgundy' : 'text-neutral-500'"
+                >
+                  {{ item.quantity > item.stockQuantity ? $t('checkout.itemsUnavailable') : $t('shop.inStock', 'Còn hàng') }}:
+                  {{ item.stockQuantity }}
+                </p>
                 
                 <!-- Quantity Controls -->
                 <div class="flex items-center gap-3">
                   <span class="text-caption text-neutral-500 uppercase">{{ $t('shop.quantity', 'SL') }}:</span>
                   <div class="flex items-center border border-neutral-200 rounded-sm">
                     <button 
-                      @click="decreaseQuantity(item.variantIds)"
+                      @click="decreaseQuantity(item)"
                       class="px-3 py-1 text-neutral-500 hover:bg-neutral-100 transition-colors"
                       :disabled="item.quantity <= 1 || isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}`"
                       :class="{ 'opacity-30 cursor-not-allowed': item.quantity <= 1 || isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` }"
                     >-</button>
                     <span class="px-3 text-body-sm font-medium w-8 text-center flex justify-center items-center h-full">
-                      <svg v-if="isAddingKey === item.id" class="animate-spin w-4 h-4 text-aura-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <svg v-if="isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}`" class="animate-spin w-4 h-4 text-aura-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                       <span v-else>{{ item.quantity }}</span>
                     </span>
                     <button 
                       @click="increaseQuantity(item)"
                       class="px-3 py-1 text-neutral-500 hover:bg-neutral-100 transition-colors"
-                      :disabled="isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}`"
-                      :class="{ 'opacity-30 cursor-not-allowed': isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` }"
+                      :disabled="isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` || (item.stockQuantity !== undefined && item.quantity >= item.stockQuantity)"
+                      :class="{ 'opacity-30 cursor-not-allowed': isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` || (item.stockQuantity !== undefined && item.quantity >= item.stockQuantity) }"
                       title="Thêm số lượng"
                     >+</button>
                   </div>
@@ -181,7 +231,7 @@ useSeoMeta({
 
               <!-- Remove Button -->
               <button
-                @click="removeItem(item.id)"
+                @click="removeGroup(item.variantIds)"
                 class="self-start p-2 text-neutral-400 hover:text-red-500 transition-colors"
                 aria-label="Remove item"
               >

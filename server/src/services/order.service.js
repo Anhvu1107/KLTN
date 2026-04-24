@@ -14,6 +14,40 @@ const abandonedCartService = require('./abandoned-cart.service');
 
 const SHIPPING_BENEFIT_TYPE = 'SHIPPING';
 
+const toPositiveInteger = (value, fallback = 1) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+    return Math.floor(parsed);
+};
+
+const normalizeOrderItems = (items = []) => {
+    const itemMap = new Map();
+
+    for (const item of items) {
+        const variantId = item?.variantId || item?.id;
+        if (!variantId) continue;
+
+        const quantity = toPositiveInteger(item.quantity, 1);
+        const existing = itemMap.get(variantId);
+
+        if (existing) {
+            existing.quantity += quantity;
+            if (!existing.productName && item.productName) {
+                existing.productName = item.productName;
+            }
+            continue;
+        }
+
+        itemMap.set(variantId, {
+            variantId,
+            quantity,
+            productName: item.productName || item.name || 'Unknown Item',
+        });
+    }
+
+    return Array.from(itemMap.values());
+};
+
 /**
  * Create a new order with transaction support
  * Implements the "Unique Item" logic for resell platform
@@ -23,11 +57,13 @@ const createOrder = async (userId, items, orderData) => {
 
     try {
         // Step 1: Validate and lock variants
-        const variantMap = new Map();
-        items.forEach(item => {
-            const qty = item.quantity || 1;
-            variantMap.set(item.variantId, (variantMap.get(item.variantId) || 0) + qty);
-        });
+        const normalizedItems = normalizeOrderItems(items);
+        if (normalizedItems.length === 0) {
+            throw new AppError('Cart is empty. Please add items before checkout.', 400);
+        }
+
+        const variantMap = new Map(normalizedItems.map(item => [item.variantId, item.quantity]));
+        const requestedItemMap = new Map(normalizedItems.map(item => [item.variantId, item]));
         const variantIds = Array.from(variantMap.keys());
 
         // Lock variants first (without joins to avoid FOR UPDATE error)
@@ -50,7 +86,12 @@ const createOrder = async (userId, items, orderData) => {
 
         // Check if all variants exist
         if (variants.length !== variantIds.length) {
-            throw new AppError('One or more items not found', 404);
+            const foundVariantIds = new Set(variants.map(v => v.id));
+            const missingNames = normalizedItems
+                .filter(item => !foundVariantIds.has(item.variantId))
+                .map(item => item.productName || item.variantId)
+                .join(', ');
+            throw new AppError(`These items are no longer available: ${missingNames}`, 400);
         }
 
         // Check if all variants are available
@@ -59,7 +100,9 @@ const createOrder = async (userId, items, orderData) => {
             return v.status !== 'AVAILABLE' || v.stock_quantity < requestedQty;
         });
         if (unavailableItems.length > 0) {
-            const itemNames = unavailableItems.map(v => v.product?.name || v.sku).join(', ');
+            const itemNames = unavailableItems
+                .map(v => v.product?.name || requestedItemMap.get(v.id)?.productName || v.sku)
+                .join(', ');
             throw new AppError(`These items are no longer available or do not have enough stock: ${itemNames}`, 400);
         }
 
@@ -395,7 +438,12 @@ const cancelOrder = async (orderId, userId) => {
  * Check item availability
  */
 const checkAvailability = async (items) => {
-    const variantIds = items.map(i => i.variantId || i.id);
+    const normalizedItems = normalizeOrderItems(items);
+    if (normalizedItems.length === 0) {
+        return [];
+    }
+
+    const variantIds = normalizedItems.map(item => item.variantId);
     const variants = await Variant.findAll({
         where: { id: { [Op.in]: variantIds } },
         include: [{
@@ -405,35 +453,33 @@ const checkAvailability = async (items) => {
         }],
     });
 
-    const foundVariantIds = new Set(variants.map(v => v.id));
+    const variantsById = new Map(variants.map(variant => [variant.id, variant]));
 
-    const results = variants.map(variant => {
-        const item = items.find(i => (i.variantId || i.id) === variant.id);
-        const requestedQty = item ? (item.quantity || 1) : 1;
+    return normalizedItems.map(item => {
+        const variant = variantsById.get(item.variantId);
+
+        if (!variant) {
+            return {
+                variantId: item.variantId,
+                productName: item.productName || 'Unknown Item',
+                status: 'NOT_FOUND',
+                requestedQuantity: item.quantity,
+                stock_quantity: 0,
+                availableQuantity: 0,
+                isAvailable: false,
+            };
+        }
+
         return {
             variantId: variant.id,
-            productName: variant.product?.name,
+            productName: variant.product?.name || item.productName,
             status: variant.status,
+            requestedQuantity: item.quantity,
             stock_quantity: variant.stock_quantity,
             availableQuantity: variant.stock_quantity,
-            isAvailable: variant.status === 'AVAILABLE' && variant.stock_quantity >= requestedQty,
+            isAvailable: variant.status === 'AVAILABLE' && variant.stock_quantity >= item.quantity,
         };
     });
-
-    // Add missing variants as unavailable
-    for (const vId of variantIds) {
-        if (!foundVariantIds.has(vId)) {
-            results.push({
-                variantId: vId,
-                productName: 'Unknown Item',
-                status: 'NOT_FOUND',
-                stock_quantity: 0,
-                isAvailable: false,
-            });
-        }
-    }
-
-    return results;
 };
 
 module.exports = {

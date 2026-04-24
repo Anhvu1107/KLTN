@@ -134,6 +134,15 @@ const prefillFromUser = () => {
 onMounted(() => {
   fetchPaymentSettings()
   prefillFromUser()
+  if (process.client && localStorage.getItem('token')) {
+    cartStore.validateAvailability(false).then((unavailable) => {
+      if (unavailable.length > 0) {
+        error.value = `${t('checkout.itemsUnavailable')}: ${unavailable.map(i => i.productName).join(', ')}`
+      }
+    }).catch((err) => {
+      console.error('Failed to refresh checkout availability:', err)
+    })
+  }
 })
 
 // Format price
@@ -143,13 +152,30 @@ const { formatPrice } = useCurrency()
 const groupedItems = computed(() => {
   const groups = new Map()
   for (const item of cartStore.items) {
-    const key = `${item.productId}-${item.variantSize}-${item.variantColor}`
+    const key = `${item.productId}-${item.variantSize}-${item.variantColor}-${item.price}`
+    const quantity = Number(item.quantity || 1)
+    const stockQuantity = item.stockQuantity === undefined ? undefined : Number(item.stockQuantity || 0)
+
     if (!groups.has(key)) {
-      groups.set(key, { ...item, quantity: 1, variantIds: [item.id] })
+      groups.set(key, {
+        ...item,
+        quantity,
+        stockQuantity,
+        stockStatus: item.stockStatus,
+        variantIds: [item.id],
+      })
     } else {
       const g = groups.get(key)
-      g.quantity++
+      g.quantity += quantity
       g.variantIds.push(item.id)
+
+      if (stockQuantity !== undefined) {
+        g.stockQuantity = g.stockQuantity === undefined ? stockQuantity : g.stockQuantity + stockQuantity
+      }
+
+      if (item.stockStatus && item.stockStatus !== 'AVAILABLE') {
+        g.stockStatus = item.stockStatus
+      }
     }
   }
   return Array.from(groups.values())

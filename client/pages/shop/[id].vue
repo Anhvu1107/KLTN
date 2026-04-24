@@ -9,6 +9,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useProductSizeLabel } from '~/composables/useProductSizeLabel'
 import { useRecentlyViewed } from '~/composables/useRecentlyViewed'
 import { useCompare } from '~/composables/useCompare'
+import { useDialog } from '~/composables/useDialog'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -17,6 +18,7 @@ const cartStore = useCartStore()
 const authStore = useAuthStore()
 const { getImageUrl } = useImageUrl()
 const { formatSizeLabel } = useProductSizeLabel()
+const { alert: showDialog } = useDialog()
 
 const productId = route.params.id as string
 
@@ -27,6 +29,13 @@ const { data, pending, error } = await useFetch<{
 }>(`${config.public.apiUrl}/products/${productId}`)
 
 const product = computed(() => data.value?.data?.product)
+
+const getVariantStock = (v: any) => {
+  const stock = Number(v?.stock_quantity)
+  return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0
+}
+
+const isVariantAvailable = (v: any) => v?.status === 'AVAILABLE' && getVariantStock(v) > 0
 
 // --- Size grouping & selection ---
 
@@ -45,7 +54,7 @@ const sizeGroups = computed(() => {
 // Sizes that have at least 1 AVAILABLE variant
 const availableSizes = computed(() => {
   return [...sizeGroups.value.entries()]
-    .filter(([_, variants]) => variants.some((v: any) => v.status === 'AVAILABLE'))
+    .filter(([_, variants]) => variants.some(isVariantAvailable))
     .map(([size]) => size)
 })
 
@@ -68,8 +77,8 @@ const hasMultipleSizes = computed(() => allSizes.value.length > 1)
 const sizeVariants = computed(() => sizeGroups.value.get(selectedSize.value) || [])
 
 // Available (in stock) variants of the selected size
-const availableVariants = computed(() => sizeVariants.value.filter((v: any) => v.status === 'AVAILABLE' && Number(v.stock_quantity) > 0))
-const availableQuantity = computed(() => availableVariants.value.reduce((sum, v) => sum + Number(v.stock_quantity || 1), 0))
+const availableVariants = computed(() => sizeVariants.value.filter(isVariantAvailable))
+const availableQuantity = computed(() => availableVariants.value.reduce((sum, v) => sum + getVariantStock(v), 0))
 
 // The representative variant (for displaying color, material, SKU)
 const variant = computed(() => availableVariants.value[0] || sizeVariants.value[0] || product.value?.variants?.[0])
@@ -89,12 +98,12 @@ const tValue = (dict: string, val: string) => {
 const inCartCount = computed(() => {
   return availableVariants.value.reduce((sum, v) => {
     const itemInCart = cartStore.items.find(i => i.id === v.id);
-    return sum + (itemInCart ? itemInCart.quantity : 0);
+    return sum + (itemInCart ? Number(itemInCart.quantity || 0) : 0);
   }, 0)
 })
 
 // Max amount we can still add to cart (of selected size)
-const maxCanAdd = computed(() => availableQuantity.value - inCartCount.value)
+const maxCanAdd = computed(() => Math.max(0, availableQuantity.value - inCartCount.value))
 
 // User selected quantity
 const selectedQuantity = ref(1)
@@ -114,23 +123,52 @@ watch(selectedSize, () => {
 const isFullyInCart = computed(() => maxCanAdd.value === 0 && availableQuantity.value > 0)
 const isSold = computed(() => availableQuantity.value === 0)
 
+const basePrice = computed(() => Number(product.value?.base_price || 0))
+const salePrice = computed(() => product.value?.sale_price ? Number(product.value.sale_price) : null)
+const selectedPriceAdjustment = computed(() => Number(variant.value?.price_adjustment || 0))
+const displayBasePrice = computed(() => basePrice.value + selectedPriceAdjustment.value)
+const displaySalePrice = computed(() => salePrice.value === null ? null : salePrice.value + selectedPriceAdjustment.value)
+
+const getVariantPrice = (v: any) => {
+  const productPrice = salePrice.value === null ? basePrice.value : salePrice.value
+  return productPrice + Number(v?.price_adjustment || 0)
+}
+
 // Add to cart
 const addedToCart = ref(false)
 
 // Reviews ref for refreshing after submission
 const reviewsRef = ref<{ refresh: () => void } | null>(null)
 
-const handleAddToCart = () => {
-  if (isSold.value || isFullyInCart.value || maxCanAdd.value === 0) return
+const addSelectedQuantityToCart = () => {
+  if (isSold.value || maxCanAdd.value === 0) {
+    showDialog({
+      title: t('shop.soldOutTitle', 'Hết hàng'),
+      message: t('shop.soldOutMessage', 'Sản phẩm đã hết hàng'),
+      type: 'warning',
+    })
+    return 0
+  }
 
   // Auth check
   if (!authStore.isAuthenticated) {
     navigateTo(`/auth/login?redirect=${route.fullPath}`)
-    return
+    return 0
   }
 
-  const v = availableVariants.value[0];
-  if (v) {
+  let remaining = Math.min(selectedQuantity.value, maxCanAdd.value)
+  let added = 0
+
+  for (const v of availableVariants.value) {
+    if (remaining <= 0) break
+
+    const stock = getVariantStock(v)
+    const inCart = Number(cartStore.items.find(i => i.id === v.id)?.quantity || 0)
+    const canAdd = Math.max(0, stock - inCart)
+    const quantity = Math.min(canAdd, remaining)
+
+    if (quantity <= 0) continue
+
     cartStore.addToCart({
       id: v.id,
       productId: product.value.id,
@@ -139,10 +177,30 @@ const handleAddToCart = () => {
       productImage: getImageUrl(product.value.images?.[0]) || '',
       variantSize: v.size,
       variantColor: v.color,
-      price: parseFloat(product.value.sale_price || product.value.base_price),
-      quantity: selectedQuantity.value
+      price: getVariantPrice(v),
+      quantity,
+      stockQuantity: stock,
+      stockStatus: v.status,
     })
-    
+
+    remaining -= quantity
+    added += quantity
+  }
+
+  if (added === 0) {
+    showDialog({
+      title: t('shop.soldOutTitle', 'Hết hàng'),
+      message: t('shop.soldOut', 'Đã đạt số lượng tối đa trong kho'),
+      type: 'warning',
+    })
+  }
+
+  return added
+}
+
+const handleAddToCart = () => {
+  const added = addSelectedQuantityToCart()
+  if (added > 0) {
     addedToCart.value = true
     setTimeout(() => {
       addedToCart.value = false
@@ -152,28 +210,8 @@ const handleAddToCart = () => {
 
 // Buy Now - add to cart and go to checkout
 const handleBuyNow = () => {
-  if (isSold.value || isFullyInCart.value || maxCanAdd.value === 0) return
-
-  // Auth check
-  if (!authStore.isAuthenticated) {
-    navigateTo(`/auth/login?redirect=${route.fullPath}`)
-    return
-  }
-
-  const v = availableVariants.value[0];
-  if (v) {
-    cartStore.addToCart({
-      id: v.id,
-      productId: product.value.id,
-      productName: product.value.name,
-      productBrand: product.value.brand,
-      productImage: getImageUrl(product.value.images?.[0]) || '',
-      variantSize: v.size,
-      variantColor: v.color,
-      price: parseFloat(product.value.sale_price || product.value.base_price),
-      quantity: selectedQuantity.value
-    })
-  }
+  const added = addSelectedQuantityToCart()
+  if (added <= 0) return
 
   // Navigate to checkout
   navigateTo('/checkout')
@@ -381,14 +419,14 @@ useSeoMeta({
 
           <!-- Price -->
           <div class="flex items-baseline gap-3 mb-6">
-            <span v-if="product.sale_price" class="text-heading-3 text-accent-burgundy">
-              {{ formatPrice(product.sale_price) }}
+            <span v-if="displaySalePrice !== null" class="text-heading-3 text-accent-burgundy">
+              {{ formatPrice(displaySalePrice) }}
             </span>
             <span 
               class="text-heading-3" 
-              :class="product.sale_price ? 'text-neutral-400 line-through text-xl' : 'text-aura-black'"
+              :class="displaySalePrice !== null ? 'text-neutral-400 line-through text-xl' : 'text-aura-black'"
             >
-              {{ formatPrice(product.base_price) }}
+              {{ formatPrice(displayBasePrice) }}
             </span>
           </div>
 
@@ -456,7 +494,7 @@ useSeoMeta({
 
           <!-- Stock Status -->
           <div class="mb-6">
-            <p v-if="availableQuantity === 0" class="text-body-sm text-neutral-500 font-medium">
+            <p v-if="availableQuantity === 0" class="text-body-sm text-accent-burgundy font-medium">
               {{ t('shop.soldOutMessage', 'Sản phẩm đã hết hàng') }}
             </p>
             <p v-else-if="availableQuantity === 1" class="text-body-sm text-accent-burgundy font-medium flex items-center gap-1.5">
@@ -465,7 +503,7 @@ useSeoMeta({
             </p>
             <p v-else-if="availableQuantity <= 3" class="text-body-sm text-orange-600 font-medium flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-orange-600"></span>
-              {{ t('shop.onlyFewLeft', 'Chỉ còn vài sản phẩm!') }}
+              {{ t('shop.onlyFewLeft', 'Chỉ còn vài sản phẩm!') }} ({{ availableQuantity }})
             </p>
             <p v-else class="text-body-sm text-green-600 font-medium flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
