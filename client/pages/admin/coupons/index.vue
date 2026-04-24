@@ -187,6 +187,56 @@ watch(() => formData.value.type, (type) => {
   }
 })
 
+const toNullableNumber = (value: unknown) => {
+  if (value === '' || value === null || value === undefined) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const toNumberOrDefault = (value: unknown, fallback = 0) => {
+  const parsed = toNullableNumber(value)
+  return parsed === null ? fallback : parsed
+}
+
+const toNullablePositiveInteger = (value: unknown) => {
+  const parsed = toNullableNumber(value)
+  if (parsed === null || parsed <= 0) return null
+  return Math.floor(parsed)
+}
+
+const toPositiveIntegerOrDefault = (value: unknown, fallback = 1) => {
+  const parsed = toNullablePositiveInteger(value)
+  return parsed ?? fallback
+}
+
+const buildCouponPayload = () => {
+  const payload = {
+    ...formData.value,
+    code: formData.value.code.trim().toUpperCase(),
+    name: formData.value.name.trim(),
+    description: formData.value.description.trim(),
+    value: formData.value.type === 'FREE_SHIPPING'
+      ? 0
+      : toNumberOrDefault(formData.value.value, 0),
+    min_order_amount: toNumberOrDefault(formData.value.min_order_amount, 0),
+    max_discount_amount: toNullableNumber(formData.value.max_discount_amount),
+    max_uses: toNullablePositiveInteger(formData.value.max_uses),
+    max_uses_per_user: toPositiveIntegerOrDefault(formData.value.max_uses_per_user, 1),
+    starts_at: formData.value.starts_at || null,
+    expires_at: formData.value.expires_at || null,
+  }
+
+  if (payload.type === 'FREE_SHIPPING') {
+    payload.value = 0
+  }
+
+  if (payload.visibility !== 'PERSONAL') {
+    payload.assigned_user_ids = []
+  }
+
+  return payload
+}
+
 // Submit form
 const submitForm = async () => {
   formError.value = ''
@@ -201,7 +251,7 @@ const submitForm = async () => {
     await $fetch(url, {
       method: editingCoupon.value ? 'PUT' : 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: formData.value,
+      body: buildCouponPayload(),
     })
 
     showModal.value = false
@@ -373,7 +423,7 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
               </div>
               <div v-if="formData.type !== 'FREE_SHIPPING'">
                 <label class="input-label">{{ t('admin.coupons.value') }} *</label>
-                <input v-model.number="formData.value" type="number" step="0.01" class="input-field" required />
+                <input v-model.number="formData.value" type="number" min="0" step="0.01" class="input-field" required />
               </div>
               <div v-else class="rounded border border-emerald-200 bg-emerald-50/70 p-3 text-body-sm text-emerald-800">
                 {{ t('admin.coupons.freeShippingDesc') }}
@@ -454,24 +504,24 @@ useSeoMeta({ title: 'Coupon Management | Admin' })
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="input-label">{{ t('admin.form.minOrderAmount') }}</label>
-                <input v-model.number="formData.min_order_amount" type="number" step="0.01" class="input-field" />
+                <input v-model.number="formData.min_order_amount" type="number" min="0" step="0.01" class="input-field" />
               </div>
               <div v-if="formData.type === 'PERCENTAGE' || formData.type === 'FREE_SHIPPING'">
                 <label class="input-label">
                   {{ formData.type === 'FREE_SHIPPING' ? t('admin.coupons.shippingDiscountCap') : t('admin.form.maxDiscount') }}
                 </label>
-                <input v-model.number="formData.max_discount_amount" type="number" step="0.01" class="input-field" />
+                <input v-model.number="formData.max_discount_amount" type="number" min="0" step="0.01" class="input-field" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="input-label">{{ t('admin.form.maxUsesTotal') }}</label>
-                <input v-model.number="formData.max_uses" type="number" class="input-field" :placeholder="t('admin.form.unlimited')" />
+                <input v-model.number="formData.max_uses" type="number" min="1" class="input-field" :placeholder="t('admin.form.unlimited')" />
               </div>
               <div>
                 <label class="input-label">{{ t('admin.form.maxUsesPerUser') }}</label>
-                <input v-model.number="formData.max_uses_per_user" type="number" class="input-field" />
+                <input v-model.number="formData.max_uses_per_user" type="number" min="1" class="input-field" />
               </div>
             </div>
 

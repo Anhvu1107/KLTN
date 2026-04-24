@@ -29,6 +29,34 @@ const getCouponBenefitType = (coupon) => (
         : BENEFIT_TYPES.DISCOUNT
 );
 
+const toNullableNumber = (value) => {
+    if (value === '' || value === null || value === undefined) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toNumberOrDefault = (value, fallback = 0) => {
+    const parsed = toNullableNumber(value);
+    return parsed === null ? fallback : parsed;
+};
+
+const toNullablePositiveInteger = (value) => {
+    const parsed = toNullableNumber(value);
+    if (parsed === null || parsed <= 0) return null;
+    return Math.floor(parsed);
+};
+
+const toPositiveIntegerOrDefault = (value, fallback = 1) => {
+    const parsed = toNullablePositiveInteger(value);
+    return parsed === null ? fallback : parsed;
+};
+
+const toNullableDate = (value) => (
+    value === '' || value === undefined ? null : value
+);
+
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+
 const normalizeAppliedCoupons = (appliedCoupons = []) => (
     Array.isArray(appliedCoupons)
         ? appliedCoupons
@@ -44,14 +72,43 @@ const normalizeCouponPayload = (data = {}) => {
     const normalized = { ...data };
 
     if (normalized.code) {
-        normalized.code = normalized.code.toUpperCase();
+        normalized.code = normalized.code.trim().toUpperCase();
+    }
+
+    if (normalized.name) {
+        normalized.name = normalized.name.trim();
+    }
+
+    if (hasOwn(normalized, 'value')) {
+        normalized.value = toNumberOrDefault(normalized.value, 0);
+    }
+
+    if (hasOwn(normalized, 'min_order_amount')) {
+        normalized.min_order_amount = toNumberOrDefault(normalized.min_order_amount, 0);
+    }
+
+    if (hasOwn(normalized, 'max_discount_amount')) {
+        normalized.max_discount_amount = toNullableNumber(normalized.max_discount_amount);
+    }
+
+    if (hasOwn(normalized, 'max_uses')) {
+        normalized.max_uses = toNullablePositiveInteger(normalized.max_uses);
+    }
+
+    if (hasOwn(normalized, 'max_uses_per_user')) {
+        normalized.max_uses_per_user = toPositiveIntegerOrDefault(normalized.max_uses_per_user, 1);
+    }
+
+    if (hasOwn(normalized, 'starts_at')) {
+        normalized.starts_at = toNullableDate(normalized.starts_at);
+    }
+
+    if (hasOwn(normalized, 'expires_at')) {
+        normalized.expires_at = toNullableDate(normalized.expires_at);
     }
 
     if (normalized.type === SHIPPING_COUPON_TYPE) {
         normalized.value = 0;
-        if (normalized.max_discount_amount === '' || normalized.max_discount_amount === undefined) {
-            normalized.max_discount_amount = null;
-        }
     }
 
     return normalized;
@@ -181,10 +238,10 @@ const createCoupon = async (data) => {
         description,
         type,
         value,
-        min_order_amount,
+        min_order_amount = 0,
         max_discount_amount,
         max_uses,
-        max_uses_per_user,
+        max_uses_per_user = 1,
         starts_at,
         expires_at,
         applies_to,
@@ -194,21 +251,21 @@ const createCoupon = async (data) => {
         assigned_user_ids,
     } = normalizedData;
 
-    const existingCoupon = await Coupon.findOne({ where: { code: code.toUpperCase() } });
+    const existingCoupon = await Coupon.findOne({ where: { code } });
     if (existingCoupon) {
         throw new AppError('Coupon code already exists', 400);
     }
 
     const coupon = await Coupon.create({
-        code: code.toUpperCase(),
+        code,
         name,
         description,
         type,
         value,
-        min_order_amount: min_order_amount || 0,
+        min_order_amount,
         max_discount_amount,
         max_uses,
-        max_uses_per_user: max_uses_per_user || 1,
+        max_uses_per_user,
         starts_at,
         expires_at,
         applies_to: applies_to || 'ALL',
