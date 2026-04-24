@@ -64,13 +64,21 @@ const getProducts = async (options = {}) => {
     }
 
     // Sort order
+    const normalizedSort = String(sort).replace(/_/g, '-').toLowerCase();
+    const effectivePrice = sequelize.literal('COALESCE("Product"."sale_price", "Product"."base_price")');
     let order;
-    switch (sort) {
+    switch (normalizedSort) {
         case 'price-asc':
-            order = [['base_price', 'ASC']];
+            order = [[effectivePrice, 'ASC'], ['created_at', 'DESC']];
             break;
         case 'price-desc':
-            order = [['base_price', 'DESC']];
+            order = [[effectivePrice, 'DESC'], ['created_at', 'DESC']];
+            break;
+        case 'name-asc':
+            order = [['name', 'ASC'], ['created_at', 'DESC']];
+            break;
+        case 'name-desc':
+            order = [['name', 'DESC'], ['created_at', 'DESC']];
             break;
         case 'oldest':
             order = [['created_at', 'ASC']];
