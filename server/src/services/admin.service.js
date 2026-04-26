@@ -200,12 +200,6 @@ const updateOrderStatus = async (orderId, status) => {
             throw new AppError('Order not found', 404);
         }
 
-        // Load items separately to avoid outer join lock error
-        order.items = await OrderItem.findAll({
-            where: { order_id: orderId },
-            transaction,
-        });
-
         const validTransitions = {
             PENDING: ['CONFIRMED', 'CANCELLED'],
             CONFIRMED: ['PENDING', 'PROCESSING', 'CANCELLED'],
@@ -227,6 +221,15 @@ const updateOrderStatus = async (orderId, status) => {
         if (status === 'DELIVERED') {
             updateData.delivered_at = new Date();
             updateData.payment_status = 'PAID';
+        }
+
+        const shouldUpdateInventory = status === 'CANCELLED' || (order.status === 'CANCELLED' && status !== 'CANCELLED');
+        if (shouldUpdateInventory) {
+            // Load items only when inventory needs to change.
+            order.items = await OrderItem.findAll({
+                where: { order_id: orderId },
+                transaction,
+            });
         }
 
         // Manage inventory on cancellation (inside transaction for atomicity)

@@ -56,18 +56,40 @@ const visibleStatusSummary = computed(() => {
 
 const { formatPrice } = useCurrency()
 
+const applyUpdatedOrder = (updatedOrder: any) => {
+  const list = data.value?.data?.orders
+  if (!list || !updatedOrder?.id) return
+
+  const index = list.findIndex((order: any) => order.id === updatedOrder.id)
+  if (index === -1) return
+
+  if (status.value && updatedOrder.status !== status.value) {
+    list.splice(index, 1)
+    if (data.value?.data?.pagination?.total) {
+      data.value.data.pagination.total = Math.max(data.value.data.pagination.total - 1, 0)
+    }
+    return
+  }
+
+  list.splice(index, 1, {
+    ...list[index],
+    ...updatedOrder,
+    user: updatedOrder.user || list[index].user,
+  })
+}
+
 const updateStatus = async (orderId: string, newStatus: string) => {
   if (!newStatus || updatingOrderId.value) return
 
   try {
     updatingOrderId.value = orderId
-    await $fetch(`${config.public.apiUrl}/admin/orders/${orderId}/status`, {
+    const response = await $fetch<{ data: { order: any } }>(`${config.public.apiUrl}/admin/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token.value}` },
       body: { status: newStatus },
     })
     selectedStatus.value[orderId] = ''
-    await refresh()
+    applyUpdatedOrder(response.data.order)
   } catch (error: any) {
     const msg = error?.data?.message || error?.statusMessage || error?.message || t('notifications.updateError')
     const statusCode = error?.statusCode || error?.status || ''
@@ -86,12 +108,12 @@ const updatePaymentStatus = async (orderId: string, paymentStatus: string) => {
 
   try {
     updatingPaymentOrderId.value = orderId
-    await $fetch(`${config.public.apiUrl}/admin/orders/${orderId}/payment-status`, {
+    const response = await $fetch<{ data: { order: any } }>(`${config.public.apiUrl}/admin/orders/${orderId}/payment-status`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token.value}` },
       body: { paymentStatus },
     })
-    await refresh()
+    applyUpdatedOrder(response.data.order)
   } catch (error: any) {
     const msg = error?.data?.message || error?.statusMessage || error?.message || t('notifications.updateError')
     const statusCode = error?.statusCode || error?.status || ''
