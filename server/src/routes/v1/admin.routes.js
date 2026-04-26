@@ -27,6 +27,7 @@ router.get('/orders', adminController.getAllOrders);
 router.get('/orders/recent', adminController.getRecentOrders);
 router.get('/orders/:id', adminController.getOrderById);
 router.patch('/orders/:id/status', adminController.updateOrderStatus);
+router.patch('/orders/:id/payment-status', adminController.updateOrderPaymentStatus);
 
 // System prompts (AI configuration)
 router.get('/system-prompts', adminController.getSystemPrompts);

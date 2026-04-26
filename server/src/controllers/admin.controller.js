@@ -86,6 +86,23 @@ const updateOrderStatus = catchAsync(async (req, res) => {
 });
 
 /**
+ * PATCH /api/v1/admin/orders/:id/payment-status
+ * Update order payment status
+ */
+const updateOrderPaymentStatus = catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const paymentStatus = req.body.paymentStatus || req.body.payment_status;
+
+    const order = await adminService.updateOrderPaymentStatus(id, paymentStatus);
+
+    res.status(200).json({
+        success: true,
+        message: `Order payment status updated to ${paymentStatus}`,
+        data: { order },
+    });
+});
+
+/**
  * GET /api/v1/admin/orders/:id
  * Get order detail (admin)
  */
@@ -374,6 +391,7 @@ module.exports = {
     getAllOrders,
     getOrderById,
     updateOrderStatus,
+    updateOrderPaymentStatus,
     getSystemPrompts,
     getSystemPromptByKey,
     updateSystemPrompt,

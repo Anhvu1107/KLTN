@@ -7,11 +7,13 @@ const crypto = require('crypto');
 const querystring = require('qs');
 
 // VNPay Config - NO hardcoded credentials for security
+const serverBaseUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
+
 const VNPAY_CONFIG = {
     vnp_TmnCode: process.env.VNPAY_TMN_CODE,
     vnp_HashSecret: process.env.VNPAY_HASH_SECRET,
     vnp_Url: process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-    vnp_ReturnUrl: process.env.VNPAY_RETURN_URL || 'http://localhost:3000/payment/vnpay-return',
+    vnp_ReturnUrl: process.env.VNPAY_RETURN_URL || `${serverBaseUrl}/api/v1/payments/vnpay/return`,
 };
 
 // Validate VNPay credentials on startup (production mode)

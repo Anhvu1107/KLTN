@@ -12,13 +12,15 @@ const crypto = require('crypto');
 const axios = require('axios');
 
 // MoMo Configuration - Validate required env vars
+const serverBaseUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
+
 const config = {
     partnerCode: process.env.MOMO_PARTNER_CODE,
     accessKey: process.env.MOMO_ACCESS_KEY,
     secretKey: process.env.MOMO_SECRET_KEY,
     endpoint: process.env.MOMO_ENDPOINT || 'https://test-payment.momo.vn/v2/gateway/api',
-    returnUrl: process.env.MOMO_RETURN_URL || 'http://localhost:3000/payment/momo/return',
-    ipnUrl: process.env.MOMO_IPN_URL || 'http://localhost:5000/api/v1/payments/momo/ipn',
+    returnUrl: process.env.MOMO_RETURN_URL || `${serverBaseUrl}/api/v1/payments/momo/return`,
+    ipnUrl: process.env.MOMO_IPN_URL || `${serverBaseUrl}/api/v1/payments/momo/ipn`,
 };
 
 // Validate MoMo credentials on startup (production mode)

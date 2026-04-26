@@ -30,6 +30,14 @@ const paymentMethod = ref('COD')
 const shippingFee = ref(30000)
 const isProcessing = ref(false)
 const error = ref('')
+const isCheckingPayment = ref(false)
+const momoPayment = ref<{
+  orderId: string
+  qrCodeUrl: string
+  payUrl?: string
+  deeplink?: string
+} | null>(null)
+let paymentPollingTimer: ReturnType<typeof setInterval> | null = null
 
 type CouponBenefitType = 'DISCOUNT' | 'SHIPPING'
 
@@ -315,6 +323,62 @@ const removeCoupon = (benefitType: CouponBenefitType) => {
   discountCouponSuccess.value = ''
   discountCouponError.value = ''
 }
+
+const stopPaymentPolling = () => {
+  if (paymentPollingTimer) {
+    clearInterval(paymentPollingTimer)
+    paymentPollingTimer = null
+  }
+}
+
+const checkOrderPaymentStatus = async (orderId: string) => {
+  const token = localStorage.getItem('token')
+  if (!token) return
+
+  try {
+    isCheckingPayment.value = true
+    const res = await $fetch<{
+      success: boolean
+      data: { order: { payment_status: string; status: string } }
+    }>(`${config.public.apiUrl}/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    const order = res.data?.order
+    if (order?.payment_status === 'PAID') {
+      stopPaymentPolling()
+      momoPayment.value = null
+      navigateTo(`/payment/success?orderId=${orderId}`)
+      return
+    }
+
+    if (order?.payment_status === 'FAILED') {
+      stopPaymentPolling()
+      momoPayment.value = null
+      error.value = t('payment.failedMessage')
+    }
+  } catch (err) {
+    console.error('Failed to check payment status:', err)
+  } finally {
+    isCheckingPayment.value = false
+  }
+}
+
+const startPaymentPolling = (orderId: string) => {
+  stopPaymentPolling()
+  paymentPollingTimer = setInterval(() => {
+    checkOrderPaymentStatus(orderId)
+  }, 2500)
+}
+
+const closeMomoPayment = () => {
+  stopPaymentPolling()
+  momoPayment.value = null
+}
+
+onBeforeUnmount(() => {
+  stopPaymentPolling()
+})
 // Checkout handler
 const handleCheckout = async () => {
   // Validate auth
@@ -385,10 +449,22 @@ const handleCheckout = async () => {
 
     } else if (requiresPayment && paymentMethod.value === 'MOMO' && orderId) {
       try {
-        const res = await $fetch<{ success: boolean; data: { payUrl: string } }>(
+        const res = await $fetch<{ success: boolean; data: { payUrl: string; qrCodeUrl?: string; deeplink?: string } }>(
           `${config.public.apiUrl}/payments/momo/create`,
           { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId } }
         )
+
+        if (res.success && res.data.qrCodeUrl) {
+          momoPayment.value = {
+            orderId,
+            qrCodeUrl: res.data.qrCodeUrl,
+            payUrl: res.data.payUrl,
+            deeplink: res.data.deeplink,
+          }
+          startPaymentPolling(orderId)
+          return
+        }
+
         if (res.success && res.data.payUrl) {
           window.location.href = res.data.payUrl
           return
@@ -670,5 +746,58 @@ useSeoMeta({
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div v-if="momoPayment" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="w-full max-w-md border border-neutral-200 bg-white p-6 shadow-elevated">
+          <div class="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <p class="text-caption font-medium uppercase text-neutral-500">MoMo</p>
+              <h2 class="mt-1 font-serif text-heading-4 text-aura-black">{{ $t('checkout.paymentMethod') }}</h2>
+            </div>
+            <button
+              type="button"
+              class="flex h-9 w-9 items-center justify-center border border-neutral-300 text-neutral-600 transition-colors hover:border-aura-black hover:text-aura-black"
+              @click="closeMomoPayment"
+            >
+              <span class="sr-only">{{ $t('common.close') }}</span>
+              ×
+            </button>
+          </div>
+
+          <div class="flex justify-center border border-neutral-200 bg-neutral-50 p-4">
+            <img :src="momoPayment.qrCodeUrl" alt="MoMo QR" class="h-64 w-64 object-contain" />
+          </div>
+
+          <div class="mt-5 space-y-3 text-center">
+            <p class="text-body-sm text-neutral-600">
+              Quét mã bằng MoMo. Sau khi thanh toán thành công, đơn hàng sẽ tự cập nhật.
+            </p>
+
+            <a
+              v-if="momoPayment.deeplink || momoPayment.payUrl"
+              :href="momoPayment.deeplink || momoPayment.payUrl"
+              class="btn-primary w-full"
+            >
+              Mở MoMo
+            </a>
+
+            <button
+              type="button"
+              class="btn-secondary w-full"
+              :disabled="isCheckingPayment"
+              :class="{ 'opacity-70 cursor-not-allowed': isCheckingPayment }"
+              @click="checkOrderPaymentStatus(momoPayment.orderId)"
+            >
+              {{ isCheckingPayment ? $t('common.loading') : 'Tôi đã thanh toán' }}
+            </button>
+
+            <NuxtLink :to="`/account/orders/${momoPayment.orderId}`" class="block text-body-sm text-neutral-600 hover:text-aura-black">
+              Xem đơn hàng
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

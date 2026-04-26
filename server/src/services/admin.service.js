@@ -299,6 +299,70 @@ const updateOrderStatus = async (orderId, status) => {
 };
 
 /**
+ * Update order payment status
+ */
+const updateOrderPaymentStatus = async (orderId, paymentStatus) => {
+    const allowedPaymentStatuses = ['PENDING', 'PAID', 'FAILED', 'REFUNDED'];
+
+    if (!allowedPaymentStatuses.includes(paymentStatus)) {
+        throw new AppError('Invalid payment status', 400);
+    }
+
+    const transaction = await sequelize.transaction();
+    let shouldNotifyConfirmed = false;
+
+    try {
+        const order = await Order.findByPk(orderId, {
+            lock: transaction.LOCK.UPDATE,
+            transaction,
+        });
+
+        if (!order) {
+            await transaction.rollback();
+            throw new AppError('Order not found', 404);
+        }
+
+        const updateData = { payment_status: paymentStatus };
+
+        if (paymentStatus === 'PAID') {
+            if (!order.payment_transaction_id) {
+                updateData.payment_transaction_id = `MANUAL_${Date.now()}`;
+            }
+
+            if (order.status === 'PENDING') {
+                updateData.status = 'CONFIRMED';
+                updateData.confirmed_at = new Date();
+                shouldNotifyConfirmed = true;
+            }
+        }
+
+        await order.update(updateData, { transaction });
+        await transaction.commit();
+
+        if (shouldNotifyConfirmed) {
+            try {
+                const user = await User.findByPk(order.user_id);
+                if (user) {
+                    await notificationService.notifyOrderStatusChange(order, user, 'CONFIRMED');
+                    sendOrderConfirmedEmail(order, user).catch(err =>
+                        console.error('Failed to send confirmed email:', err.message)
+                    );
+                }
+            } catch (notifError) {
+                console.error('Failed to send payment confirmation notifications:', notifError.message);
+            }
+        }
+
+        return order;
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+        throw error;
+    }
+};
+
+/**
  * Get all system prompts
  */
 const getSystemPrompts = async () => {
@@ -400,6 +464,7 @@ module.exports = {
     getRevenue,
     getRecentOrders,
     updateOrderStatus,
+    updateOrderPaymentStatus,
     getSystemPrompts,
     getSystemPromptByKey,
     updateSystemPrompt,
