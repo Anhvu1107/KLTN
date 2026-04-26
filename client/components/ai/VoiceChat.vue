@@ -138,7 +138,7 @@ let isStreamingAiResponse = false
 let shouldResumeListeningAfterPlayback = false
 let pendingAudioChunks: QueuedAudio[] = []
 let audioFlushTimer: ReturnType<typeof setTimeout> | null = null
-const AUDIO_BATCH_MS = 80 // batch small chunks for smoother playback
+const AUDIO_BATCH_MS = 40 // batch small chunks for smoother playback
 const DEFAULT_OUTPUT_SAMPLE_RATE = 24000
 
 // Waveform animation + LipSync
@@ -152,7 +152,7 @@ let listeningCooldown: ReturnType<typeof setTimeout> | null = null
 let silenceFlushTimer: ReturnType<typeof setTimeout> | null = null
 let hasDetectedSpeechSinceLastFlush = false
 const MIC_ACTIVITY_RMS_THRESHOLD = 0.01
-const AUDIO_END_SILENCE_MS = 900
+const AUDIO_END_SILENCE_MS = 550
 
 // --- Idle Tracking & Context-Awareness ---
 let lastActivityAt = Date.now()
