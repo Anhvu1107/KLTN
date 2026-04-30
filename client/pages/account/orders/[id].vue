@@ -206,15 +206,6 @@ const isCancelling = ref(false)
 const cancelError = ref('')
 const isStartingVNPay = ref(false)
 const vnpayError = ref('')
-const vnpayPayment = ref<{
-  paymentUrl: string
-  bankCode: 'VNPAYQR' | 'NCB'
-} | null>(null)
-
-const vnpayPaymentQrUrl = computed(() => {
-  if (!vnpayPayment.value?.paymentUrl) return ''
-  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(vnpayPayment.value.paymentUrl)}`
-})
 
 const startVNPayPayment = async (bankCode: 'VNPAYQR' | 'NCB') => {
   if (!order.value?.id) return
@@ -233,14 +224,6 @@ const startVNPayPayment = async (bankCode: 'VNPAYQR' | 'NCB') => {
     )
 
     if (response.success && response.data.paymentUrl) {
-      if (bankCode === 'VNPAYQR') {
-        vnpayPayment.value = {
-          paymentUrl: response.data.paymentUrl,
-          bankCode,
-        }
-        return
-      }
-
       window.location.href = response.data.paymentUrl
       return
     }
@@ -376,30 +359,6 @@ useSeoMeta({
               >
                 Thẻ test NCB
               </button>
-            </div>
-          </div>
-          <div class="mt-6 border-t border-blue-100 pt-5">
-            <div v-if="vnpayPayment" class="grid gap-5 md:grid-cols-[260px_1fr] md:items-center">
-              <div class="flex justify-center bg-white p-4 shadow-sm">
-                <img :src="vnpayPaymentQrUrl" alt="VNPAY demo QR" class="h-64 w-64 object-contain" />
-              </div>
-              <div class="space-y-3">
-                <div>
-                  <p class="text-caption font-medium uppercase text-neutral-500">VNPAY Sandbox Demo</p>
-                  <h3 class="mt-1 font-serif text-heading-4 text-aura-black">QR thanh toan VNPAY</h3>
-                </div>
-                <p class="text-body-sm text-neutral-600">
-                  Quet ma nay bang dien thoai de mo trang thanh toan VNPAY sandbox, hoac bam nut ben duoi.
-                </p>
-                <a :href="vnpayPayment.paymentUrl" class="btn-primary inline-flex" target="_blank" rel="noopener">
-                  Mo cong VNPAY
-                </a>
-              </div>
-            </div>
-            <div v-else class="border border-dashed border-blue-200 bg-white/70 p-5 text-center">
-              <p class="text-body-sm text-neutral-600">
-                Bam "Thanh toan VNPAY QR" de hien thi ma QR sandbox ngay tai day.
-              </p>
             </div>
           </div>
         </div>

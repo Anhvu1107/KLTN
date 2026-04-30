@@ -37,10 +37,6 @@ const momoPayment = ref<{
   payUrl?: string
   deeplink?: string
 } | null>(null)
-const vnpayPayment = ref<{
-  orderId: string
-  paymentUrl: string
-} | null>(null)
 let paymentPollingTimer: ReturnType<typeof setInterval> | null = null
 
 type CouponBenefitType = 'DISCOUNT' | 'SHIPPING'
@@ -353,7 +349,6 @@ const checkOrderPaymentStatus = async (orderId: string) => {
     if (order?.payment_status === 'PAID') {
       stopPaymentPolling()
       momoPayment.value = null
-      vnpayPayment.value = null
       navigateTo(`/payment/success?orderId=${orderId}`)
       return
     }
@@ -361,7 +356,6 @@ const checkOrderPaymentStatus = async (orderId: string) => {
     if (order?.payment_status === 'FAILED') {
       stopPaymentPolling()
       momoPayment.value = null
-      vnpayPayment.value = null
       error.value = t('payment.failedMessage')
     }
   } catch (err) {
@@ -381,16 +375,6 @@ const startPaymentPolling = (orderId: string) => {
 const closeMomoPayment = () => {
   stopPaymentPolling()
   momoPayment.value = null
-}
-
-const vnpayPaymentQrUrl = computed(() => {
-  if (!vnpayPayment.value?.paymentUrl) return ''
-  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(vnpayPayment.value.paymentUrl)}`
-})
-
-const closeVNPayPayment = () => {
-  stopPaymentPolling()
-  vnpayPayment.value = null
 }
 
 onBeforeUnmount(() => {
@@ -464,15 +448,6 @@ const handleCheckout = async () => {
           { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId, bankCode } }
         )
         if (res.success && res.data.paymentUrl) {
-          if (bankCode === 'VNPAYQR') {
-            vnpayPayment.value = {
-              orderId,
-              paymentUrl: res.data.paymentUrl,
-            }
-            startPaymentPolling(orderId)
-            return
-          }
-
           window.location.href = res.data.paymentUrl
           return
         }
@@ -785,53 +760,6 @@ useSeoMeta({
     </div>
 
     <Teleport to="body">
-      <div v-if="vnpayPayment" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div class="w-full max-w-md border border-neutral-200 bg-white p-6 shadow-elevated">
-          <div class="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <p class="text-caption font-medium uppercase text-neutral-500">VNPAY Sandbox Demo</p>
-              <h2 class="mt-1 font-serif text-heading-4 text-aura-black">QR thanh toan VNPAY</h2>
-            </div>
-            <button
-              type="button"
-              class="flex h-9 w-9 items-center justify-center border border-neutral-300 text-neutral-600 transition-colors hover:border-aura-black hover:text-aura-black"
-              @click="closeVNPayPayment"
-            >
-              <span class="sr-only">{{ $t('common.close') }}</span>
-              x
-            </button>
-          </div>
-
-          <div class="flex justify-center border border-neutral-200 bg-neutral-50 p-4">
-            <img :src="vnpayPaymentQrUrl" alt="VNPAY demo QR" class="h-64 w-64 object-contain" />
-          </div>
-
-          <div class="mt-5 space-y-3 text-center">
-            <p class="text-body-sm text-neutral-600">
-              Quet ma nay de mo trang thanh toan VNPAY sandbox, hoac bam mo cong VNPAY.
-            </p>
-
-            <a :href="vnpayPayment.paymentUrl" class="btn-primary w-full" target="_blank" rel="noopener">
-              Mo cong VNPAY
-            </a>
-
-            <button
-              type="button"
-              class="btn-secondary w-full"
-              :disabled="isCheckingPayment"
-              :class="{ 'opacity-70 cursor-not-allowed': isCheckingPayment }"
-              @click="checkOrderPaymentStatus(vnpayPayment.orderId)"
-            >
-              {{ isCheckingPayment ? $t('common.loading') : 'Toi da thanh toan' }}
-            </button>
-
-            <NuxtLink :to="`/account/orders/${vnpayPayment.orderId}`" class="block text-body-sm text-neutral-600 hover:text-aura-black">
-              Xem don hang
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-
       <div v-if="momoPayment" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div class="w-full max-w-md border border-neutral-200 bg-white p-6 shadow-elevated">
           <div class="mb-5 flex items-start justify-between gap-4">
