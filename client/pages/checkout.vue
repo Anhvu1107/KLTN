@@ -84,7 +84,6 @@ const allPaymentMethods = computed(() => [
   { value: 'COD', key: 'cod', label: t('checkout.cod'), icon: '🚚' },
   { value: 'BANK_TRANSFER', key: 'bank_transfer', label: t('checkout.bankTransfer'), icon: '🏦' },
   { value: 'MOMO', key: 'momo', label: 'MoMo', icon: '📱' },
-  { value: 'VNPAY', key: 'vnpay', label: 'VNPAY QR', icon: '💳' },
   { value: 'VNPAY_TEST_CARD', key: 'vnpay', label: 'VNPAY thẻ test NCB', icon: '💳' },
   { value: 'PAYPAL', key: 'paypal', label: 'PayPal', icon: '🌐', desc: t('checkout.paypalDesc') },
   { value: 'CREDIT_CARD', key: 'credit_card', label: t('checkout.creditCard'), icon: '💳', desc: 'Visa / Mastercard / AMEX' },
@@ -440,22 +439,25 @@ const handleCheckout = async () => {
     const token = localStorage.getItem('token')
 
     // Handle payment redirect based on method
-    if (requiresPayment && (paymentMethod.value === 'VNPAY' || paymentMethod.value === 'VNPAY_TEST_CARD') && orderId) {
+    if (requiresPayment && paymentMethod.value === 'VNPAY_TEST_CARD' && orderId) {
       try {
-        const bankCode = paymentMethod.value === 'VNPAY_TEST_CARD' ? 'NCB' : 'VNPAYQR'
         const res = await $fetch<{ success: boolean; data: { paymentUrl: string } }>(
           `${config.public.apiUrl}/payments/vnpay/create`,
-          { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId, bankCode } }
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: { orderId, bankCode: 'NCB' },
+          }
         )
         if (res.success && res.data.paymentUrl) {
           window.location.href = res.data.paymentUrl
           return
         }
-        error.value = 'Không tạo được link thanh toán VNPAY QR. Vui lòng thử lại.'
+        error.value = 'Không tạo được link thanh toán VNPAY. Vui lòng thử lại.'
         return
       } catch (e: any) {
         console.error('VNPay error:', e)
-        error.value = e?.data?.message || 'Không tạo được link thanh toán VNPAY QR. Vui lòng thử lại.'
+        error.value = e?.data?.message || 'Không tạo được link thanh toán VNPAY. Vui lòng thử lại.'
         return
       }
 
