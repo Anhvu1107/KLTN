@@ -7,15 +7,23 @@ const crypto = require('crypto');
 const querystring = require('qs');
 const AppError = require('../utils/AppError');
 
+const normalizeParamValue = (value) => {
+    if (Array.isArray(value)) return normalizeParamValue(value[0]);
+    if (value === undefined || value === null) return '';
+    return String(value);
+};
+
+const getEnvValue = (name) => normalizeParamValue(process.env[name]).trim();
+
 // VNPay Config - credentials must stay in environment variables.
 const serverBaseUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
 
 const VNPAY_CONFIG = {
-    vnp_TmnCode: process.env.VNPAY_TMN_CODE,
-    vnp_HashSecret: process.env.VNPAY_HASH_SECRET,
-    vnp_Url: process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-    vnp_ReturnUrl: process.env.VNPAY_RETURN_URL || `${serverBaseUrl}/api/v1/payments/vnpay/return`,
-    vnp_IpnUrl: process.env.VNPAY_IPN_URL || `${serverBaseUrl}/api/v1/payments/vnpay/ipn`,
+    vnp_TmnCode: getEnvValue('VNPAY_TMN_CODE'),
+    vnp_HashSecret: getEnvValue('VNPAY_HASH_SECRET'),
+    vnp_Url: getEnvValue('VNPAY_URL') || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+    vnp_ReturnUrl: getEnvValue('VNPAY_RETURN_URL') || `${serverBaseUrl}/api/v1/payments/vnpay/return`,
+    vnp_IpnUrl: getEnvValue('VNPAY_IPN_URL') || `${serverBaseUrl}/api/v1/payments/vnpay/ipn`,
 };
 
 // Validate VNPay credentials on startup (production mode).
@@ -30,15 +38,12 @@ const sortObject = (obj) => {
     const sorted = {};
     const keys = Object.keys(obj).sort();
     for (const key of keys) {
-        sorted[key] = obj[key];
+        const value = normalizeParamValue(obj[key]);
+        if (value) {
+            sorted[encodeURIComponent(key)] = encodeURIComponent(value).replace(/%20/g, '+');
+        }
     }
     return sorted;
-};
-
-const normalizeParamValue = (value) => {
-    if (Array.isArray(value)) return normalizeParamValue(value[0]);
-    if (value === undefined || value === null) return '';
-    return String(value);
 };
 
 const formatVNPayDate = (date = new Date()) => {
