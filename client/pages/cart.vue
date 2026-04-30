@@ -8,6 +8,7 @@ const cartStore = useCartStore()
 const config = useRuntimeConfig()
 const { alert: showDialog } = useDialog()
 const { formatSizeLabel } = useProductSizeLabel()
+const isCartReady = ref(false)
 
 // Format price
 const { formatPrice } = useCurrency()
@@ -70,6 +71,8 @@ const groupedItems = computed(() => {
 })
 
 onMounted(() => {
+  isCartReady.value = true
+
   if (process.client && localStorage.getItem('token')) {
     cartStore.validateAvailability(false).catch((error) => {
       console.error('Failed to refresh cart availability:', error)
@@ -167,8 +170,13 @@ useSeoMeta({
     <div class="container-aura">
       <h1 class="font-serif text-heading-1 text-aura-black mb-8">{{ $t('cart.title') }}</h1>
 
+      <!-- Cart data is client-side, so wait for mount before choosing empty/items branch -->
+      <div v-if="!isCartReady" class="text-center py-16">
+        <p class="text-neutral-500">{{ $t('common.loading') }}</p>
+      </div>
+
       <!-- Empty Cart -->
-      <div v-if="cartStore.isEmpty" class="text-center py-16">
+      <div v-else-if="cartStore.isEmpty" class="text-center py-16">
         <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-neutral-100 flex items-center justify-center">
           <svg class="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
