@@ -12,12 +12,32 @@ const { formatSizeLabel } = useProductSizeLabel()
 // Format price
 const { formatPrice } = useCurrency()
 
+const tValue = (dict: string, val: string) => {
+  if (!val) return ''
+  const keyMatch = val.toLowerCase().replace(/\s+/g, '')
+  const fullPath = `${dict}.${keyMatch}`
+  const translated = t(fullPath)
+  return translated === fullPath ? val : translated
+}
+
+const getItemOptionKey = (item: any) => {
+  return `${item.productId}-${item.variantSize}-${item.variantColor || ''}-${item.variantMaterial || ''}`
+}
+
+const getItemOptionLabel = (item: any) => {
+  return [
+    formatSizeLabel(item.variantSize),
+    item.variantColor ? tValue('colors', item.variantColor) : '',
+    item.variantMaterial ? tValue('materials', item.variantMaterial) : '',
+  ].filter(Boolean).join(' / ')
+}
+
 // Group identical items
 const groupedItems = computed(() => {
   const groups = new Map()
   for (const item of cartStore.items) {
     // Generate a unique key for identical variants of the same product
-    const key = `${item.productId}-${item.variantSize}-${item.variantColor}-${item.price}`
+    const key = `${getItemOptionKey(item)}-${item.price}`
     const quantity = Number(item.quantity || 1)
     const stockQuantity = item.stockQuantity === undefined ? undefined : Number(item.stockQuantity || 0)
 
@@ -82,7 +102,7 @@ const decreaseQuantity = (item: any) => {
 const isAddingKey = ref('')
 
 const increaseQuantity = async (item: any) => {
-  const itemKey = `${item.productId}-${item.variantSize}-${item.variantColor}`
+  const itemKey = getItemOptionKey(item)
   isAddingKey.value = itemKey
   
   try {
@@ -97,7 +117,8 @@ const increaseQuantity = async (item: any) => {
         v.status === 'AVAILABLE' && 
         Number(v.stock_quantity || 0) > 0 &&
         v.size === item.variantSize && 
-        v.color === item.variantColor
+        v.color === item.variantColor &&
+        (v.material || '') === (item.variantMaterial || '')
       )
       
       const availableToAdd = matchingVariants.find((v: any) => {
@@ -114,6 +135,7 @@ const increaseQuantity = async (item: any) => {
           productImage: item.productImage,
           variantSize: availableToAdd.size,
           variantColor: availableToAdd.color,
+          variantMaterial: availableToAdd.material,
           price: parseFloat(product.sale_price || product.base_price) + Number(availableToAdd.price_adjustment || 0),
           quantity: 1,
           stockQuantity: Number(availableToAdd.stock_quantity || 0),
@@ -184,7 +206,7 @@ useSeoMeta({
                   <span v-if="item.quantity > 1" class="text-neutral-500 text-sm bg-neutral-200 px-2 py-0.5 rounded-full">x{{ item.quantity }}</span>
                 </h3>
                 <p class="text-body-sm text-neutral-600 mb-4">
-                  {{ formatSizeLabel(item.variantSize) }} / {{ item.variantColor }}
+                  {{ getItemOptionLabel(item) }}
                 </p>
                 <p class="text-body font-medium text-aura-black mb-4">
                   {{ formatPrice(item.price) }} <span v-if="item.quantity > 1" class="text-neutral-500 text-sm ml-1">({{ formatPrice(item.price * item.quantity) }})</span>
@@ -211,18 +233,18 @@ useSeoMeta({
                     <button 
                       @click="decreaseQuantity(item)"
                       class="px-3 py-1 text-neutral-500 hover:bg-neutral-100 transition-colors"
-                      :disabled="item.quantity <= 1 || isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}`"
-                      :class="{ 'opacity-30 cursor-not-allowed': item.quantity <= 1 || isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` }"
+                      :disabled="item.quantity <= 1 || isAddingKey === getItemOptionKey(item)"
+                      :class="{ 'opacity-30 cursor-not-allowed': item.quantity <= 1 || isAddingKey === getItemOptionKey(item) }"
                     >-</button>
                     <span class="px-3 text-body-sm font-medium w-8 text-center flex justify-center items-center h-full">
-                      <svg v-if="isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}`" class="animate-spin w-4 h-4 text-aura-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <svg v-if="isAddingKey === getItemOptionKey(item)" class="animate-spin w-4 h-4 text-aura-black" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                       <span v-else>{{ item.quantity }}</span>
                     </span>
                     <button 
                       @click="increaseQuantity(item)"
                       class="px-3 py-1 text-neutral-500 hover:bg-neutral-100 transition-colors"
-                      :disabled="isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` || (item.stockQuantity !== undefined && item.quantity >= item.stockQuantity)"
-                      :class="{ 'opacity-30 cursor-not-allowed': isAddingKey === `${item.productId}-${item.variantSize}-${item.variantColor}` || (item.stockQuantity !== undefined && item.quantity >= item.stockQuantity) }"
+                      :disabled="isAddingKey === getItemOptionKey(item) || (item.stockQuantity !== undefined && item.quantity >= item.stockQuantity)"
+                      :class="{ 'opacity-30 cursor-not-allowed': isAddingKey === getItemOptionKey(item) || (item.stockQuantity !== undefined && item.quantity >= item.stockQuantity) }"
                       title="Thêm số lượng"
                     >+</button>
                   </div>

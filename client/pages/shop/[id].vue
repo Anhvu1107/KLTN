@@ -37,53 +37,127 @@ const getVariantStock = (v: any) => {
 
 const isVariantAvailable = (v: any) => v?.status === 'AVAILABLE' && getVariantStock(v) > 0
 
-// --- Size grouping & selection ---
+// --- Variant grouping & selection ---
 
-// Group ALL variants by size (including sold ones, so we can show them as disabled)
-const sizeGroups = computed(() => {
-  const groups = new Map<string, any[]>()
-  for (const v of product.value?.variants || []) {
-    if (!groups.has(v.size)) {
-      groups.set(v.size, [])
+type VariantOption = {
+  value: string
+  label: string
+}
+
+const productVariants = computed<any[]>(() => {
+  return Array.isArray(product.value?.variants) ? product.value.variants : []
+})
+
+const normalizeVariantValue = (value: unknown) => {
+  if (value === null || value === undefined) return ''
+  return String(value)
+}
+
+const uniqueVariantOptions = (variants: any[], key: 'size' | 'color' | 'material'): VariantOption[] => {
+  const options = new Map<string, string>()
+
+  for (const v of variants) {
+    const value = normalizeVariantValue(v?.[key])
+    if (!options.has(value)) {
+      options.set(value, value)
     }
-    groups.get(v.size)!.push(v)
   }
-  return groups
-})
 
-// Sizes that have at least 1 AVAILABLE variant
-const availableSizes = computed(() => {
-  return [...sizeGroups.value.entries()]
-    .filter(([_, variants]) => variants.some(isVariantAvailable))
-    .map(([size]) => size)
-})
+  return [...options.entries()].map(([value, label]) => ({ value, label }))
+}
 
-// All unique sizes (for rendering selector buttons)
-const allSizes = computed(() => [...sizeGroups.value.keys()])
+const selectedSize = ref('')
+const selectedColor = ref('')
+const selectedMaterial = ref('')
+
+const allSizeOptions = computed(() => uniqueVariantOptions(productVariants.value, 'size'))
+const allSizes = computed(() => allSizeOptions.value.map(option => option.value))
+
+const isSizeOptionAvailable = (size: string) => {
+  return productVariants.value.some(v => normalizeVariantValue(v.size) === size && isVariantAvailable(v))
+}
+
+const availableSizes = computed(() => allSizes.value.filter(isSizeOptionAvailable))
 
 // Selected size — default to first available size
-const selectedSize = ref('')
+watch([availableSizes, allSizes], ([sizes, all]) => {
+  const nextSizes = sizes.length ? sizes : all
 
-watch(() => availableSizes.value, (sizes) => {
-  if (sizes.length && !sizes.includes(selectedSize.value)) {
-    selectedSize.value = sizes[0]
+  if (!nextSizes.length) {
+    selectedSize.value = ''
+    return
+  }
+
+  if (!nextSizes.includes(selectedSize.value)) {
+    selectedSize.value = nextSizes[0]
   }
 }, { immediate: true })
 
 // Whether this product has multiple sizes (show selector or not)
 const hasMultipleSizes = computed(() => allSizes.value.length > 1)
 
-// Variants of the SELECTED size only
-const sizeVariants = computed(() => sizeGroups.value.get(selectedSize.value) || [])
+const sizeVariants = computed(() => {
+  return productVariants.value.filter(v => normalizeVariantValue(v.size) === selectedSize.value)
+})
 
-// Available (in stock) variants of the selected size
-const availableVariants = computed(() => sizeVariants.value.filter(isVariantAvailable))
-const availableQuantity = computed(() => availableVariants.value.reduce((sum, v) => sum + getVariantStock(v), 0))
+const colorOptions = computed(() => uniqueVariantOptions(sizeVariants.value, 'color'))
+const hasMultipleColors = computed(() => colorOptions.value.length > 1)
 
-// The representative variant (for displaying color, material, SKU)
-const variant = computed(() => availableVariants.value[0] || sizeVariants.value[0] || product.value?.variants?.[0])
+const isColorOptionAvailable = (color: string) => {
+  return sizeVariants.value.some(v => normalizeVariantValue(v.color) === color && isVariantAvailable(v))
+}
 
-// --- End size grouping ---
+watch([colorOptions, selectedSize], () => {
+  const colors = colorOptions.value.map(option => option.value)
+
+  if (!colors.length) {
+    selectedColor.value = ''
+    return
+  }
+
+  if (!colors.includes(selectedColor.value) || !isColorOptionAvailable(selectedColor.value)) {
+    selectedColor.value = colors.find(isColorOptionAvailable) || colors[0]
+  }
+}, { immediate: true })
+
+const colorVariants = computed(() => {
+  return sizeVariants.value.filter(v => normalizeVariantValue(v.color) === selectedColor.value)
+})
+
+const materialOptions = computed(() => uniqueVariantOptions(colorVariants.value, 'material'))
+const hasMultipleMaterials = computed(() => materialOptions.value.length > 1)
+
+const isMaterialOptionAvailable = (material: string) => {
+  return colorVariants.value.some(v => normalizeVariantValue(v.material) === material && isVariantAvailable(v))
+}
+
+watch([materialOptions, selectedSize, selectedColor], () => {
+  const materials = materialOptions.value.map(option => option.value)
+
+  if (!materials.length) {
+    selectedMaterial.value = ''
+    return
+  }
+
+  if (!materials.includes(selectedMaterial.value) || !isMaterialOptionAvailable(selectedMaterial.value)) {
+    selectedMaterial.value = materials.find(isMaterialOptionAvailable) || materials[0]
+  }
+}, { immediate: true })
+
+const selectedVariants = computed(() => {
+  return productVariants.value.filter(v =>
+    normalizeVariantValue(v.size) === selectedSize.value &&
+    normalizeVariantValue(v.color) === selectedColor.value &&
+    normalizeVariantValue(v.material) === selectedMaterial.value
+  )
+})
+
+const selectedAvailableVariants = computed(() => selectedVariants.value.filter(isVariantAvailable))
+const availableQuantity = computed(() => selectedAvailableVariants.value.reduce((sum, v) => sum + getVariantStock(v), 0))
+
+const variant = computed(() => selectedAvailableVariants.value[0] || selectedVariants.value[0] || productVariants.value[0])
+
+// --- End variant grouping ---
 
 // Add a helper for translating database values like colors and materials
 const tValue = (dict: string, val: string) => {
@@ -94,9 +168,14 @@ const tValue = (dict: string, val: string) => {
   return translated === fullPath ? val : translated
 }
 
+const formatOptionLabel = (dict: string, option?: VariantOption | string) => {
+  const val = typeof option === 'string' ? option : option?.label
+  return val ? tValue(dict, val) : t('common.unknown')
+}
+
 // How many of the SELECTED SIZE are already in the cart?
 const inCartCount = computed(() => {
-  return availableVariants.value.reduce((sum, v) => {
+  return selectedAvailableVariants.value.reduce((sum, v) => {
     const itemInCart = cartStore.items.find(i => i.id === v.id);
     return sum + (itemInCart ? Number(itemInCart.quantity || 0) : 0);
   }, 0)
@@ -115,7 +194,7 @@ watch(maxCanAdd, (newMax) => {
   }
 })
 
-watch(selectedSize, () => {
+watch([selectedSize, selectedColor, selectedMaterial], () => {
   selectedQuantity.value = 1
 })
 
@@ -159,7 +238,7 @@ const addSelectedQuantityToCart = () => {
   let remaining = Math.min(selectedQuantity.value, maxCanAdd.value)
   let added = 0
 
-  for (const v of availableVariants.value) {
+  for (const v of selectedAvailableVariants.value) {
     if (remaining <= 0) break
 
     const stock = getVariantStock(v)
@@ -177,6 +256,7 @@ const addSelectedQuantityToCart = () => {
       productImage: getImageUrl(product.value.images?.[0]) || '',
       variantSize: v.size,
       variantColor: v.color,
+      variantMaterial: v.material,
       price: getVariantPrice(v),
       quantity,
       stockQuantity: stock,
@@ -463,19 +543,55 @@ useSeoMeta({
 
           <!-- Variant Info -->
           <div v-if="variant" class="mb-6 space-y-3">
-            <div class="flex gap-8">
+            <div class="space-y-4">
               <!-- Only show static size label when there's no multi-size selector -->
               <div v-if="!hasMultipleSizes">
                 <p class="text-caption text-neutral-500 uppercase">{{ t('shop.size') }}</p>
                 <p class="text-body font-medium">{{ formatSizeLabel(variant.size) }}</p>
               </div>
-              <div v-if="variant.color">
-                <p class="text-caption text-neutral-500 uppercase">{{ t('shop.color') }}</p>
-                <p class="text-body font-medium">{{ tValue('colors', variant.color) }}</p>
+
+              <div v-if="colorOptions.length">
+                <p class="text-caption text-neutral-500 uppercase mb-2">{{ t('shop.color') }}</p>
+                <div v-if="hasMultipleColors" class="flex flex-wrap gap-2">
+                  <button
+                    v-for="color in colorOptions"
+                    :key="color.value"
+                    type="button"
+                    @click="isColorOptionAvailable(color.value) ? selectedColor = color.value : null"
+                    :disabled="!isColorOptionAvailable(color.value)"
+                    class="min-w-[3rem] px-4 py-2 border text-body-sm font-medium rounded-sm transition-all duration-200"
+                    :class="{
+                      'border-aura-black bg-aura-black text-white': selectedColor === color.value && isColorOptionAvailable(color.value),
+                      'border-neutral-300 hover:border-aura-black text-aura-black': selectedColor !== color.value && isColorOptionAvailable(color.value),
+                      'border-neutral-200 text-neutral-300 cursor-not-allowed line-through': !isColorOptionAvailable(color.value),
+                    }"
+                  >
+                    {{ formatOptionLabel('colors', color) }}
+                  </button>
+                </div>
+                <p v-else class="text-body font-medium">{{ formatOptionLabel('colors', colorOptions[0]) }}</p>
               </div>
-              <div v-if="variant.material">
-                <p class="text-caption text-neutral-500 uppercase">{{ t('shop.material') }}</p>
-                <p class="text-body font-medium">{{ tValue('materials', variant.material) }}</p>
+
+              <div v-if="materialOptions.length">
+                <p class="text-caption text-neutral-500 uppercase mb-2">{{ t('shop.material') }}</p>
+                <div v-if="hasMultipleMaterials" class="flex flex-wrap gap-2">
+                  <button
+                    v-for="material in materialOptions"
+                    :key="material.value"
+                    type="button"
+                    @click="isMaterialOptionAvailable(material.value) ? selectedMaterial = material.value : null"
+                    :disabled="!isMaterialOptionAvailable(material.value)"
+                    class="min-w-[3rem] px-4 py-2 border text-body-sm font-medium rounded-sm transition-all duration-200"
+                    :class="{
+                      'border-aura-black bg-aura-black text-white': selectedMaterial === material.value && isMaterialOptionAvailable(material.value),
+                      'border-neutral-300 hover:border-aura-black text-aura-black': selectedMaterial !== material.value && isMaterialOptionAvailable(material.value),
+                      'border-neutral-200 text-neutral-300 cursor-not-allowed line-through': !isMaterialOptionAvailable(material.value),
+                    }"
+                  >
+                    {{ formatOptionLabel('materials', material) }}
+                  </button>
+                </div>
+                <p v-else class="text-body font-medium">{{ formatOptionLabel('materials', materialOptions[0]) }}</p>
               </div>
             </div>
             

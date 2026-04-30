@@ -791,6 +791,7 @@ const addProductToCartBySlug = async (slug: string, quantity = 1) => {
       productImage: getPrimaryProductImage(product),
       variantSize: variant.size || '',
       variantColor: variant.color || '',
+      variantMaterial: variant.material || '',
       price: parseFloat(product.sale_price || product.base_price || 0),
     })
 

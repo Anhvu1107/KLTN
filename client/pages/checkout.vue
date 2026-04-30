@@ -162,11 +162,27 @@ onMounted(() => {
 // Format price
 const { formatPrice } = useCurrency()
 
+const tValue = (dict: string, val: string) => {
+  if (!val) return ''
+  const keyMatch = val.toLowerCase().replace(/\s+/g, '')
+  const fullPath = `${dict}.${keyMatch}`
+  const translated = t(fullPath)
+  return translated === fullPath ? val : translated
+}
+
+const getItemOptionLabel = (item: any) => {
+  return [
+    formatSizeLabel(item.variantSize),
+    item.variantColor ? tValue('colors', item.variantColor) : '',
+    item.variantMaterial ? tValue('materials', item.variantMaterial) : '',
+  ].filter(Boolean).join(' / ')
+}
+
 // Group identical items
 const groupedItems = computed(() => {
   const groups = new Map()
   for (const item of cartStore.items) {
-    const key = `${item.productId}-${item.variantSize}-${item.variantColor}-${item.price}`
+    const key = `${item.productId}-${item.variantSize}-${item.variantColor || ''}-${item.variantMaterial || ''}-${item.price}`
     const quantity = Number(item.quantity || 1)
     const stockQuantity = item.stockQuantity === undefined ? undefined : Number(item.stockQuantity || 0)
 
@@ -642,7 +658,7 @@ useSeoMeta({
                     {{ item.productName }}
                     <span v-if="item.quantity > 1" class="text-neutral-500 text-xs bg-neutral-200 px-1.5 py-0.5 rounded-sm">x{{ item.quantity }}</span>
                   </p>
-                  <p class="text-caption text-neutral-600">{{ formatSizeLabel(item.variantSize) }} / {{ item.variantColor }}</p>
+                  <p class="text-caption text-neutral-600">{{ getItemOptionLabel(item) }}</p>
                 </div>
                 <p class="text-body-sm font-medium">{{ formatPrice(item.price * item.quantity) }}</p>
               </div>

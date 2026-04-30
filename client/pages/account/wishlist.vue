@@ -56,6 +56,7 @@ const addToCart = (item: any) => {
     productImage: getProductImage(product) || '',
     variantSize: variant.size,
     variantColor: variant.color,
+    variantMaterial: variant.material,
     price: parseFloat(product.sale_price || product.base_price),
   })
 }

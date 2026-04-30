@@ -22,6 +22,7 @@ export interface CartItem {
     productImage: string
     variantSize: string
     variantColor: string
+    variantMaterial?: string
     price: number
     quantity: number
     stockQuantity?: number
@@ -75,6 +76,7 @@ const normalizeCartItem = (item: Partial<CartItem> | null | undefined): CartItem
         productImage: item.productImage ? String(item.productImage) : '',
         variantSize: item.variantSize ? String(item.variantSize) : '',
         variantColor: item.variantColor ? String(item.variantColor) : '',
+        variantMaterial: item.variantMaterial ? String(item.variantMaterial) : undefined,
         price: toFiniteNumber(item.price, 0),
         quantity: toPositiveInteger(item.quantity, 1),
         stockQuantity,
@@ -246,6 +248,7 @@ export const useCartStore = defineStore('cart', {
                 existingItem.productImage = normalizedItem.productImage
                 existingItem.variantSize = normalizedItem.variantSize
                 existingItem.variantColor = normalizedItem.variantColor
+                existingItem.variantMaterial = normalizedItem.variantMaterial
                 existingItem.stockQuantity = normalizedItem.stockQuantity
                 existingItem.stockStatus = normalizedItem.stockStatus
             } else {
@@ -501,6 +504,7 @@ export const useCartStore = defineStore('cart', {
                             price: item.price,
                             variantSize: item.variantSize,
                             variantColor: item.variantColor,
+                            variantMaterial: item.variantMaterial,
                             quantity: item.quantity,
                         })),
                         totalAmount: this.subtotal,

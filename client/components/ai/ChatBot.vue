@@ -339,6 +339,7 @@ const autoExecuteActions = async (responseText: string) => {
           productImage: image,
           variantSize: variant.size || '',
           variantColor: variant.color || '',
+          variantMaterial: variant.material || '',
           price: parseFloat(product.sale_price || product.base_price || 0),
         })
         notifySuccess(`Đã thêm ${product.name} vào giỏ hàng!`)
@@ -510,6 +511,7 @@ const handleChatClick = async (e: MouseEvent) => {
           productImage: image,
           variantSize: variant.size || '',
           variantColor: variant.color || '',
+          variantMaterial: variant.material || '',
           price: parseFloat(product.sale_price || product.base_price || 0),
         })
         notifySuccess(`Đã thêm ${product.name} vào giỏ hàng!`)
