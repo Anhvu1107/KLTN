@@ -67,9 +67,14 @@ const appliedShippingCoupon = ref<AppliedCheckoutCoupon | null>(null)
 const enabledMethods = ref<Record<string, { enabled: boolean }>>({})
 
 // Computed totals
+const checkoutCartItems = computed(() => cartStore.checkoutCartItems)
+const checkoutItemsPayload = computed(() => cartStore.selectedCheckoutItems)
+const checkoutSubtotal = computed(() => cartStore.checkoutSubtotal)
+const checkoutItemCount = computed(() => cartStore.checkoutItemCount)
+const hasCheckoutItems = computed(() => checkoutItemsPayload.value.length > 0)
 const productDiscountAmount = computed(() => appliedDiscountCoupon.value?.discountAmount || 0)
 const shippingDiscountAmount = computed(() => appliedShippingCoupon.value?.shippingDiscountAmount || 0)
-const total = computed(() => Math.max(cartStore.subtotal + shippingFee.value - productDiscountAmount.value - shippingDiscountAmount.value, 0))
+const total = computed(() => Math.max(checkoutSubtotal.value + shippingFee.value - productDiscountAmount.value - shippingDiscountAmount.value, 0))
 
 const toNonNegativeAmount = (value: unknown) => {
   const amount = Number(value)
@@ -146,10 +151,11 @@ const prefillFromUser = () => {
 }
 
 onMounted(() => {
+  cartStore.loadCheckoutSelection()
   fetchPaymentSettings()
   prefillFromUser()
   if (process.client && localStorage.getItem('token')) {
-    cartStore.validateAvailability(false).then((unavailable) => {
+    cartStore.validateAvailability(false, checkoutItemsPayload.value).then((unavailable) => {
       if (unavailable.length > 0) {
         error.value = `${t('checkout.itemsUnavailable')}: ${unavailable.map(i => i.productName).join(', ')}`
       }
@@ -181,7 +187,7 @@ const getItemOptionLabel = (item: any) => {
 // Group identical items
 const groupedItems = computed(() => {
   const groups = new Map()
-  for (const item of cartStore.items) {
+  for (const item of checkoutCartItems.value) {
     const key = `${item.productId}-${item.variantSize}-${item.variantColor || ''}-${item.variantMaterial || ''}-${item.price}`
     const quantity = Number(item.quantity || 1)
     const stockQuantity = item.stockQuantity === undefined ? undefined : Number(item.stockQuantity || 0)
@@ -286,7 +292,7 @@ const applyCoupon = async (benefitType: CouponBenefitType) => {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: {
         code: codeRef.value,
-        cartTotal: cartStore.subtotal,
+        cartTotal: checkoutSubtotal.value,
         shippingFee: shippingFee.value,
         expectedBenefitType: benefitType,
         appliedCoupons: appliedCouponsPayload.value,
@@ -397,6 +403,11 @@ onBeforeUnmount(() => {
 })
 // Checkout handler
 const handleCheckout = async () => {
+  if (!hasCheckoutItems.value) {
+    error.value = t('cart.empty')
+    return
+  }
+
   // Validate auth
   if (!authStore.isAuthenticated) {
     navigateTo('/auth/login?redirect=/checkout')
@@ -421,7 +432,7 @@ const handleCheckout = async () => {
 
   try {
     // Check availability first
-    const unavailable = await cartStore.validateAvailability()
+    const unavailable = await cartStore.validateAvailability(true, checkoutItemsPayload.value)
     if (unavailable.length > 0) {
       error.value = `${t('checkout.itemsUnavailable')}: ${unavailable.map(i => i.productName).join(', ')}`
       return
@@ -442,6 +453,7 @@ const handleCheckout = async () => {
       notes: shippingForm.notes,
       discountCouponId: appliedDiscountCoupon.value?.id || undefined,
       shippingCouponId: appliedShippingCoupon.value?.id || undefined,
+      items: checkoutItemsPayload.value,
     })
 
     if (!result.success) {
@@ -562,7 +574,7 @@ useSeoMeta({
       <h1 class="font-serif text-heading-1 text-aura-black mb-8">{{ $t('checkout.title') }}</h1>
 
       <!-- Empty Cart -->
-      <div v-if="cartStore.isEmpty" class="text-center py-16">
+      <div v-if="cartStore.isEmpty || !hasCheckoutItems" class="text-center py-16">
         <p class="text-body text-neutral-600 mb-8">{{ $t('cart.empty') }}</p>
         <NuxtLink to="/shop" class="btn-primary">{{ $t('cart.continueShopping') }}</NuxtLink>
       </div>
@@ -740,8 +752,8 @@ useSeoMeta({
             <!-- Totals -->
             <div class="space-y-2 text-body-sm">
               <div class="flex justify-between">
-                <span class="text-neutral-600">{{ $t('cart.subtotal') }}</span>
-                <span>{{ formatPrice(cartStore.subtotal) }}</span>
+                <span class="text-neutral-600">{{ $t('cart.items') }} ({{ checkoutItemCount }})</span>
+                <span>{{ formatPrice(checkoutSubtotal) }}</span>
               </div>
               <div v-if="appliedDiscountCoupon" class="flex justify-between text-green-600">
                 <span>{{ $t('cart.discount') }} ({{ appliedDiscountCoupon.code }})</span>
@@ -766,7 +778,7 @@ useSeoMeta({
 
             <button
               @click="handleCheckout"
-              :disabled="isProcessing || cartStore.isEmpty"
+              :disabled="isProcessing || !hasCheckoutItems"
               class="btn-primary w-full"
               :class="{ 'opacity-70 cursor-not-allowed': isProcessing }"
             >

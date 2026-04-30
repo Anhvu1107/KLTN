@@ -70,6 +70,70 @@ const groupedItems = computed(() => {
   return Array.from(groups.values())
 })
 
+const selectedVariantIds = ref<string[]>([])
+const hasInitializedSelection = ref(false)
+
+const allVariantIds = computed(() => groupedItems.value.flatMap((item: any) => item.variantIds || []))
+const selectedIdSet = computed(() => new Set(selectedVariantIds.value))
+const selectedGroups = computed(() => {
+  return groupedItems.value.filter((item: any) => {
+    return (item.variantIds || []).some((id: string) => selectedIdSet.value.has(id))
+  })
+})
+const selectedItemCount = computed(() => selectedGroups.value.reduce((sum: number, item: any) => sum + Number(item.quantity || 0), 0))
+const selectedSubtotal = computed(() => selectedGroups.value.reduce((total: number, item: any) => total + (Number(item.price || 0) * Number(item.quantity || 0)), 0))
+const hasSelectedItems = computed(() => selectedVariantIds.value.length > 0)
+const areAllItemsSelected = computed(() => {
+  const ids = allVariantIds.value
+  return ids.length > 0 && ids.every((id: string) => selectedIdSet.value.has(id))
+})
+
+const isItemSelected = (item: any) => {
+  return (item.variantIds || []).some((id: string) => selectedIdSet.value.has(id))
+}
+
+const toggleGroupSelection = (item: any) => {
+  const ids = item.variantIds || []
+  const selected = new Set(selectedVariantIds.value)
+
+  if (isItemSelected(item)) {
+    ids.forEach((id: string) => selected.delete(id))
+  } else {
+    ids.forEach((id: string) => selected.add(id))
+  }
+
+  selectedVariantIds.value = Array.from(selected)
+}
+
+const toggleAllSelection = () => {
+  selectedVariantIds.value = areAllItemsSelected.value ? [] : [...allVariantIds.value]
+}
+
+watch(allVariantIds, (ids) => {
+  if (!hasInitializedSelection.value) {
+    selectedVariantIds.value = [...ids]
+    hasInitializedSelection.value = true
+    return
+  }
+
+  const validIds = new Set(ids)
+  selectedVariantIds.value = selectedVariantIds.value.filter(id => validIds.has(id))
+}, { immediate: true })
+
+const proceedToCheckout = () => {
+  if (!hasSelectedItems.value) {
+    showDialog({
+      title: t('cart.noItemsSelectedTitle'),
+      message: t('cart.noItemsSelectedMessage'),
+      type: 'warning',
+    })
+    return
+  }
+
+  cartStore.setCheckoutSelection(selectedVariantIds.value)
+  navigateTo('/checkout')
+}
+
 onMounted(() => {
   isCartReady.value = true
 
@@ -194,11 +258,34 @@ useSeoMeta({
         <!-- Items List -->
         <div class="lg:col-span-2">
           <div class="space-y-6">
+            <div class="flex flex-col gap-3 border-b border-neutral-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <label class="inline-flex items-center gap-3 text-body-sm text-neutral-700">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 accent-aura-black"
+                  :checked="areAllItemsSelected"
+                  @change="toggleAllSelection"
+                />
+                <span>{{ $t('cart.selectAll') }}</span>
+              </label>
+              <span class="text-caption text-neutral-500">
+                {{ $t('cart.selectedItems', { count: selectedItemCount }) }}
+              </span>
+            </div>
+
             <div
               v-for="item in groupedItems"
               :key="item.variantIds[0]"
-              class="flex gap-6 p-6 bg-neutral-50 rounded-sm"
+              class="flex gap-4 p-6 bg-neutral-50 rounded-sm sm:gap-6"
             >
+              <input
+                type="checkbox"
+                class="mt-2 h-4 w-4 flex-shrink-0 accent-aura-black"
+                :checked="isItemSelected(item)"
+                :aria-label="$t('cart.selectItem')"
+                @change="toggleGroupSelection(item)"
+              />
+
               <!-- Image -->
               <div class="w-24 h-32 bg-neutral-200 rounded-sm flex-shrink-0 overflow-hidden">
                 <img v-if="item.productImage" :src="item.productImage" :alt="item.productName" class="w-full h-full object-cover" />
@@ -287,8 +374,8 @@ useSeoMeta({
 
             <div class="space-y-3 text-body-sm mb-6">
               <div class="flex justify-between">
-                <span class="text-neutral-600">{{ $t('cart.items') }} ({{ cartStore.itemCount }})</span>
-                <span>{{ formatPrice(cartStore.subtotal) }}</span>
+                <span class="text-neutral-600">{{ $t('cart.items') }} ({{ selectedItemCount }})</span>
+                <span>{{ formatPrice(selectedSubtotal) }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-neutral-600">{{ $t('cart.shipping') }}</span>
@@ -300,12 +387,18 @@ useSeoMeta({
 
             <div class="flex justify-between text-body font-medium mb-6">
               <span>{{ $t('cart.subtotal') }}</span>
-              <span>{{ formatPrice(cartStore.subtotal) }}</span>
+              <span>{{ formatPrice(selectedSubtotal) }}</span>
             </div>
 
-            <NuxtLink to="/checkout" class="btn-primary w-full block text-center">
+            <button
+              type="button"
+              class="btn-primary w-full block text-center"
+              :disabled="!hasSelectedItems"
+              :class="{ 'opacity-50 cursor-not-allowed': !hasSelectedItems }"
+              @click="proceedToCheckout"
+            >
               {{ $t('cart.proceedToCheckout') }}
-            </NuxtLink>
+            </button>
 
             <!-- Trust Badges -->
             <div class="mt-6 pt-6 border-t border-neutral-100 text-center">

@@ -331,7 +331,12 @@
     "enterCode": "Enter code",
     "apply": "Apply",
     "secureCheckout": "Secure Checkout",
-    "authenticityGuaranteed": "Authenticity Guaranteed"
+    "authenticityGuaranteed": "Authenticity Guaranteed",
+    "selectAll": "Select all",
+    "selectItem": "Select item",
+    "selectedItems": "{count} items selected",
+    "noItemsSelectedTitle": "No items selected",
+    "noItemsSelectedMessage": "Please select at least one item to checkout."
   },
   "checkout": {
     "title": "Checkout",

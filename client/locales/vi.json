@@ -341,7 +341,12 @@
     "enterCode": "Nhập mã",
     "apply": "Áp dụng",
     "secureCheckout": "Thanh toán an toàn",
-    "authenticityGuaranteed": "Đảm bảo chính hãng"
+    "authenticityGuaranteed": "Đảm bảo chính hãng",
+    "selectAll": "Chọn tất cả",
+    "selectItem": "Chọn sản phẩm",
+    "selectedItems": "Đã chọn {count} sản phẩm",
+    "noItemsSelectedTitle": "Chưa chọn sản phẩm",
+    "noItemsSelectedMessage": "Vui lòng chọn ít nhất một sản phẩm để thanh toán."
   },
   "checkout": {
     "title": "Thanh toán",

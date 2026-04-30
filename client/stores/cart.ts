@@ -8,6 +8,7 @@ import { useAuthStore } from '~/stores/auth'
 
 const CART_STORAGE_PREFIX = 'aura_cart:'
 const LEGACY_CART_STORAGE_KEY = 'cart'
+const CHECKOUT_SELECTION_STORAGE_KEY = 'aura_checkout_selection'
 
 // Debounced abandoned cart tracking
 let trackTimer: ReturnType<typeof setTimeout> | null = null
@@ -37,10 +38,17 @@ export interface AppliedCoupon {
     discountAmount: number
 }
 
+export interface CheckoutItemPayload {
+    variantId: string
+    quantity: number
+    productName: string
+}
+
 export interface CartState {
     items: CartItem[]
     isLoading: boolean
     appliedCoupon: AppliedCoupon | null
+    checkoutSelectionIds: string[]
 }
 
 type PersistedCartState = Pick<CartState, 'items' | 'appliedCoupon'>
@@ -90,6 +98,7 @@ export const useCartStore = defineStore('cart', {
         items: [],
         isLoading: false,
         appliedCoupon: null,
+        checkoutSelectionIds: [],
     }),
 
     getters: {
@@ -137,9 +146,94 @@ export const useCartStore = defineStore('cart', {
                     productName: item.productName,
                 }))
         },
+
+        checkoutCartItems: (state): CartItem[] => {
+            const selectedIds = new Set(state.checkoutSelectionIds)
+            if (selectedIds.size === 0) return state.items
+
+            const selectedItems = state.items.filter(item => selectedIds.has(item.id))
+            return selectedItems.length > 0 ? selectedItems : state.items
+        },
+
+        checkoutItemCount: (state): number => {
+            const selectedIds = new Set(state.checkoutSelectionIds)
+            const items = selectedIds.size === 0
+                ? state.items
+                : state.items.filter(item => selectedIds.has(item.id))
+            const checkoutItems = items.length > 0 ? items : state.items
+
+            return checkoutItems.reduce((sum, item) => sum + toPositiveInteger(item.quantity, 0), 0)
+        },
+
+        checkoutSubtotal: (state): number => {
+            const selectedIds = new Set(state.checkoutSelectionIds)
+            const items = selectedIds.size === 0
+                ? state.items
+                : state.items.filter(item => selectedIds.has(item.id))
+            const checkoutItems = items.length > 0 ? items : state.items
+
+            return checkoutItems.reduce((total, item) => {
+                return total + (toFiniteNumber(item.price, 0) * toPositiveInteger(item.quantity, 0))
+            }, 0)
+        },
+
+        selectedCheckoutItems: (state): CheckoutItemPayload[] => {
+            const selectedIds = new Set(state.checkoutSelectionIds)
+            const items = selectedIds.size === 0
+                ? state.items
+                : state.items.filter(item => selectedIds.has(item.id))
+            const checkoutItems = items.length > 0 ? items : state.items
+
+            return checkoutItems
+                .filter(item => item.id)
+                .map(item => ({
+                    variantId: item.id,
+                    quantity: toPositiveInteger(item.quantity, 1),
+                    productName: item.productName,
+                }))
+        },
     },
 
     actions: {
+        persistCheckoutSelection(): void {
+            if (!process.client) return
+
+            if (this.checkoutSelectionIds.length === 0) {
+                sessionStorage.removeItem(CHECKOUT_SELECTION_STORAGE_KEY)
+                return
+            }
+
+            sessionStorage.setItem(CHECKOUT_SELECTION_STORAGE_KEY, JSON.stringify(this.checkoutSelectionIds))
+        },
+
+        loadCheckoutSelection(): void {
+            if (!process.client) return
+
+            try {
+                const parsed = JSON.parse(sessionStorage.getItem(CHECKOUT_SELECTION_STORAGE_KEY) || '[]')
+                this.checkoutSelectionIds = Array.isArray(parsed)
+                    ? parsed.map(String).filter(id => this.items.some(item => item.id === id))
+                    : []
+            } catch {
+                this.checkoutSelectionIds = []
+            }
+        },
+
+        setCheckoutSelection(variantIds: string[]): void {
+            const availableIds = new Set(this.items.map(item => item.id))
+            this.checkoutSelectionIds = [...new Set(variantIds)]
+                .map(String)
+                .filter(id => availableIds.has(id))
+            this.persistCheckoutSelection()
+        },
+
+        clearCheckoutSelection(): void {
+            this.checkoutSelectionIds = []
+            if (process.client) {
+                sessionStorage.removeItem(CHECKOUT_SELECTION_STORAGE_KEY)
+            }
+        },
+
         getStorageKey(userId: string): string {
             return `${CART_STORAGE_PREFIX}${userId}`
         },
@@ -267,6 +361,8 @@ export const useCartStore = defineStore('cart', {
             const index = this.items.findIndex(item => item.id === variantId)
             if (index !== -1) {
                 this.items.splice(index, 1)
+                this.checkoutSelectionIds = this.checkoutSelectionIds.filter(id => id !== variantId)
+                this.persistCheckoutSelection()
                 if (this.items.length === 0) {
                     this.appliedCoupon = null
                 }
@@ -295,6 +391,7 @@ export const useCartStore = defineStore('cart', {
         clearCart(): void {
             this.items = []
             this.appliedCoupon = null
+            this.clearCheckoutSelection()
             this.persistCartForUser()
         },
 
@@ -325,14 +422,14 @@ export const useCartStore = defineStore('cart', {
          * Validate cart items availability
          * Returns unavailable items
          */
-        async validateAvailability(adjustCart = true): Promise<{
+        async validateAvailability(adjustCart = true, itemsToCheck: CheckoutItemPayload[] = this.checkoutItems): Promise<{
             variantId: string
             productName: string
             status?: string
             requestedQuantity?: number
             availableQuantity?: number
         }[]> {
-            if (this.items.length === 0) return []
+            if (itemsToCheck.length === 0) return []
 
             this.isLoading = true
 
@@ -356,7 +453,7 @@ export const useCartStore = defineStore('cart', {
                 }>(`${config.public.apiUrl}/orders/check-availability`, {
                     method: 'POST',
                     headers: token ? { Authorization: `Bearer ${token}` } : {},
-                    body: { items: this.checkoutItems },
+                    body: { items: itemsToCheck },
                 })
 
                 const checkedItems = response.data.items || []
@@ -423,8 +520,12 @@ export const useCartStore = defineStore('cart', {
             couponId?: string
             discountCouponId?: string
             shippingCouponId?: string
+            items?: CheckoutItemPayload[]
         }): Promise<{ success: boolean; order?: any; error?: string }> {
-            if (this.items.length === 0) {
+            const { items, ...payload } = orderData
+            const itemsToCheckout = items?.length ? items : this.checkoutItems
+
+            if (itemsToCheckout.length === 0) {
                 return { success: false, error: 'Cart is empty' }
             }
 
@@ -446,14 +547,13 @@ export const useCartStore = defineStore('cart', {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${token}` },
                     body: {
-                        items: this.checkoutItems,
-                        ...orderData,
+                        items: itemsToCheckout,
+                        ...payload,
                     },
                 })
 
                 if (response.success) {
-                    // Clear cart after successful checkout
-                    this.clearCart()
+                    this.removePurchasedItems(itemsToCheckout)
                     return { success: true, order: response.data.order }
                 }
 
@@ -465,6 +565,28 @@ export const useCartStore = defineStore('cart', {
             } finally {
                 this.isLoading = false
             }
+        },
+
+        removePurchasedItems(purchasedItems: CheckoutItemPayload[]): void {
+            for (const purchasedItem of purchasedItems) {
+                const cartItem = this.items.find(item => item.id === purchasedItem.variantId)
+                if (!cartItem) continue
+
+                const remainingQuantity = toPositiveInteger(cartItem.quantity, 0) - toPositiveInteger(purchasedItem.quantity, 0)
+                if (remainingQuantity > 0) {
+                    cartItem.quantity = remainingQuantity
+                } else {
+                    this.items = this.items.filter(item => item.id !== purchasedItem.variantId)
+                }
+            }
+
+            if (this.items.length === 0) {
+                this.appliedCoupon = null
+            }
+
+            this.clearCheckoutSelection()
+            this.persistCartForUser()
+            this.debouncedTrackAbandonedCart()
         },
 
         /**
