@@ -85,6 +85,7 @@ const allPaymentMethods = computed(() => [
   { value: 'BANK_TRANSFER', key: 'bank_transfer', label: t('checkout.bankTransfer'), icon: '🏦' },
   { value: 'MOMO', key: 'momo', label: 'MoMo', icon: '📱' },
   { value: 'VNPAY', key: 'vnpay', label: 'VNPAY QR', icon: '💳' },
+  { value: 'VNPAY_TEST_CARD', key: 'vnpay', label: 'VNPAY the test NCB', icon: '💳' },
   { value: 'PAYPAL', key: 'paypal', label: 'PayPal', icon: '🌐', desc: t('checkout.paypalDesc') },
   { value: 'CREDIT_CARD', key: 'credit_card', label: t('checkout.creditCard'), icon: '💳', desc: 'Visa / Mastercard / AMEX' },
 ])
@@ -411,8 +412,12 @@ const handleCheckout = async () => {
       return
     }
 
-    // Map CREDIT_CARD to PAYPAL on backend (PayPal handles card payments)
-    const backendPaymentMethod = paymentMethod.value === 'CREDIT_CARD' ? 'PAYPAL' : paymentMethod.value
+    // Map UI-only gateway variants to backend payment methods.
+    const backendPaymentMethod = paymentMethod.value === 'CREDIT_CARD'
+      ? 'PAYPAL'
+      : paymentMethod.value === 'VNPAY_TEST_CARD'
+        ? 'VNPAY'
+        : paymentMethod.value
 
     // Process checkout — create order
     const result = await cartStore.checkout({
@@ -435,11 +440,12 @@ const handleCheckout = async () => {
     const token = localStorage.getItem('token')
 
     // Handle payment redirect based on method
-    if (requiresPayment && paymentMethod.value === 'VNPAY' && orderId) {
+    if (requiresPayment && (paymentMethod.value === 'VNPAY' || paymentMethod.value === 'VNPAY_TEST_CARD') && orderId) {
       try {
+        const bankCode = paymentMethod.value === 'VNPAY_TEST_CARD' ? 'VNBANK' : 'VNPAYQR'
         const res = await $fetch<{ success: boolean; data: { paymentUrl: string } }>(
           `${config.public.apiUrl}/payments/vnpay/create`,
-          { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId, bankCode: 'VNPAYQR' } }
+          { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId, bankCode } }
         )
         if (res.success && res.data.paymentUrl) {
           window.location.href = res.data.paymentUrl
