@@ -85,7 +85,7 @@ const allPaymentMethods = computed(() => [
   { value: 'BANK_TRANSFER', key: 'bank_transfer', label: t('checkout.bankTransfer'), icon: '🏦' },
   { value: 'MOMO', key: 'momo', label: 'MoMo', icon: '📱' },
   { value: 'VNPAY', key: 'vnpay', label: 'VNPAY QR', icon: '💳' },
-  { value: 'VNPAY_TEST_CARD', key: 'vnpay', label: 'VNPAY the test NCB', icon: '💳' },
+  { value: 'VNPAY_TEST_CARD', key: 'vnpay', label: 'VNPAY thẻ test NCB', icon: '💳' },
   { value: 'PAYPAL', key: 'paypal', label: 'PayPal', icon: '🌐', desc: t('checkout.paypalDesc') },
   { value: 'CREDIT_CARD', key: 'credit_card', label: t('checkout.creditCard'), icon: '💳', desc: 'Visa / Mastercard / AMEX' },
 ])
@@ -442,7 +442,7 @@ const handleCheckout = async () => {
     // Handle payment redirect based on method
     if (requiresPayment && (paymentMethod.value === 'VNPAY' || paymentMethod.value === 'VNPAY_TEST_CARD') && orderId) {
       try {
-        const bankCode = paymentMethod.value === 'VNPAY_TEST_CARD' ? 'VNBANK' : 'VNPAYQR'
+        const bankCode = paymentMethod.value === 'VNPAY_TEST_CARD' ? 'NCB' : 'QRONLY'
         const res = await $fetch<{ success: boolean; data: { paymentUrl: string } }>(
           `${config.public.apiUrl}/payments/vnpay/create`,
           { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId, bankCode } }
@@ -451,11 +451,11 @@ const handleCheckout = async () => {
           window.location.href = res.data.paymentUrl
           return
         }
-        error.value = 'Khong tao duoc link thanh toan VNPAY QR. Vui long thu lai.'
+        error.value = 'Không tạo được link thanh toán VNPAY QR. Vui lòng thử lại.'
         return
       } catch (e: any) {
         console.error('VNPay error:', e)
-        error.value = e?.data?.message || 'Khong tao duoc link thanh toan VNPAY QR. Vui long thu lai.'
+        error.value = e?.data?.message || 'Không tạo được link thanh toán VNPAY QR. Vui lòng thử lại.'
         return
       }
 

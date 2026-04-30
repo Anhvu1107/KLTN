@@ -207,7 +207,7 @@ const cancelError = ref('')
 const isStartingVNPay = ref(false)
 const vnpayError = ref('')
 
-const startVNPayPayment = async (bankCode: 'VNPAYQR' | 'VNBANK') => {
+const startVNPayPayment = async (bankCode: 'QRONLY' | 'NCB') => {
   if (!order.value?.id) return
 
   isStartingVNPay.value = true
@@ -346,7 +346,7 @@ useSeoMeta({
                 class="btn-primary whitespace-nowrap"
                 :disabled="isStartingVNPay"
                 :class="{ 'opacity-70 cursor-not-allowed': isStartingVNPay }"
-                @click="startVNPayPayment('VNPAYQR')"
+                @click="startVNPayPayment('QRONLY')"
               >
                 {{ isStartingVNPay ? t('common.processing') : 'Thanh toán VNPAY QR' }}
               </button>
@@ -355,7 +355,7 @@ useSeoMeta({
                 class="btn-secondary whitespace-nowrap"
                 :disabled="isStartingVNPay"
                 :class="{ 'opacity-70 cursor-not-allowed': isStartingVNPay }"
-                @click="startVNPayPayment('VNBANK')"
+                @click="startVNPayPayment('NCB')"
               >
                 Thẻ test NCB
               </button>
