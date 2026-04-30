@@ -60,6 +60,7 @@ const assertConfigured = () => {
 const normalizeBankCode = (bankCode) => {
     const normalized = normalizeParamValue(bankCode).trim().toUpperCase();
     if (!normalized) return '';
+    if (normalized === 'QRONLY') return 'VNPAYQR';
     if (!/^[A-Z0-9]{3,20}$/.test(normalized)) {
         throw new AppError('Invalid VNPay bank code.', 400);
     }
@@ -94,7 +95,7 @@ const createPaymentUrl = (order, ipAddr, options = {}) => {
         vnp_CurrCode: 'VND',
         vnp_TxnRef: orderId,
         vnp_OrderInfo: `Thanh toan don hang ${order.order_number || orderId.slice(0, 8)}`,
-        vnp_OrderType: 'fashion',
+        vnp_OrderType: 'other',
         vnp_Amount: amountVND,
         vnp_ReturnUrl: VNPAY_CONFIG.vnp_ReturnUrl,
         vnp_IpAddr: ipAddr,

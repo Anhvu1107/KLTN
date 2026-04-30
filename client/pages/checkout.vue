@@ -442,7 +442,7 @@ const handleCheckout = async () => {
     // Handle payment redirect based on method
     if (requiresPayment && (paymentMethod.value === 'VNPAY' || paymentMethod.value === 'VNPAY_TEST_CARD') && orderId) {
       try {
-        const bankCode = paymentMethod.value === 'VNPAY_TEST_CARD' ? 'NCB' : 'QRONLY'
+        const bankCode = paymentMethod.value === 'VNPAY_TEST_CARD' ? 'NCB' : 'VNPAYQR'
         const res = await $fetch<{ success: boolean; data: { paymentUrl: string } }>(
           `${config.public.apiUrl}/payments/vnpay/create`,
           { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId, bankCode } }
