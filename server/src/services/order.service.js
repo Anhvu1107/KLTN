@@ -13,6 +13,7 @@ const couponService = require('./coupon.service');
 const abandonedCartService = require('./abandoned-cart.service');
 
 const SHIPPING_BENEFIT_TYPE = 'SHIPPING';
+const CHANGEABLE_PAYMENT_METHODS = ['COD', 'BANK_TRANSFER', 'MOMO', 'VNPAY', 'PAYPAL'];
 
 const toPositiveInteger = (value, fallback = 1) => {
     const parsed = Number(value);
@@ -521,11 +522,45 @@ const checkAvailability = async (items) => {
     });
 };
 
+/**
+ * Change payment method while the order is still open and unpaid.
+ */
+const updatePaymentMethod = async (orderId, userId, paymentMethod) => {
+    if (!CHANGEABLE_PAYMENT_METHODS.includes(paymentMethod)) {
+        throw new AppError('Invalid payment method', 400);
+    }
+
+    const order = await Order.findOne({
+        where: { id: orderId, user_id: userId },
+    });
+
+    if (!order) {
+        throw new AppError('Order not found', 404);
+    }
+
+    if (order.status !== 'PENDING') {
+        throw new AppError('Only pending orders can change payment method', 400);
+    }
+
+    if (['PAID', 'REFUNDED'].includes(order.payment_status)) {
+        throw new AppError('Paid or refunded orders cannot change payment method', 400);
+    }
+
+    await order.update({
+        payment_method: paymentMethod,
+        payment_status: 'PENDING',
+        payment_transaction_id: null,
+    });
+
+    return getOrderById(orderId, userId);
+};
+
 module.exports = {
     createOrder,
     sendOrderNotifications,
     getUserOrders,
     getOrderById,
     cancelOrder,
+    updatePaymentMethod,
     checkAvailability,
 };

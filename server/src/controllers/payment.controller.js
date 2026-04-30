@@ -49,8 +49,56 @@ const getClientIp = (req) => {
         '127.0.0.1';
 };
 
-const updateOrderAfterGatewayResult = async (result) => {
-    if (!result.orderId) return;
+const isOrderOpenForPayment = (order) => {
+    if (!order) return false;
+    if (order.status !== 'PENDING') return false;
+    return !['PAID', 'REFUNDED'].includes(order.payment_status);
+};
+
+const getNotPayableMessage = (order) => {
+    if (!order) return 'Order not found';
+    if (order.status === 'CANCELLED') return 'Order has been cancelled';
+    if (order.payment_status === 'PAID') return 'Order already paid';
+    if (order.payment_status === 'REFUNDED') return 'Order has been refunded';
+    return 'Order is not payable';
+};
+
+const ensureOrderCanStartPayment = (order, res, expectedPaymentMethod = null) => {
+    if (isOrderOpenForPayment(order)) return true;
+    if (expectedPaymentMethod && order?.payment_method !== expectedPaymentMethod) {
+        res.status(400).json({
+            success: false,
+            message: 'Payment method has changed',
+        });
+        return false;
+    }
+
+    res.status(400).json({
+        success: false,
+        message: getNotPayableMessage(order),
+    });
+
+    return false;
+};
+
+const updateOrderAfterGatewayResult = async (result, expectedPaymentMethod = null) => {
+    if (!result.orderId) return { updated: false, reason: 'missing_order_id' };
+
+    const order = await Order.findByPk(result.orderId);
+
+    if (!order) return { updated: false, reason: 'order_not_found' };
+
+    if (order.payment_status === 'PAID') {
+        return { updated: false, reason: 'already_paid', order };
+    }
+
+    if (!isOrderOpenForPayment(order)) {
+        return { updated: false, reason: 'order_not_payable', order };
+    }
+
+    if (expectedPaymentMethod && order.payment_method !== expectedPaymentMethod) {
+        return { updated: false, reason: 'payment_method_changed', order };
+    }
 
     const updateData = result.success
         ? {
@@ -63,7 +111,9 @@ const updateOrderAfterGatewayResult = async (result) => {
             payment_transaction_id: result.transactionNo,
         };
 
-    await Order.update(updateData, { where: { id: result.orderId } });
+    await order.update(updateData);
+
+    return { updated: true, order };
 };
 
 // Prices in DB are stored in VND — no conversion needed
@@ -88,16 +138,13 @@ const createVNPayPayment = catchAsync(async (req, res) => {
         });
     }
 
+    if (!ensureOrderCanStartPayment(order, res, 'VNPAY')) {
+        return;
+    }
+
     if (getOrderAmountVND(order) === 0) {
         await markZeroAmountOrderPaid(order);
         return sendZeroAmountPaidResponse(res, order);
-    }
-
-    if (order.payment_status === 'PAID') {
-        return res.status(400).json({
-            success: false,
-            message: 'Order already paid',
-        });
     }
 
     const ipAddr = getClientIp(req);
@@ -119,7 +166,11 @@ const vnpayReturn = catchAsync(async (req, res) => {
 
     if (result.success) {
         // Local sandbox fallback: IPN is the source of truth when VNPAY can call a public URL.
-        await updateOrderAfterGatewayResult(result);
+        const updateResult = await updateOrderAfterGatewayResult(result, 'VNPAY');
+
+        if (!updateResult.updated && updateResult.reason !== 'already_paid') {
+            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(getNotPayableMessage(updateResult.order))}`);
+        }
 
         // Redirect to success page
         return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${result.orderId}`);
@@ -154,6 +205,14 @@ const vnpayIPN = catchAsync(async (req, res) => {
         return res.status(200).json({ RspCode: '02', Message: 'Order already paid' });
     }
 
+    if (!isOrderOpenForPayment(order)) {
+        return res.status(200).json({ RspCode: '02', Message: getNotPayableMessage(order) });
+    }
+
+    if (order.payment_method !== 'VNPAY') {
+        return res.status(200).json({ RspCode: '02', Message: 'Payment method changed' });
+    }
+
     // Verify amount (use integer math to avoid floating-point errors)
     const expectedAmountVND = getOrderAmountVND(order);
     if (Math.round(result.amount) !== expectedAmountVND) {
@@ -185,16 +244,13 @@ const createMoMoPayment = catchAsync(async (req, res) => {
         });
     }
 
+    if (!ensureOrderCanStartPayment(order, res, 'MOMO')) {
+        return;
+    }
+
     if (getOrderAmountVND(order) === 0) {
         await markZeroAmountOrderPaid(order);
         return sendZeroAmountPaidResponse(res, order);
-    }
-
-    if (order.payment_status === 'PAID') {
-        return res.status(400).json({
-            success: false,
-            message: 'Order already paid',
-        });
     }
 
     // Prices already in VND
@@ -237,15 +293,20 @@ const momoReturn = catchAsync(async (req, res) => {
     }
 
     if (String(resultCode) === '0') {
+        const order = await Order.findByPk(orderId);
+        if (!isOrderOpenForPayment(order)) {
+            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(getNotPayableMessage(order))}`);
+        }
+        if (order.payment_method !== 'MOMO') {
+            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent('Payment method changed')}`);
+        }
+
         // Payment successful
-        await Order.update(
-            {
-                payment_status: 'PAID',
-                payment_transaction_id: req.query.transId,
-                status: 'CONFIRMED',
-            },
-            { where: { id: orderId } }
-        );
+        await order.update({
+            payment_status: 'PAID',
+            payment_transaction_id: req.query.transId,
+            status: 'CONFIRMED',
+        });
 
         return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${orderId}`);
     } else {
@@ -280,16 +341,21 @@ const momoIPN = catchAsync(async (req, res) => {
         return res.status(200).json({ resultCode: 0, message: 'Order already paid' });
     }
 
+    if (!isOrderOpenForPayment(order)) {
+        return res.status(200).json({ resultCode: 0, message: getNotPayableMessage(order) });
+    }
+
+    if (order.payment_method !== 'MOMO') {
+        return res.status(200).json({ resultCode: 0, message: 'Payment method changed' });
+    }
+
     if (String(resultCode) === '0') {
         // Payment successful
-        await Order.update(
-            {
-                payment_status: 'PAID',
-                payment_transaction_id: transId,
-                status: 'CONFIRMED',
-            },
-            { where: { id: orderId } }
-        );
+        await order.update({
+            payment_status: 'PAID',
+            payment_transaction_id: transId,
+            status: 'CONFIRMED',
+        });
     }
 
     return res.status(200).json({ resultCode: 0, message: 'Success' });
@@ -314,16 +380,13 @@ const createPayPalPayment = catchAsync(async (req, res) => {
         });
     }
 
+    if (!ensureOrderCanStartPayment(order, res, 'PAYPAL')) {
+        return;
+    }
+
     if (getOrderAmountVND(order) === 0) {
         await markZeroAmountOrderPaid(order);
         return sendZeroAmountPaidResponse(res, order);
-    }
-
-    if (order.payment_status === 'PAID') {
-        return res.status(400).json({
-            success: false,
-            message: 'Order already paid',
-        });
     }
 
     const result = await paypalService.createPayment(order);
@@ -365,15 +428,20 @@ const paypalReturn = catchAsync(async (req, res) => {
     const captureResult = await paypalService.capturePayment(token);
 
     if (captureResult.success) {
+        const order = await Order.findByPk(captureResult.orderId);
+        if (!isOrderOpenForPayment(order)) {
+            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(getNotPayableMessage(order))}`);
+        }
+        if (order.payment_method !== 'PAYPAL') {
+            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent('Payment method changed')}`);
+        }
+
         // Update order
-        await Order.update(
-            {
-                payment_status: 'PAID',
-                payment_transaction_id: captureResult.transactionId,
-                status: 'CONFIRMED',
-            },
-            { where: { id: captureResult.orderId } }
-        );
+        await order.update({
+            payment_status: 'PAID',
+            payment_transaction_id: captureResult.transactionId,
+            status: 'CONFIRMED',
+        });
 
         return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${captureResult.orderId}`);
     } else {
@@ -399,14 +467,14 @@ const paypalWebhook = catchAsync(async (req, res) => {
         if (paypalOrderId) {
             const captureResult = await paypalService.capturePayment(paypalOrderId);
             if (captureResult.success) {
-                await Order.update(
-                    {
+                const order = await Order.findByPk(captureResult.orderId);
+                if (isOrderOpenForPayment(order) && order.payment_method === 'PAYPAL') {
+                    await order.update({
                         payment_status: 'PAID',
                         payment_transaction_id: captureResult.transactionId,
                         status: 'CONFIRMED',
-                    },
-                    { where: { id: captureResult.orderId } }
-                );
+                    });
+                }
             }
         }
     }

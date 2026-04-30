@@ -48,11 +48,15 @@ const displayPaymentStatus = computed(() => {
   return order.value.payment_status || ''
 })
 
-const canPayWithVNPay = computed(() => {
-  return order.value?.payment_method === 'VNPAY' &&
-    order.value?.payment_status === 'PENDING' &&
-    order.value?.status === 'PENDING' &&
+const canManagePayment = computed(() => {
+  if (!order.value) return false
+  return order.value.status === 'PENDING' &&
+    !['PAID', 'REFUNDED'].includes(order.value.payment_status) &&
     orderTotal.value > 0
+})
+
+const canPayWithVNPay = computed(() => {
+  return canManagePayment.value && order.value?.payment_method === 'VNPAY'
 })
 
 const formatDate = (date: string) => {
@@ -106,11 +110,20 @@ const paymentMethodLabel = (method: string) => {
     COD: t('checkout.cod'),
     BANK_TRANSFER: t('checkout.bankTransfer'),
     MOMO: 'MoMo',
-    VNPAY: 'VNPay',
+    VNPAY: 'VNPAY thẻ test NCB',
+    PAYPAL: 'PayPal',
     CREDIT_CARD: t('checkout.creditCard') || 'Credit Card',
   }
   return labels[method] || method
 }
+
+const changeablePaymentMethods = computed(() => [
+  { value: 'COD', label: t('checkout.cod') },
+  { value: 'BANK_TRANSFER', label: t('checkout.bankTransfer') },
+  { value: 'MOMO', label: 'MoMo' },
+  { value: 'VNPAY', label: 'VNPAY thẻ test NCB' },
+  { value: 'PAYPAL', label: 'PayPal' },
+])
 
 // Bank accounts for QR code
 const bankAccounts = ref<Array<{
@@ -175,6 +188,7 @@ const vietQrUrl = computed(() => {
 
 const showBankQR = computed(() => {
   return order.value?.payment_method === 'BANK_TRANSFER' && 
+         order.value?.status === 'PENDING' &&
          order.value?.payment_status === 'PENDING' && 
          orderTotal.value > 0 &&
          !!primaryBank.value
@@ -205,9 +219,51 @@ onMounted(fetchBankAccounts)
 const isCancelling = ref(false)
 const cancelError = ref('')
 const isStartingVNPay = ref(false)
+const isStartingMoMo = ref(false)
+const isStartingPayPal = ref(false)
 const vnpayError = ref('')
+const momoError = ref('')
+const paypalError = ref('')
+const isChangingPaymentMethod = ref(false)
+const paymentMethodDraft = ref('')
+const paymentMethodError = ref('')
+const paymentMethodSuccess = ref('')
 
-const startVNPayPayment = async (bankCode: 'VNPAYQR' | 'NCB') => {
+watch(order, (currentOrder) => {
+  if (currentOrder?.payment_method) {
+    paymentMethodDraft.value = currentOrder.payment_method
+  }
+}, { immediate: true })
+
+const updatePaymentMethod = async () => {
+  if (!order.value?.id || !paymentMethodDraft.value || paymentMethodDraft.value === order.value.payment_method) return
+
+  isChangingPaymentMethod.value = true
+  paymentMethodError.value = ''
+  paymentMethodSuccess.value = ''
+
+  try {
+    const response = await $fetch<{ success: boolean; data: { order: any } }>(
+      `${config.public.apiUrl}/orders/${orderId}/payment-method`,
+      {
+        method: 'PATCH',
+        headers: getAuthHeaders() as Record<string, string>,
+        body: { paymentMethod: paymentMethodDraft.value },
+      },
+    )
+
+    if (response.success && response.data?.order && data.value?.data) {
+      data.value.data.order = response.data.order
+      paymentMethodSuccess.value = 'Đã đổi phương thức thanh toán.'
+    }
+  } catch (err: any) {
+    paymentMethodError.value = err?.data?.message || t('errors.somethingWrong')
+  } finally {
+    isChangingPaymentMethod.value = false
+  }
+}
+
+const startVNPayPayment = async () => {
   if (!order.value?.id) return
 
   isStartingVNPay.value = true
@@ -219,7 +275,7 @@ const startVNPayPayment = async (bankCode: 'VNPAYQR' | 'NCB') => {
       {
         method: 'POST',
         headers: getAuthHeaders() as Record<string, string>,
-        body: { orderId: order.value.id, bankCode },
+        body: { orderId: order.value.id, bankCode: 'NCB' },
       },
     )
 
@@ -233,6 +289,65 @@ const startVNPayPayment = async (bankCode: 'VNPAYQR' | 'NCB') => {
     vnpayError.value = err?.data?.message || 'Không tạo được link thanh toán VNPAY. Vui lòng thử lại.'
   } finally {
     isStartingVNPay.value = false
+  }
+}
+
+const startMoMoPayment = async () => {
+  if (!order.value?.id) return
+
+  isStartingMoMo.value = true
+  momoError.value = ''
+
+  try {
+    const response = await $fetch<{ success: boolean; data: { payUrl?: string; deeplink?: string } }>(
+      `${config.public.apiUrl}/payments/momo/create`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders() as Record<string, string>,
+        body: { orderId: order.value.id },
+      },
+    )
+
+    const paymentUrl = response.data?.payUrl || response.data?.deeplink
+    if (response.success && paymentUrl) {
+      window.location.href = paymentUrl
+      return
+    }
+
+    momoError.value = 'Không tạo được link thanh toán MoMo. Vui lòng thử lại.'
+  } catch (err: any) {
+    momoError.value = err?.data?.message || 'Không tạo được link thanh toán MoMo. Vui lòng thử lại.'
+  } finally {
+    isStartingMoMo.value = false
+  }
+}
+
+const startPayPalPayment = async () => {
+  if (!order.value?.id) return
+
+  isStartingPayPal.value = true
+  paypalError.value = ''
+
+  try {
+    const response = await $fetch<{ success: boolean; data: { approvalUrl?: string } }>(
+      `${config.public.apiUrl}/payments/paypal/create`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders() as Record<string, string>,
+        body: { orderId: order.value.id },
+      },
+    )
+
+    if (response.success && response.data?.approvalUrl) {
+      window.location.href = response.data.approvalUrl
+      return
+    }
+
+    paypalError.value = 'Không tạo được link thanh toán PayPal. Vui lòng thử lại.'
+  } catch (err: any) {
+    paypalError.value = err?.data?.message || 'Không tạo được link thanh toán PayPal. Vui lòng thử lại.'
+  } finally {
+    isStartingPayPal.value = false
   }
 }
 
@@ -329,13 +444,46 @@ useSeoMeta({
           </div>
         </div>
 
+        <!-- Change Payment Method -->
+        <div v-if="canManagePayment" class="card p-6">
+          <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div class="flex-1">
+              <h2 class="font-serif text-heading-4 text-aura-black mb-2">Đổi phương thức thanh toán</h2>
+              <p class="text-body-sm text-neutral-600 mb-4">
+                Chỉ đổi được khi đơn còn chờ xử lý và chưa thanh toán.
+              </p>
+              <label class="input-label">{{ t('checkout.paymentMethod') }}</label>
+              <select v-model="paymentMethodDraft" class="input-field max-w-sm">
+                <option
+                  v-for="method in changeablePaymentMethods"
+                  :key="method.value"
+                  :value="method.value"
+                >
+                  {{ method.label }}
+                </option>
+              </select>
+              <p v-if="paymentMethodError" class="mt-2 text-body-sm text-red-600">{{ paymentMethodError }}</p>
+              <p v-if="paymentMethodSuccess" class="mt-2 text-body-sm text-green-600">{{ paymentMethodSuccess }}</p>
+            </div>
+            <button
+              type="button"
+              class="btn-secondary whitespace-nowrap"
+              :disabled="isChangingPaymentMethod || paymentMethodDraft === order.payment_method"
+              :class="{ 'opacity-70 cursor-not-allowed': isChangingPaymentMethod || paymentMethodDraft === order.payment_method }"
+              @click="updatePaymentMethod"
+            >
+              {{ isChangingPaymentMethod ? t('common.processing') : 'Cập nhật' }}
+            </button>
+          </div>
+        </div>
+
         <!-- VNPay Retry Payment -->
         <div v-if="canPayWithVNPay" class="card p-6 border-2 border-blue-200 bg-blue-50/30">
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 class="font-serif text-heading-4 text-aura-black mb-2">Thanh toán VNPAY</h2>
               <p class="text-body-sm text-neutral-600">
-                Bấm nút bên dưới để mở cổng thanh toán sandbox. QR hoặc form thẻ sẽ nằm trên trang VNPAY.
+                Bấm nút bên dưới để mở cổng thanh toán thẻ test NCB trên VNPAY sandbox.
               </p>
               <p v-if="vnpayError" class="mt-2 text-body-sm text-red-600">{{ vnpayError }}</p>
             </div>
@@ -346,20 +494,51 @@ useSeoMeta({
                 class="btn-primary whitespace-nowrap"
                 :disabled="isStartingVNPay"
                 :class="{ 'opacity-70 cursor-not-allowed': isStartingVNPay }"
-                @click="startVNPayPayment('VNPAYQR')"
+                @click="startVNPayPayment"
               >
-                {{ isStartingVNPay ? t('common.processing') : 'Thanh toán VNPAY QR' }}
-              </button>
-              <button
-                type="button"
-                class="btn-secondary whitespace-nowrap"
-                :disabled="isStartingVNPay"
-                :class="{ 'opacity-70 cursor-not-allowed': isStartingVNPay }"
-                @click="startVNPayPayment('NCB')"
-              >
-                Thẻ test NCB
+                {{ isStartingVNPay ? t('common.processing') : 'Thanh toán thẻ NCB' }}
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- MoMo Retry Payment -->
+        <div v-if="canManagePayment && order.payment_method === 'MOMO'" class="card p-6 border-2 border-pink-200 bg-pink-50/30">
+          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 class="font-serif text-heading-4 text-aura-black mb-2">Thanh toán MoMo</h2>
+              <p class="text-body-sm text-neutral-600">Mở cổng thanh toán MoMo cho đơn hàng này.</p>
+              <p v-if="momoError" class="mt-2 text-body-sm text-red-600">{{ momoError }}</p>
+            </div>
+            <button
+              type="button"
+              class="btn-primary whitespace-nowrap"
+              :disabled="isStartingMoMo"
+              :class="{ 'opacity-70 cursor-not-allowed': isStartingMoMo }"
+              @click="startMoMoPayment"
+            >
+              {{ isStartingMoMo ? t('common.processing') : 'Thanh toán MoMo' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- PayPal Retry Payment -->
+        <div v-if="canManagePayment && order.payment_method === 'PAYPAL'" class="card p-6 border-2 border-blue-200 bg-blue-50/30">
+          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 class="font-serif text-heading-4 text-aura-black mb-2">Thanh toán PayPal</h2>
+              <p class="text-body-sm text-neutral-600">Mở cổng thanh toán PayPal cho đơn hàng này.</p>
+              <p v-if="paypalError" class="mt-2 text-body-sm text-red-600">{{ paypalError }}</p>
+            </div>
+            <button
+              type="button"
+              class="btn-primary whitespace-nowrap"
+              :disabled="isStartingPayPal"
+              :class="{ 'opacity-70 cursor-not-allowed': isStartingPayPal }"
+              @click="startPayPalPayment"
+            >
+              {{ isStartingPayPal ? t('common.processing') : 'Thanh toán PayPal' }}
+            </button>
           </div>
         </div>
 

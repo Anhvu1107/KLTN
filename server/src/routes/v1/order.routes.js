@@ -27,4 +27,7 @@ router.get('/:id', orderController.getOrderById);
 // Cancel order
 router.post('/:id/cancel', orderController.cancelOrder);
 
+// Change payment method
+router.patch('/:id/payment-method', orderController.updatePaymentMethod);
+
 module.exports = router;

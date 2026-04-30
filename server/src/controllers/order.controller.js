@@ -122,6 +122,31 @@ const cancelOrder = catchAsync(async (req, res) => {
 });
 
 /**
+ * PATCH /api/v1/orders/:id/payment-method
+ * Change payment method for an unpaid pending order
+ */
+const updatePaymentMethod = catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const paymentMethod = req.body.paymentMethod || req.body.payment_method;
+
+    if (!paymentMethod) {
+        return res.status(400).json({
+            success: false,
+            message: 'Payment method is required.',
+        });
+    }
+
+    const order = await orderService.updatePaymentMethod(id, userId, paymentMethod);
+
+    res.status(200).json({
+        success: true,
+        message: 'Payment method updated successfully',
+        data: { order },
+    });
+});
+
+/**
  * POST /api/v1/orders/check-availability
  * Check if items are still available
  */
@@ -153,5 +178,6 @@ module.exports = {
     getMyOrders,
     getOrderById,
     cancelOrder,
+    updatePaymentMethod,
     checkAvailability,
 };
