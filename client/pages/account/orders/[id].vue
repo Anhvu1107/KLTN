@@ -48,6 +48,13 @@ const displayPaymentStatus = computed(() => {
   return order.value.payment_status || ''
 })
 
+const canPayWithVNPay = computed(() => {
+  return order.value?.payment_method === 'VNPAY' &&
+    order.value?.payment_status === 'PENDING' &&
+    order.value?.status === 'PENDING' &&
+    orderTotal.value > 0
+})
+
 const formatDate = (date: string) => {
   if (!date) return ''
   return new Date(date).toLocaleDateString('vi-VN', {
@@ -197,6 +204,37 @@ onMounted(fetchBankAccounts)
 // Cancel order
 const isCancelling = ref(false)
 const cancelError = ref('')
+const isStartingVNPay = ref(false)
+const vnpayError = ref('')
+
+const startVNPayPayment = async (bankCode: 'VNPAYQR' | 'VNBANK') => {
+  if (!order.value?.id) return
+
+  isStartingVNPay.value = true
+  vnpayError.value = ''
+
+  try {
+    const response = await $fetch<{ success: boolean; data: { paymentUrl: string } }>(
+      `${config.public.apiUrl}/payments/vnpay/create`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders() as Record<string, string>,
+        body: { orderId: order.value.id, bankCode },
+      },
+    )
+
+    if (response.success && response.data.paymentUrl) {
+      window.location.href = response.data.paymentUrl
+      return
+    }
+
+    vnpayError.value = 'Không tạo được link thanh toán VNPAY. Vui lòng thử lại.'
+  } catch (err: any) {
+    vnpayError.value = err?.data?.message || 'Không tạo được link thanh toán VNPAY. Vui lòng thử lại.'
+  } finally {
+    isStartingVNPay.value = false
+  }
+}
 
 const cancelOrder = async () => {
   const isConfirmed = await showConfirm(t('orders.confirmCancel') || 'Bạn có chắc muốn hủy đơn hàng này?')
@@ -288,6 +326,40 @@ useSeoMeta({
             <p class="text-body-sm text-neutral-600">
               {{ t('orders.freeOrderDesc') || 'Tổng thanh toán là 0 đ. Bạn không cần chuyển khoản hay thanh toán thêm.' }}
             </p>
+          </div>
+        </div>
+
+        <!-- VNPay Retry Payment -->
+        <div v-if="canPayWithVNPay" class="card p-6 border-2 border-blue-200 bg-blue-50/30">
+          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 class="font-serif text-heading-4 text-aura-black mb-2">Thanh toán VNPAY</h2>
+              <p class="text-body-sm text-neutral-600">
+                Bấm nút bên dưới để mở cổng thanh toán sandbox. QR hoặc form thẻ sẽ nằm trên trang VNPAY.
+              </p>
+              <p v-if="vnpayError" class="mt-2 text-body-sm text-red-600">{{ vnpayError }}</p>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                class="btn-primary whitespace-nowrap"
+                :disabled="isStartingVNPay"
+                :class="{ 'opacity-70 cursor-not-allowed': isStartingVNPay }"
+                @click="startVNPayPayment('VNPAYQR')"
+              >
+                {{ isStartingVNPay ? t('common.processing') : 'Thanh toán VNPAY QR' }}
+              </button>
+              <button
+                type="button"
+                class="btn-secondary whitespace-nowrap"
+                :disabled="isStartingVNPay"
+                :class="{ 'opacity-70 cursor-not-allowed': isStartingVNPay }"
+                @click="startVNPayPayment('VNBANK')"
+              >
+                Thẻ test NCB
+              </button>
+            </div>
           </div>
         </div>
 
