@@ -5,8 +5,9 @@
 
 const crypto = require('crypto');
 const querystring = require('qs');
+const AppError = require('../utils/AppError');
 
-// VNPay Config - NO hardcoded credentials for security
+// VNPay Config - credentials must stay in environment variables.
 const serverBaseUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
 
 const VNPAY_CONFIG = {
@@ -14,18 +15,17 @@ const VNPAY_CONFIG = {
     vnp_HashSecret: process.env.VNPAY_HASH_SECRET,
     vnp_Url: process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
     vnp_ReturnUrl: process.env.VNPAY_RETURN_URL || `${serverBaseUrl}/api/v1/payments/vnpay/return`,
+    vnp_IpnUrl: process.env.VNPAY_IPN_URL || `${serverBaseUrl}/api/v1/payments/vnpay/ipn`,
 };
 
-// Validate VNPay credentials on startup (production mode)
+// Validate VNPay credentials on startup (production mode).
 if (process.env.NODE_ENV === 'production') {
     if (!VNPAY_CONFIG.vnp_TmnCode || !VNPAY_CONFIG.vnp_HashSecret) {
         console.error('[VNPay] CRITICAL: Missing required VNPay credentials in production!');
         console.error('[VNPay] Please set VNPAY_TMN_CODE and VNPAY_HASH_SECRET environment variables.');
     }
 }
-/**
- * Sort object by keys
- */
+
 const sortObject = (obj) => {
     const sorted = {};
     const keys = Object.keys(obj).sort();
@@ -35,99 +35,147 @@ const sortObject = (obj) => {
     return sorted;
 };
 
+const normalizeParamValue = (value) => {
+    if (Array.isArray(value)) return normalizeParamValue(value[0]);
+    if (value === undefined || value === null) return '';
+    return String(value);
+};
+
+const formatVNPayDate = (date = new Date()) => {
+    const vietnamTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+    return vietnamTime.toISOString().replace(/\D/g, '').slice(0, 14);
+};
+
+const assertConfigured = () => {
+    if (!VNPAY_CONFIG.vnp_TmnCode || !VNPAY_CONFIG.vnp_HashSecret) {
+        throw new AppError('VNPay sandbox is not configured. Please set VNPAY_TMN_CODE and VNPAY_HASH_SECRET.', 503);
+    }
+};
+
+const normalizeBankCode = (bankCode) => {
+    const normalized = normalizeParamValue(bankCode).trim().toUpperCase();
+    if (!normalized) return '';
+    if (!/^[A-Z0-9]{3,20}$/.test(normalized)) {
+        throw new AppError('Invalid VNPay bank code.', 400);
+    }
+    return normalized;
+};
+
 /**
- * Create VNPay payment URL
+ * Create VNPay payment URL.
  */
-const createPaymentUrl = (order, ipAddr) => {
+const createPaymentUrl = (order, ipAddr, options = {}) => {
+    assertConfigured();
+
     const date = new Date();
-    const createDate = date.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
-    const orderId = date.getTime().toString();
+    const createDate = formatVNPayDate(date);
+    const expireDate = formatVNPayDate(new Date(date.getTime() + (15 * 60 * 1000)));
+    const orderId = normalizeParamValue(order.id || date.getTime());
+    const bankCode = normalizeBankCode(options.bankCode);
+    const orderAmount = Number(order.total_amount);
 
-    // VNPay requires amount in VND * 100
-    const amountVND = Math.round(order.total_amount * 100); // VNPay requires amount * 100, prices already in VND
+    if (!Number.isFinite(orderAmount) || orderAmount <= 0) {
+        throw new AppError('Invalid VNPay order amount.', 400);
+    }
 
-    let vnp_Params = {
+    // VNPay requires amount in VND * 100. Prices are already stored in VND.
+    const amountVND = Math.round(orderAmount * 100);
+
+    let vnpParams = {
         vnp_Version: '2.1.0',
         vnp_Command: 'pay',
         vnp_TmnCode: VNPAY_CONFIG.vnp_TmnCode,
         vnp_Locale: 'vn',
         vnp_CurrCode: 'VND',
-        vnp_TxnRef: order.id || orderId,
-        vnp_OrderInfo: `Thanh toan don hang ${order.order_number || order.id.slice(0, 8)}`,
+        vnp_TxnRef: orderId,
+        vnp_OrderInfo: `Thanh toan don hang ${order.order_number || orderId.slice(0, 8)}`,
         vnp_OrderType: 'fashion',
         vnp_Amount: amountVND,
         vnp_ReturnUrl: VNPAY_CONFIG.vnp_ReturnUrl,
         vnp_IpAddr: ipAddr,
         vnp_CreateDate: createDate,
+        vnp_ExpireDate: expireDate,
     };
 
-    vnp_Params = sortObject(vnp_Params);
+    if (bankCode) {
+        vnpParams.vnp_BankCode = bankCode;
+    }
 
-    const signData = querystring.stringify(vnp_Params, { encode: false });
+    vnpParams = sortObject(vnpParams);
+
+    const signData = querystring.stringify(vnpParams, { encode: false });
     const hmac = crypto.createHmac('sha512', VNPAY_CONFIG.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
-    vnp_Params['vnp_SecureHash'] = signed;
+    vnpParams.vnp_SecureHash = signed;
 
-    const paymentUrl = VNPAY_CONFIG.vnp_Url + '?' + querystring.stringify(vnp_Params, { encode: false });
-
-    return paymentUrl;
+    return `${VNPAY_CONFIG.vnp_Url}?${querystring.stringify(vnpParams, { encode: false })}`;
 };
 
 /**
- * Verify VNPay return data
+ * Verify VNPay return/IPN data.
  */
 const verifyReturnUrl = (query) => {
-    const secureHash = query['vnp_SecureHash'];
+    assertConfigured();
 
-    delete query['vnp_SecureHash'];
-    delete query['vnp_SecureHashType'];
+    const vnpParams = Object.entries(query || {}).reduce((acc, [key, value]) => {
+        if (key.startsWith('vnp_')) {
+            acc[key] = normalizeParamValue(value);
+        }
+        return acc;
+    }, {});
 
-    const sortedParams = sortObject(query);
+    const secureHash = vnpParams.vnp_SecureHash;
+
+    delete vnpParams.vnp_SecureHash;
+    delete vnpParams.vnp_SecureHashType;
+
+    const sortedParams = sortObject(vnpParams);
     const signData = querystring.stringify(sortedParams, { encode: false });
     const hmac = crypto.createHmac('sha512', VNPAY_CONFIG.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
-    const isValid = secureHash === signed;
-    const responseCode = query['vnp_ResponseCode'];
-    const transactionStatus = query['vnp_TransactionStatus'];
+    const responseCode = vnpParams.vnp_ResponseCode;
+    const transactionStatus = vnpParams.vnp_TransactionStatus;
+    const isValid = Boolean(secureHash) && secureHash === signed;
 
     return {
         isValid,
         success: isValid && responseCode === '00' && transactionStatus === '00',
-        orderId: query['vnp_TxnRef'],
-        transactionNo: query['vnp_TransactionNo'],
-        bankCode: query['vnp_BankCode'],
-        amount: parseInt(query['vnp_Amount']) / 100,
+        orderId: vnpParams.vnp_TxnRef,
+        transactionNo: vnpParams.vnp_TransactionNo,
+        bankCode: vnpParams.vnp_BankCode,
+        amount: Number(vnpParams.vnp_Amount || 0) / 100,
         responseCode,
+        transactionStatus,
         message: getResponseMessage(responseCode),
     };
 };
 
-/**
- * Get response message from VNPay response code
- */
 const getResponseMessage = (code) => {
     const messages = {
-        '00': 'Giao dịch thành công',
-        '07': 'Trừ tiền thành công. Giao dịch bị nghi ngờ (liên hệ VNPay)',
-        '09': 'Thẻ/Tài khoản chưa đăng ký Internet Banking',
-        '10': 'Xác thực thông tin thẻ/tài khoản không đúng quá 3 lần',
-        '11': 'Đã hết hạn chờ thanh toán',
-        '12': 'Thẻ/Tài khoản bị khóa',
-        '13': 'Sai mật khẩu OTP',
-        '24': 'Khách hàng hủy giao dịch',
-        '51': 'Tài khoản không đủ số dư',
-        '65': 'Tài khoản đã vượt quá hạn mức giao dịch trong ngày',
-        '75': 'Ngân hàng thanh toán đang bảo trì',
-        '79': 'Nhập sai mật khẩu thanh toán quá số lần quy định',
-        '99': 'Lỗi không xác định',
+        '00': 'Giao dich thanh cong',
+        '07': 'Giao dich bi nghi ngo, vui long lien he VNPAY',
+        '09': 'The hoac tai khoan chua dang ky Internet Banking',
+        '10': 'Xac thuc thong tin the hoac tai khoan khong dung qua 3 lan',
+        '11': 'Da het han cho thanh toan',
+        '12': 'The hoac tai khoan bi khoa',
+        '13': 'Sai mat khau OTP',
+        '24': 'Khach hang huy giao dich',
+        '51': 'Tai khoan khong du so du',
+        '65': 'Tai khoan da vuot qua han muc giao dich trong ngay',
+        '75': 'Ngan hang thanh toan dang bao tri',
+        '79': 'Nhap sai mat khau thanh toan qua so lan quy dinh',
+        '99': 'Loi khong xac dinh',
     };
-    return messages[code] || 'Lỗi không xác định';
+
+    return messages[code] || 'Loi khong xac dinh';
 };
 
 module.exports = {
     createPaymentUrl,
     verifyReturnUrl,
     getResponseMessage,
+    assertConfigured,
+    formatVNPayDate,
     VNPAY_CONFIG,
 };

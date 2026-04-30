@@ -37,6 +37,35 @@ const sendZeroAmountPaidResponse = (res, order) => res.status(200).json({
     },
 });
 
+const getClientIp = (req) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+        return forwardedFor.split(',')[0].trim();
+    }
+
+    return req.connection.remoteAddress ||
+        req.socket.remoteAddress ||
+        req.ip ||
+        '127.0.0.1';
+};
+
+const updateOrderAfterGatewayResult = async (result) => {
+    if (!result.orderId) return;
+
+    const updateData = result.success
+        ? {
+            payment_status: 'PAID',
+            payment_transaction_id: result.transactionNo,
+            status: 'CONFIRMED',
+        }
+        : {
+            payment_status: 'FAILED',
+            payment_transaction_id: result.transactionNo,
+        };
+
+    await Order.update(updateData, { where: { id: result.orderId } });
+};
+
 // Prices in DB are stored in VND — no conversion needed
 
 /**
@@ -44,7 +73,7 @@ const sendZeroAmountPaidResponse = (res, order) => res.status(200).json({
  * Create VNPay payment URL
  */
 const createVNPayPayment = catchAsync(async (req, res) => {
-    const { orderId } = req.body;
+    const { orderId, bankCode } = req.body;
     const userId = req.user.id;
 
     // Find order
@@ -71,13 +100,9 @@ const createVNPayPayment = catchAsync(async (req, res) => {
         });
     }
 
-    // Get client IP
-    const ipAddr = req.headers['x-forwarded-for'] ||
-        req.connection.remoteAddress ||
-        req.socket.remoteAddress ||
-        req.ip || '127.0.0.1';
+    const ipAddr = getClientIp(req);
 
-    const paymentUrl = vnpayService.createPaymentUrl(order, ipAddr);
+    const paymentUrl = vnpayService.createPaymentUrl(order, ipAddr, { bankCode });
 
     res.status(200).json({
         success: true,
@@ -93,26 +118,23 @@ const vnpayReturn = catchAsync(async (req, res) => {
     const result = vnpayService.verifyReturnUrl(req.query);
 
     if (result.success) {
-        // Update order payment status
-        await Order.update(
-            {
-                payment_status: 'PAID',
-                payment_transaction_id: result.transactionNo,
-                status: 'CONFIRMED',
-            },
-            { where: { id: result.orderId } }
-        );
+        // Local sandbox fallback: IPN is the source of truth when VNPAY can call a public URL.
+        await updateOrderAfterGatewayResult(result);
 
         // Redirect to success page
         return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${result.orderId}`);
     } else {
+        if (result.isValid) {
+            await updateOrderAfterGatewayResult(result);
+        }
+
         // Payment failed
         return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(result.message)}`);
     }
 });
 
 /**
- * POST /api/v1/payments/vnpay/ipn
+ * GET /api/v1/payments/vnpay/ipn
  * VNPay IPN callback (server-to-server)
  */
 const vnpayIPN = catchAsync(async (req, res) => {
@@ -138,16 +160,7 @@ const vnpayIPN = catchAsync(async (req, res) => {
         return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
     }
 
-    if (result.success) {
-        await Order.update(
-            {
-                payment_status: 'PAID',
-                payment_transaction_id: result.transactionNo,
-                status: 'CONFIRMED',
-            },
-            { where: { id: result.orderId } }
-        );
-    }
+    await updateOrderAfterGatewayResult(result);
 
     return res.status(200).json({ RspCode: '00', Message: 'Success' });
 });

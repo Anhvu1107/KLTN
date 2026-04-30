@@ -84,7 +84,7 @@ const allPaymentMethods = computed(() => [
   { value: 'COD', key: 'cod', label: t('checkout.cod'), icon: '🚚' },
   { value: 'BANK_TRANSFER', key: 'bank_transfer', label: t('checkout.bankTransfer'), icon: '🏦' },
   { value: 'MOMO', key: 'momo', label: 'MoMo', icon: '📱' },
-  { value: 'VNPAY', key: 'vnpay', label: 'VNPay', icon: '💳' },
+  { value: 'VNPAY', key: 'vnpay', label: 'VNPAY QR', icon: '💳' },
   { value: 'PAYPAL', key: 'paypal', label: 'PayPal', icon: '🌐', desc: t('checkout.paypalDesc') },
   { value: 'CREDIT_CARD', key: 'credit_card', label: t('checkout.creditCard'), icon: '💳', desc: 'Visa / Mastercard / AMEX' },
 ])
@@ -439,13 +439,19 @@ const handleCheckout = async () => {
       try {
         const res = await $fetch<{ success: boolean; data: { paymentUrl: string } }>(
           `${config.public.apiUrl}/payments/vnpay/create`,
-          { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId } }
+          { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: { orderId, bankCode: 'VNPAYQR' } }
         )
         if (res.success && res.data.paymentUrl) {
           window.location.href = res.data.paymentUrl
           return
         }
-      } catch (e: any) { console.error('VNPay error:', e) }
+        error.value = 'Khong tao duoc link thanh toan VNPAY QR. Vui long thu lai.'
+        return
+      } catch (e: any) {
+        console.error('VNPay error:', e)
+        error.value = e?.data?.message || 'Khong tao duoc link thanh toan VNPAY QR. Vui long thu lai.'
+        return
+      }
 
     } else if (requiresPayment && paymentMethod.value === 'MOMO' && orderId) {
       try {
