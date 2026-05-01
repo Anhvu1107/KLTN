@@ -22,6 +22,7 @@ router.post('/momo/ipn', paymentController.momoIPN);
 // PayPal Payment (International + Visa/Mastercard)
 router.post('/paypal/create', protect, paymentController.createPayPalPayment);
 router.get('/paypal/return', paymentController.paypalReturn);
+router.get('/paypal/cancel', paymentController.paypalCancel);
 router.post('/paypal/webhook', paymentController.paypalWebhook);
 
 module.exports = router;

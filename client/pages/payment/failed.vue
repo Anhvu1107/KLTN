@@ -4,10 +4,22 @@
  * AURA ARCHIVE - Failed payment notification
  */
 
+import { useCartStore } from '~/stores/cart'
 
 const { t } = useI18n()
 const route = useRoute()
 const message = computed(() => route.query.message || t('payment.defaultErrorMessage'))
+const cartStore = useCartStore()
+const orderId = computed(() => {
+  const value = route.query.orderId
+  return Array.isArray(value) ? value[0] : value
+})
+
+onMounted(() => {
+  if (orderId.value) {
+    cartStore.clearDeferredPurchasedItems(String(orderId.value))
+  }
+})
 
 useSeoMeta({
   title: () => `${t('payment.failedTitle')} | AURA ARCHIVE`,

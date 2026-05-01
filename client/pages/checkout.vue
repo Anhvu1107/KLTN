@@ -31,6 +31,7 @@ const shippingFee = ref(30000)
 const isProcessing = ref(false)
 const error = ref('')
 const isCheckingPayment = ref(false)
+const isCheckoutReady = ref(false)
 const momoPayment = ref<{
   orderId: string
   qrCodeUrl: string
@@ -150,18 +151,36 @@ const prefillFromUser = () => {
   }
 }
 
-onMounted(() => {
+const refreshCheckoutAvailability = () => {
+  if (!process.client || !localStorage.getItem('token')) return
+
+  cartStore.validateAvailability(false, checkoutItemsPayload.value).then((unavailable) => {
+    if (unavailable.length > 0) {
+      error.value = `${t('checkout.itemsUnavailable')}: ${unavailable.map(i => i.productName).join(', ')}`
+    }
+  }).catch((err) => {
+    console.error('Failed to refresh checkout availability:', err)
+  })
+}
+
+const markCheckoutReady = () => {
   cartStore.loadCheckoutSelection()
+  isCheckoutReady.value = true
+  refreshCheckoutAvailability()
+}
+
+onMounted(() => {
   fetchPaymentSettings()
   prefillFromUser()
-  if (process.client && localStorage.getItem('token')) {
-    cartStore.validateAvailability(false, checkoutItemsPayload.value).then((unavailable) => {
-      if (unavailable.length > 0) {
-        error.value = `${t('checkout.itemsUnavailable')}: ${unavailable.map(i => i.productName).join(', ')}`
-      }
-    }).catch((err) => {
-      console.error('Failed to refresh checkout availability:', err)
-    })
+
+  if (authStore.isHydrated) {
+    markCheckoutReady()
+  }
+})
+
+watch(() => authStore.isHydrated, (isHydrated) => {
+  if (isHydrated && !isCheckoutReady.value) {
+    markCheckoutReady()
   }
 })
 
@@ -573,8 +592,12 @@ useSeoMeta({
     <div class="container-aura">
       <h1 class="font-serif text-heading-1 text-aura-black mb-8">{{ $t('checkout.title') }}</h1>
 
+      <div v-if="!isCheckoutReady" class="text-center py-16">
+        <p class="text-neutral-500">{{ $t('common.loading') }}</p>
+      </div>
+
       <!-- Empty Cart -->
-      <div v-if="cartStore.isEmpty || !hasCheckoutItems" class="text-center py-16">
+      <div v-else-if="cartStore.isEmpty || !hasCheckoutItems" class="text-center py-16">
         <p class="text-body text-neutral-600 mb-8">{{ $t('cart.empty') }}</p>
         <NuxtLink to="/shop" class="btn-primary">{{ $t('cart.continueShopping') }}</NuxtLink>
       </div>

@@ -6,8 +6,11 @@
 const vnpayService = require('../services/vnpay.service');
 const momoService = require('../services/momo.service');
 const paypalService = require('../services/paypal.service');
-const { Order } = require('../models');
+const { Order, OrderItem, Variant, sequelize } = require('../models');
 const catchAsync = require('../utils/catchAsync');
+const abandonedCartService = require('../services/abandoned-cart.service');
+
+const ONLINE_PAYMENT_METHODS = ['MOMO', 'VNPAY', 'PAYPAL'];
 
 const getOrderAmountVND = (order) => {
     const amount = Number(order?.total_amount);
@@ -63,6 +66,31 @@ const getNotPayableMessage = (order) => {
     return 'Order is not payable';
 };
 
+const releaseOrderInventory = async (order, transaction) => {
+    const orderItems = await OrderItem.findAll({
+        where: { order_id: order.id },
+        transaction,
+    });
+
+    for (const item of orderItems) {
+        const variant = await Variant.findByPk(item.variant_id, {
+            lock: transaction.LOCK.UPDATE,
+            transaction,
+        });
+
+        if (!variant) continue;
+
+        const restoredStock = Number(variant.stock_quantity || 0) + Number(item.quantity || 0);
+        await variant.update({
+            stock_quantity: restoredStock,
+            status: 'AVAILABLE',
+            reserved_at: null,
+            reserved_by: null,
+            sold_at: null,
+        }, { transaction });
+    }
+};
+
 const ensureOrderCanStartPayment = (order, res, expectedPaymentMethod = null) => {
     if (isOrderOpenForPayment(order)) return true;
     if (expectedPaymentMethod && order?.payment_method !== expectedPaymentMethod) {
@@ -84,36 +112,76 @@ const ensureOrderCanStartPayment = (order, res, expectedPaymentMethod = null) =>
 const updateOrderAfterGatewayResult = async (result, expectedPaymentMethod = null) => {
     if (!result.orderId) return { updated: false, reason: 'missing_order_id' };
 
-    const order = await Order.findByPk(result.orderId);
+    const transaction = await sequelize.transaction();
 
-    if (!order) return { updated: false, reason: 'order_not_found' };
+    try {
+        const order = await Order.findByPk(result.orderId, {
+            lock: transaction.LOCK.UPDATE,
+            transaction,
+        });
 
-    if (order.payment_status === 'PAID') {
-        return { updated: false, reason: 'already_paid', order };
-    }
-
-    if (!isOrderOpenForPayment(order)) {
-        return { updated: false, reason: 'order_not_payable', order };
-    }
-
-    if (expectedPaymentMethod && order.payment_method !== expectedPaymentMethod) {
-        return { updated: false, reason: 'payment_method_changed', order };
-    }
-
-    const updateData = result.success
-        ? {
-            payment_status: 'PAID',
-            payment_transaction_id: result.transactionNo,
-            status: 'CONFIRMED',
+        if (!order) {
+            await transaction.rollback();
+            return { updated: false, reason: 'order_not_found' };
         }
-        : {
-            payment_status: 'FAILED',
-            payment_transaction_id: result.transactionNo,
-        };
 
-    await order.update(updateData);
+        if (order.payment_status === 'PAID') {
+            await transaction.rollback();
+            return { updated: false, reason: 'already_paid', order };
+        }
 
-    return { updated: true, order };
+        if (!isOrderOpenForPayment(order)) {
+            await transaction.rollback();
+            return { updated: false, reason: 'order_not_payable', order };
+        }
+
+        if (expectedPaymentMethod && order.payment_method !== expectedPaymentMethod) {
+            await transaction.rollback();
+            return { updated: false, reason: 'payment_method_changed', order };
+        }
+
+        if (Number.isFinite(result.amount) && result.amount > 0 && Math.round(result.amount) !== getOrderAmountVND(order)) {
+            await transaction.rollback();
+            return { updated: false, reason: 'invalid_amount', order };
+        }
+
+        const updateData = result.success
+            ? {
+                payment_status: 'PAID',
+                payment_transaction_id: result.transactionNo,
+                status: 'CONFIRMED',
+            }
+            : {
+                payment_status: 'FAILED',
+                payment_transaction_id: result.transactionNo || order.payment_transaction_id,
+            };
+
+        if (!result.success && ONLINE_PAYMENT_METHODS.includes(order.payment_method)) {
+            updateData.status = 'CANCELLED';
+            updateData.cancelled_at = new Date();
+            await releaseOrderInventory(order, transaction);
+        }
+
+        await order.update(updateData, { transaction });
+        await transaction.commit();
+
+        if (result.success) {
+            abandonedCartService.markLatestCartAsConverted(order.user_id).catch((error) => {
+                console.error('Failed to mark abandoned cart as converted after payment:', error.message);
+            });
+        } else if (ONLINE_PAYMENT_METHODS.includes(order.payment_method)) {
+            abandonedCartService.reactivateLatestConvertedCart(order.user_id).catch((error) => {
+                console.error('Failed to reactivate abandoned cart after failed payment:', error.message);
+            });
+        }
+
+        return { updated: true, order };
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+        throw error;
+    }
 };
 
 // Prices in DB are stored in VND — no conversion needed
@@ -176,11 +244,11 @@ const vnpayReturn = catchAsync(async (req, res) => {
         return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${result.orderId}`);
     } else {
         if (result.isValid) {
-            await updateOrderAfterGatewayResult(result);
+            await updateOrderAfterGatewayResult(result, 'VNPAY');
         }
 
         // Payment failed
-        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(result.message)}`);
+        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?orderId=${encodeURIComponent(result.orderId || '')}&message=${encodeURIComponent(result.message)}`);
     }
 });
 
@@ -219,7 +287,7 @@ const vnpayIPN = catchAsync(async (req, res) => {
         return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
     }
 
-    await updateOrderAfterGatewayResult(result);
+    await updateOrderAfterGatewayResult(result, 'VNPAY');
 
     return res.status(200).json({ RspCode: '00', Message: 'Success' });
 });
@@ -293,26 +361,29 @@ const momoReturn = catchAsync(async (req, res) => {
     }
 
     if (String(resultCode) === '0') {
-        const order = await Order.findByPk(orderId);
-        if (!isOrderOpenForPayment(order)) {
-            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(getNotPayableMessage(order))}`);
-        }
-        if (order.payment_method !== 'MOMO') {
-            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent('Payment method changed')}`);
-        }
+        const updateResult = await updateOrderAfterGatewayResult({
+            success: true,
+            orderId,
+            transactionNo: req.query.transId,
+            amount: Number(req.query.amount || 0),
+        }, 'MOMO');
 
-        // Payment successful
-        await order.update({
-            payment_status: 'PAID',
-            payment_transaction_id: req.query.transId,
-            status: 'CONFIRMED',
-        });
+        if (!updateResult.updated && updateResult.reason !== 'already_paid') {
+            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?orderId=${encodeURIComponent(orderId || '')}&message=${encodeURIComponent(getNotPayableMessage(updateResult.order))}`);
+        }
 
         return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${orderId}`);
     } else {
+        await updateOrderAfterGatewayResult({
+            success: false,
+            orderId,
+            transactionNo: req.query.transId,
+            amount: Number(req.query.amount || 0),
+        }, 'MOMO');
+
         // Payment failed
         const errorMsg = momoService.getResponseMessage(parseInt(resultCode)) || message;
-        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(errorMsg)}`);
+        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?orderId=${encodeURIComponent(orderId || '')}&message=${encodeURIComponent(errorMsg)}`);
     }
 });
 
@@ -349,14 +420,12 @@ const momoIPN = catchAsync(async (req, res) => {
         return res.status(200).json({ resultCode: 0, message: 'Payment method changed' });
     }
 
-    if (String(resultCode) === '0') {
-        // Payment successful
-        await order.update({
-            payment_status: 'PAID',
-            payment_transaction_id: transId,
-            status: 'CONFIRMED',
-        });
-    }
+    await updateOrderAfterGatewayResult({
+        success: String(resultCode) === '0',
+        orderId,
+        transactionNo: transId,
+        amount: Number(data.amount || 0),
+    }, 'MOMO');
 
     return res.status(200).json({ resultCode: 0, message: 'Success' });
 });
@@ -428,25 +497,46 @@ const paypalReturn = catchAsync(async (req, res) => {
     const captureResult = await paypalService.capturePayment(token);
 
     if (captureResult.success) {
-        const order = await Order.findByPk(captureResult.orderId);
-        if (!isOrderOpenForPayment(order)) {
-            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(getNotPayableMessage(order))}`);
-        }
-        if (order.payment_method !== 'PAYPAL') {
-            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent('Payment method changed')}`);
-        }
+        const updateResult = await updateOrderAfterGatewayResult({
+            success: true,
+            orderId: captureResult.orderId,
+            transactionNo: captureResult.transactionId,
+        }, 'PAYPAL');
 
-        // Update order
-        await order.update({
-            payment_status: 'PAID',
-            payment_transaction_id: captureResult.transactionId,
-            status: 'CONFIRMED',
-        });
+        if (!updateResult.updated && updateResult.reason !== 'already_paid') {
+            return res.redirect(`${process.env.CLIENT_URL}/payment/failed?orderId=${encodeURIComponent(captureResult.orderId || '')}&message=${encodeURIComponent(getNotPayableMessage(updateResult.order))}`);
+        }
 
         return res.redirect(`${process.env.CLIENT_URL}/payment/success?orderId=${captureResult.orderId}`);
     } else {
-        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?message=${encodeURIComponent(captureResult.message || 'Payment failed')}`);
+        if (captureResult.orderId) {
+            await updateOrderAfterGatewayResult({
+                success: false,
+                orderId: captureResult.orderId,
+                transactionNo: captureResult.transactionId,
+            }, 'PAYPAL');
+        }
+
+        return res.redirect(`${process.env.CLIENT_URL}/payment/failed?orderId=${encodeURIComponent(captureResult.orderId || '')}&message=${encodeURIComponent(captureResult.message || 'Payment failed')}`);
     }
+});
+
+/**
+ * GET /api/v1/payments/paypal/cancel
+ * Handle PayPal cancellation.
+ */
+const paypalCancel = catchAsync(async (req, res) => {
+    const { orderId } = req.query;
+
+    if (orderId) {
+        await updateOrderAfterGatewayResult({
+            success: false,
+            orderId,
+            transactionNo: 'PAYPAL_CANCELLED',
+        }, 'PAYPAL');
+    }
+
+    return res.redirect(`${process.env.CLIENT_URL}/payment/failed?orderId=${encodeURIComponent(orderId || '')}&message=${encodeURIComponent('Payment cancelled')}`);
 });
 
 /**
@@ -467,14 +557,11 @@ const paypalWebhook = catchAsync(async (req, res) => {
         if (paypalOrderId) {
             const captureResult = await paypalService.capturePayment(paypalOrderId);
             if (captureResult.success) {
-                const order = await Order.findByPk(captureResult.orderId);
-                if (isOrderOpenForPayment(order) && order.payment_method === 'PAYPAL') {
-                    await order.update({
-                        payment_status: 'PAID',
-                        payment_transaction_id: captureResult.transactionId,
-                        status: 'CONFIRMED',
-                    });
-                }
+                await updateOrderAfterGatewayResult({
+                    success: true,
+                    orderId: captureResult.orderId,
+                    transactionNo: captureResult.transactionId,
+                }, 'PAYPAL');
             }
         }
     }
@@ -491,6 +578,7 @@ module.exports = {
     momoIPN,
     createPayPalPayment,
     paypalReturn,
+    paypalCancel,
     paypalWebhook,
 };
 

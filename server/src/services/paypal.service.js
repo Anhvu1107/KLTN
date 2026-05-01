@@ -46,8 +46,9 @@ const createPayment = async (order) => {
     try {
         const accessToken = await getAccessToken();
 
-        const returnUrl = `${process.env.SERVER_URL || 'http://localhost:3001'}/api/v1/payments/paypal/return`;
-        const cancelUrl = `${process.env.CLIENT_URL}/payment/failed?message=Payment%20cancelled`;
+        const serverUrl = process.env.SERVER_URL || 'http://localhost:3001';
+        const returnUrl = `${serverUrl}/api/v1/payments/paypal/return`;
+        const cancelUrl = `${serverUrl}/api/v1/payments/paypal/cancel?orderId=${encodeURIComponent(order.id)}`;
 
         const payload = {
             intent: 'CAPTURE',

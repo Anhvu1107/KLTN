@@ -4,10 +4,21 @@
  * AURA ARCHIVE - Successful payment confirmation with receipt link
  */
 
+import { useCartStore } from '~/stores/cart'
 
 const { t } = useI18n()
 const route = useRoute()
-const orderId = computed(() => route.query.orderId)
+const cartStore = useCartStore()
+const orderId = computed(() => {
+  const value = route.query.orderId
+  return Array.isArray(value) ? value[0] : value
+})
+
+onMounted(() => {
+  if (orderId.value) {
+    cartStore.removeDeferredPurchasedItems(String(orderId.value))
+  }
+})
 
 useSeoMeta({
   title: () => `${t('payment.successTitle')} | AURA ARCHIVE`,

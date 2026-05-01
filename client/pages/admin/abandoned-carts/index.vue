@@ -37,8 +37,17 @@ const fetchCarts = async () => {
 
 const { formatPrice } = useCurrency()
 
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString('vi-VN')
+const getCartActivityDate = (cart: any) => {
+  return cart.updated_at || cart.updatedAt || cart.created_at || cart.createdAt || null
+}
+
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '-'
+
+  const date = new Date(dateStr)
+  if (Number.isNaN(date.getTime())) return '-'
+
+  return date.toLocaleString('vi-VN')
 }
 
 const getStatusClass = (status: string) => {
@@ -65,6 +74,7 @@ useSeoMeta({ title: 'Abandoned Carts | Admin' })
         <option value="active">{{ t('common.active') }}</option>
         <option value="recovered">{{ t('admin.abandonedCarts.recovered') }}</option>
         <option value="expired">{{ t('admin.abandonedCarts.expired') }}</option>
+        <option value="converted">{{ t('admin.abandonedCarts.converted') }}</option>
       </select>
     </div>
 
@@ -106,7 +116,7 @@ useSeoMeta({ title: 'Abandoned Carts | Admin' })
               </span>
             </td>
             <td class="p-4 text-body-sm text-neutral-500">
-              {{ formatDate(cart.created_at) }}
+              {{ formatDate(getCartActivityDate(cart)) }}
               <p v-if="cart.reminder_count" class="text-caption text-neutral-400">
                 {{ t('admin.abandonedCarts.remindersSent', { count: cart.reminder_count }) }}
               </p>

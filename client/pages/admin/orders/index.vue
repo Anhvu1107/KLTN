@@ -18,7 +18,7 @@ const selectedStatus = ref<Record<string, string>>({})
 const updatingOrderId = ref('')
 const updatingPaymentOrderId = ref('')
 
-const { data, pending, refresh } = await useFetch<{
+const { data, pending } = await useFetch<{
   success: boolean
   data: { orders: any[]; pagination: any }
 }>(() => `${config.public.apiUrl}/admin/orders?page=${page.value}&limit=20${status.value ? `&status=${status.value}` : ''}`, {
@@ -203,7 +203,35 @@ const getOtherStatuses = (current: string) => {
 }
 
 const canConfirmPayment = (order: any) => {
-  return ['PENDING', 'FAILED'].includes(order.payment_status) && order.status !== 'CANCELLED'
+  return ['COD', 'BANK_TRANSFER'].includes(order.payment_method) &&
+    ['PENDING', 'FAILED'].includes(order.payment_status) &&
+    order.status !== 'CANCELLED'
+}
+
+const canMoveToStatus = (order: any, nextStatus: string) => {
+  if (!nextStatus) return false
+
+  const onlinePaymentMethods = ['MOMO', 'VNPAY', 'PAYPAL']
+  const fulfillmentStatuses = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED']
+
+  if (
+    onlinePaymentMethods.includes(order.payment_method) &&
+    fulfillmentStatuses.includes(nextStatus) &&
+    order.payment_status !== 'PAID'
+  ) {
+    return false
+  }
+
+  return true
+}
+
+const getPrimaryNextStatusForOrder = (order: any) => {
+  const nextStatus = getPrimaryNextStatus(order.status)
+  return canMoveToStatus(order, nextStatus) ? nextStatus : ''
+}
+
+const getOtherStatusesForOrder = (order: any) => {
+  return getOtherStatuses(order.status).filter((nextStatus) => canMoveToStatus(order, nextStatus))
 }
 
 const applySelectedStatus = (orderId: string) => {
@@ -330,26 +358,26 @@ useSeoMeta({
                     :disabled="Boolean(updatingPaymentOrderId || updatingOrderId)"
                     @click="updatePaymentStatus(order.id, 'PAID')"
                   >
-                    {{ updatingPaymentOrderId === order.id ? ($t('common.loading') || 'Loading') : paymentStatusLabel('PAID') }}
+                    {{ updatingPaymentOrderId === order.id ? ($t('common.loading') || 'Loading') : 'Xác nhận thanh toán' }}
                   </button>
 
                   <button
-                    v-if="getPrimaryNextStatus(order.status)"
+                    v-if="getPrimaryNextStatusForOrder(order)"
                     type="button"
                     class="inline-flex h-9 items-center bg-aura-black px-3 text-body-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
                     :disabled="Boolean(updatingOrderId)"
-                    @click="updateStatus(order.id, getPrimaryNextStatus(order.status))"
+                    @click="updateStatus(order.id, getPrimaryNextStatusForOrder(order))"
                   >
-                    {{ updatingOrderId === order.id ? ($t('common.loading') || 'Loading') : statusLabel(getPrimaryNextStatus(order.status)) }}
+                    {{ updatingOrderId === order.id ? ($t('common.loading') || 'Loading') : statusLabel(getPrimaryNextStatusForOrder(order)) }}
                   </button>
 
-                  <div v-if="getOtherStatuses(order.status).length" class="flex items-center gap-2">
+                  <div v-if="getOtherStatusesForOrder(order).length" class="flex items-center gap-2">
                     <select
                       v-model="selectedStatus[order.id]"
                       class="h-9 min-w-36 border border-neutral-300 bg-white px-2 text-body-sm text-neutral-700 focus:border-aura-black focus:outline-none"
                     >
                       <option value="">{{ $t('orders.status') }}</option>
-                      <option v-for="nextStatus in getOtherStatuses(order.status)" :key="nextStatus" :value="nextStatus">
+                      <option v-for="nextStatus in getOtherStatusesForOrder(order)" :key="nextStatus" :value="nextStatus">
                         {{ statusLabel(nextStatus) }}
                       </option>
                     </select>

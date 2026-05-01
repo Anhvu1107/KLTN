@@ -9,6 +9,8 @@ import { useAuthStore } from '~/stores/auth'
 const CART_STORAGE_PREFIX = 'aura_cart:'
 const LEGACY_CART_STORAGE_KEY = 'cart'
 const CHECKOUT_SELECTION_STORAGE_KEY = 'aura_checkout_selection'
+const DEFERRED_CART_CLEANUP_STORAGE_KEY = 'aura_deferred_cart_cleanup'
+const DEFERRED_PAYMENT_METHODS = new Set(['MOMO', 'PAYPAL', 'VNPAY'])
 
 // Debounced abandoned cart tracking
 let trackTimer: ReturnType<typeof setTimeout> | null = null
@@ -52,6 +54,10 @@ export interface CartState {
 }
 
 type PersistedCartState = Pick<CartState, 'items' | 'appliedCoupon'>
+type DeferredCartCleanupEntry = {
+    orderId: string
+    items: CheckoutItemPayload[]
+}
 
 const createEmptyPersistedCart = (): PersistedCartState => ({
     items: [],
@@ -91,6 +97,60 @@ const normalizeCartItem = (item: Partial<CartItem> | null | undefined): CartItem
         stockStatus: item.stockStatus ? String(item.stockStatus) : undefined,
         addedAt: item.addedAt ? String(item.addedAt) : new Date().toISOString(),
     }
+}
+
+const normalizeCheckoutItem = (item: Partial<CheckoutItemPayload> | null | undefined): CheckoutItemPayload | null => {
+    const variantId = item?.variantId
+    if (!variantId) return null
+
+    return {
+        variantId: String(variantId),
+        quantity: toPositiveInteger(item.quantity, 1),
+        productName: item.productName ? String(item.productName) : 'Unknown Item',
+    }
+}
+
+const shouldRemovePurchasedItemsImmediately = (order: any, paymentMethod: string): boolean => {
+    const orderPaymentMethod = String(order?.payment_method || paymentMethod || '').toUpperCase()
+    const orderPaymentStatus = String(order?.payment_status || '').toUpperCase()
+
+    if (orderPaymentStatus === 'PAID') return true
+    return !DEFERRED_PAYMENT_METHODS.has(orderPaymentMethod)
+}
+
+const getPersistedAuthUserId = (): string | null => {
+    if (!process.client) return null
+
+    try {
+        const parsed = JSON.parse(localStorage.getItem('auth') || 'null')
+        return parsed?.user?.id ? String(parsed.user.id) : null
+    } catch {
+        return null
+    }
+}
+
+const getCartItemsAfterRemovingPurchased = (
+    cartItems: CartItem[],
+    purchasedItems: CheckoutItemPayload[],
+): CartItem[] => {
+    const nextItems = cartItems.map(item => ({ ...item }))
+
+    for (const purchasedItem of purchasedItems) {
+        const normalizedItem = normalizeCheckoutItem(purchasedItem)
+        if (!normalizedItem) continue
+
+        const index = nextItems.findIndex(item => item.id === normalizedItem.variantId)
+        if (index === -1) continue
+
+        const remainingQuantity = toPositiveInteger(nextItems[index].quantity, 0) - normalizedItem.quantity
+        if (remainingQuantity > 0) {
+            nextItems[index].quantity = remainingQuantity
+        } else {
+            nextItems.splice(index, 1)
+        }
+    }
+
+    return nextItems
 }
 
 export const useCartStore = defineStore('cart', {
@@ -151,26 +211,23 @@ export const useCartStore = defineStore('cart', {
             const selectedIds = new Set(state.checkoutSelectionIds)
             if (selectedIds.size === 0) return state.items
 
-            const selectedItems = state.items.filter(item => selectedIds.has(item.id))
-            return selectedItems.length > 0 ? selectedItems : state.items
+            return state.items.filter(item => selectedIds.has(item.id))
         },
 
         checkoutItemCount: (state): number => {
             const selectedIds = new Set(state.checkoutSelectionIds)
-            const items = selectedIds.size === 0
+            const checkoutItems = selectedIds.size === 0
                 ? state.items
                 : state.items.filter(item => selectedIds.has(item.id))
-            const checkoutItems = items.length > 0 ? items : state.items
 
             return checkoutItems.reduce((sum, item) => sum + toPositiveInteger(item.quantity, 0), 0)
         },
 
         checkoutSubtotal: (state): number => {
             const selectedIds = new Set(state.checkoutSelectionIds)
-            const items = selectedIds.size === 0
+            const checkoutItems = selectedIds.size === 0
                 ? state.items
                 : state.items.filter(item => selectedIds.has(item.id))
-            const checkoutItems = items.length > 0 ? items : state.items
 
             return checkoutItems.reduce((total, item) => {
                 return total + (toFiniteNumber(item.price, 0) * toPositiveInteger(item.quantity, 0))
@@ -179,10 +236,9 @@ export const useCartStore = defineStore('cart', {
 
         selectedCheckoutItems: (state): CheckoutItemPayload[] => {
             const selectedIds = new Set(state.checkoutSelectionIds)
-            const items = selectedIds.size === 0
+            const checkoutItems = selectedIds.size === 0
                 ? state.items
                 : state.items.filter(item => selectedIds.has(item.id))
-            const checkoutItems = items.length > 0 ? items : state.items
 
             return checkoutItems
                 .filter(item => item.id)
@@ -255,6 +311,108 @@ export const useCartStore = defineStore('cart', {
                 console.warn('Failed to parse persisted cart:', error)
                 return createEmptyPersistedCart()
             }
+        },
+
+        readDeferredCartCleanupEntries(): DeferredCartCleanupEntry[] {
+            if (!process.client) return []
+
+            try {
+                const parsed = JSON.parse(sessionStorage.getItem(DEFERRED_CART_CLEANUP_STORAGE_KEY) || '[]')
+                if (!Array.isArray(parsed)) return []
+
+                return parsed
+                    .map((entry): DeferredCartCleanupEntry | null => {
+                        const orderId = entry?.orderId ? String(entry.orderId) : ''
+                        const items = Array.isArray(entry?.items)
+                            ? entry.items.map(normalizeCheckoutItem).filter(Boolean) as CheckoutItemPayload[]
+                            : []
+
+                        if (!orderId || items.length === 0) return null
+                        return { orderId, items }
+                    })
+                    .filter(Boolean) as DeferredCartCleanupEntry[]
+            } catch (error) {
+                console.warn('Failed to parse deferred cart cleanup:', error)
+                return []
+            }
+        },
+
+        writeDeferredCartCleanupEntries(entries: DeferredCartCleanupEntry[]): void {
+            if (!process.client) return
+
+            if (entries.length === 0) {
+                sessionStorage.removeItem(DEFERRED_CART_CLEANUP_STORAGE_KEY)
+                return
+            }
+
+            sessionStorage.setItem(DEFERRED_CART_CLEANUP_STORAGE_KEY, JSON.stringify(entries))
+        },
+
+        deferPurchasedItemsRemoval(orderId: string | null | undefined, purchasedItems: CheckoutItemPayload[]): void {
+            if (!process.client || !orderId) return
+
+            const normalizedItems = purchasedItems
+                .map(normalizeCheckoutItem)
+                .filter(Boolean) as CheckoutItemPayload[]
+
+            if (normalizedItems.length === 0) return
+
+            const entries = this.readDeferredCartCleanupEntries()
+                .filter(entry => entry.orderId !== String(orderId))
+
+            entries.push({
+                orderId: String(orderId),
+                items: normalizedItems,
+            })
+
+            this.writeDeferredCartCleanupEntries(entries)
+        },
+
+        clearDeferredPurchasedItems(orderId: string | null | undefined): void {
+            if (!process.client || !orderId) return
+
+            const entries = this.readDeferredCartCleanupEntries()
+                .filter(entry => entry.orderId !== String(orderId))
+
+            this.writeDeferredCartCleanupEntries(entries)
+        },
+
+        removeDeferredPurchasedItems(orderId: string | null | undefined): boolean {
+            if (!process.client || !orderId) return false
+
+            const entries = this.readDeferredCartCleanupEntries()
+            const entry = entries.find(item => item.orderId === String(orderId))
+            if (!entry) return false
+
+            const userId = useAuthStore().user?.id ?? getPersistedAuthUserId()
+            if (userId) {
+                this.removePurchasedItemsFromPersistedCart(userId, entry.items)
+            }
+
+            this.removePurchasedItems(entry.items)
+            this.writeDeferredCartCleanupEntries(entries.filter(item => item.orderId !== String(orderId)))
+            return true
+        },
+
+        removePurchasedItemsFromPersistedCart(userId: string, purchasedItems: CheckoutItemPayload[]): void {
+            if (!process.client || !userId) return
+
+            const storageKey = this.getStorageKey(userId)
+            const persistedCart = this.readPersistedCart(localStorage.getItem(storageKey))
+            if (persistedCart.items.length === 0) return
+
+            const items = getCartItemsAfterRemovingPurchased(persistedCart.items, purchasedItems)
+            const payload = {
+                items,
+                appliedCoupon: items.length === 0 ? null : persistedCart.appliedCoupon,
+            }
+
+            if (payload.items.length === 0 && !payload.appliedCoupon) {
+                localStorage.removeItem(storageKey)
+                return
+            }
+
+            localStorage.setItem(storageKey, JSON.stringify(payload))
         },
 
         persistCartForUser(userId: string | null = useAuthStore().user?.id ?? null): void {
@@ -553,7 +711,17 @@ export const useCartStore = defineStore('cart', {
                 })
 
                 if (response.success) {
-                    this.removePurchasedItems(itemsToCheckout)
+                    const order = response.data.order
+
+                    if (shouldRemovePurchasedItemsImmediately(order, payload.paymentMethod)) {
+                        this.removePurchasedItems(itemsToCheckout)
+                        this.clearDeferredPurchasedItems(order?.id)
+                    } else {
+                        this.deferPurchasedItemsRemoval(order?.id, itemsToCheckout)
+                        this.clearCheckoutSelection()
+                        this.persistCartForUser()
+                    }
+
                     return { success: true, order: response.data.order }
                 }
 
@@ -568,17 +736,7 @@ export const useCartStore = defineStore('cart', {
         },
 
         removePurchasedItems(purchasedItems: CheckoutItemPayload[]): void {
-            for (const purchasedItem of purchasedItems) {
-                const cartItem = this.items.find(item => item.id === purchasedItem.variantId)
-                if (!cartItem) continue
-
-                const remainingQuantity = toPositiveInteger(cartItem.quantity, 0) - toPositiveInteger(purchasedItem.quantity, 0)
-                if (remainingQuantity > 0) {
-                    cartItem.quantity = remainingQuantity
-                } else {
-                    this.items = this.items.filter(item => item.id !== purchasedItem.variantId)
-                }
-            }
+            this.items = getCartItemsAfterRemovingPurchased(this.items, purchasedItems)
 
             if (this.items.length === 0) {
                 this.appliedCoupon = null

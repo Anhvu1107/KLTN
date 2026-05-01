@@ -7,12 +7,17 @@ const { Order, User, Product, Variant, SystemPrompt, sequelize, OrderItem } = re
 const AppError = require('../utils/AppError');
 const { Op, fn, col } = require('sequelize');
 const notificationService = require('./notification.service');
+const abandonedCartService = require('./abandoned-cart.service');
 const { sendShippingUpdate } = require('./email.service');
 const {
     sendOrderConfirmedEmail,
     sendOrderDeliveredEmail,
     sendOrderCancelledEmail,
 } = require('../utils/sendEmail');
+
+const MANUALLY_CONFIRMABLE_PAYMENT_METHODS = ['COD', 'BANK_TRANSFER'];
+const ONLINE_PAYMENT_METHODS = ['MOMO', 'VNPAY', 'PAYPAL'];
+const FULFILLMENT_STATUSES = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
 
 /**
  * Get dashboard statistics
@@ -214,6 +219,15 @@ const updateOrderStatus = async (orderId, status) => {
             throw new AppError(`Cannot transition from ${order.status} to ${status}`, 400);
         }
 
+        if (
+            ONLINE_PAYMENT_METHODS.includes(order.payment_method) &&
+            FULFILLMENT_STATUSES.includes(status) &&
+            order.payment_status !== 'PAID'
+        ) {
+            await transaction.rollback();
+            throw new AppError('Online gateway orders must be paid before fulfillment.', 400);
+        }
+
         const updateData = { status };
 
         if (status === 'CONFIRMED') updateData.confirmed_at = new Date();
@@ -236,25 +250,56 @@ const updateOrderStatus = async (orderId, status) => {
         if (status === 'CANCELLED') {
             updateData.cancelled_at = new Date();
             if (order.items && order.items.length > 0) {
-                const variantIds = order.items.map(item => item.variant_id);
-                await Variant.update(
-                    { status: 'AVAILABLE', sold_at: null },
-                    { where: { id: { [Op.in]: variantIds } }, transaction }
-                );
+                for (const item of order.items) {
+                    const variant = await Variant.findByPk(item.variant_id, {
+                        lock: transaction.LOCK.UPDATE,
+                        transaction,
+                    });
+
+                    if (!variant) continue;
+
+                    const restoredStock = Number(variant.stock_quantity || 0) + Number(item.quantity || 0);
+                    await variant.update({
+                        stock_quantity: restoredStock,
+                        status: 'AVAILABLE',
+                        reserved_at: null,
+                        reserved_by: null,
+                        sold_at: null,
+                    }, { transaction });
+                }
             }
         } else if (order.status === 'CANCELLED' && status !== 'CANCELLED') {
             // If un-cancelling, reserve items again
             if (order.items && order.items.length > 0) {
-                const variantIds = order.items.map(item => item.variant_id);
-                await Variant.update(
-                    { status: 'SOLD', sold_at: new Date() },
-                    { where: { id: { [Op.in]: variantIds } }, transaction }
-                );
+                for (const item of order.items) {
+                    const variant = await Variant.findByPk(item.variant_id, {
+                        lock: transaction.LOCK.UPDATE,
+                        transaction,
+                    });
+
+                    if (!variant) continue;
+
+                    const nextStock = Math.max(0, Number(variant.stock_quantity || 0) - Number(item.quantity || 0));
+                    const variantUpdate = { stock_quantity: nextStock };
+
+                    if (nextStock === 0) {
+                        variantUpdate.status = 'SOLD';
+                        variantUpdate.sold_at = new Date();
+                    }
+
+                    await variant.update(variantUpdate, { transaction });
+                }
             }
         }
 
         await order.update(updateData, { transaction });
         await transaction.commit();
+
+        if (status === 'CANCELLED') {
+            abandonedCartService.reactivateLatestConvertedCart(order.user_id).catch((error) => {
+                console.error('Failed to reactivate abandoned cart after admin cancellation:', error.message);
+            });
+        }
 
         // Send notifications and emails (fire-and-forget, outside transaction)
         try {
@@ -328,6 +373,10 @@ const updateOrderPaymentStatus = async (orderId, paymentStatus) => {
         const updateData = { payment_status: paymentStatus };
 
         if (paymentStatus === 'PAID') {
+            if (!MANUALLY_CONFIRMABLE_PAYMENT_METHODS.includes(order.payment_method)) {
+                throw new AppError('Online gateway payments must be confirmed by the payment provider callback.', 400);
+            }
+
             if (!order.payment_transaction_id) {
                 updateData.payment_transaction_id = `MANUAL_${Date.now()}`;
             }

@@ -134,6 +134,22 @@ const markLatestCartAsConverted = async (userId) => {
 };
 
 /**
+ * Put the latest converted cart back into recovery when checkout did not finish.
+ */
+const reactivateLatestConvertedCart = async (userId) => {
+    const cart = await findLatestCartForUser(userId, ['converted']);
+
+    if (!cart) {
+        return null;
+    }
+
+    return cart.update({
+        status: 'active',
+        recovered_at: null,
+    });
+};
+
+/**
  * Update reminder sent
  */
 const updateReminderSent = async (id) => {
@@ -185,6 +201,7 @@ module.exports = {
     markAsRecovered,
     markLatestCartAsRecovered,
     markLatestCartAsConverted,
+    reactivateLatestConvertedCart,
     updateReminderSent,
     getCartsNeedingReminder,
     addNote,

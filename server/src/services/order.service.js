@@ -14,6 +14,7 @@ const abandonedCartService = require('./abandoned-cart.service');
 
 const SHIPPING_BENEFIT_TYPE = 'SHIPPING';
 const CHANGEABLE_PAYMENT_METHODS = ['COD', 'BANK_TRANSFER', 'MOMO', 'VNPAY', 'PAYPAL'];
+const DEFERRED_PAYMENT_METHODS = ['MOMO', 'VNPAY', 'PAYPAL'];
 
 const toPositiveInteger = (value, fallback = 1) => {
     const parsed = Number(value);
@@ -80,6 +81,12 @@ const markZeroTotalOrdersPaid = async (orders = []) => {
         order.setDataValue('payment_status', 'PAID');
         order.setDataValue('payment_transaction_id', order.payment_transaction_id || 'FREE_ORDER');
     }
+};
+
+const shouldMarkAbandonedCartConvertedAtCheckout = (order) => {
+    const paymentMethod = String(order?.payment_method || '').toUpperCase();
+    if (order?.payment_status === 'PAID') return true;
+    return !DEFERRED_PAYMENT_METHODS.includes(paymentMethod);
 };
 
 /**
@@ -253,10 +260,12 @@ const createOrder = async (userId, items, orderData) => {
         // Step 6: Commit transaction
         await transaction.commit();
 
-        // Mark the latest tracked cart as converted after a successful checkout.
-        await abandonedCartService.markLatestCartAsConverted(userId).catch((error) => {
-            console.error('Failed to mark abandoned cart as converted:', error.message);
-        });
+        if (shouldMarkAbandonedCartConvertedAtCheckout(order)) {
+            // This is analytics/recovery bookkeeping, so it should not slow down checkout.
+            abandonedCartService.markLatestCartAsConverted(userId).catch((error) => {
+                console.error('Failed to mark abandoned cart as converted:', error.message);
+            });
+        }
 
         // Step 7: Record coupon usage (after commit, fire-and-forget)
         for (const coupon of validatedCoupons) {
@@ -445,12 +454,18 @@ const cancelOrder = async (orderId, userId) => {
                 await variant.update({
                     stock_quantity: newStock,
                     status: 'AVAILABLE',
+                    reserved_at: null,
+                    reserved_by: null,
                     sold_at: null,
                 }, { transaction });
             }
         }
 
         await transaction.commit();
+
+        abandonedCartService.reactivateLatestConvertedCart(userId).catch((error) => {
+            console.error('Failed to reactivate abandoned cart after cancellation:', error.message);
+        });
 
         // Send cancellation notifications (fire-and-forget)
         try {
