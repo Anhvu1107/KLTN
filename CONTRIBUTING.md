@@ -1,174 +1,215 @@
-# Hướng dẫn đóng góp (Contributing Guide)
+# Hướng dẫn đóng góp
 
-## 🚀 Bắt đầu (Cho thành viên mới)
+> Cập nhật: **2026-05-06**
+> Kiến trúc hiện tại: **Nuxt 3 client + Express.js server + PostgreSQL**. AI Stylist đã tích hợp trong backend Node.js, không còn cần chạy FastAPI/Python service riêng.
 
-### 1. Clone project
+---
+
+## 1. Bắt đầu
+
+### 1.1 Clone project
+
 ```bash
 git clone git@github.com:Anhvu1107/KLTN.git
 cd KLTN
-git checkout dev
 ```
 
-### 2. Cài đặt dependencies
+### 1.2 Cài dependencies
+
+Client:
+
 ```bash
-# Client
-cd client && npm install
-
-# Server
-cd ../server && npm install
-
-# AI Service
-cd ../ai_service && pip install -r requirements.txt
+cd client
+npm install
 ```
 
-### 3. Khởi động PostgreSQL Database
+Server:
 
-**Cách 1: Dùng Docker (Khuyến nghị)**
 ```bash
-# Chạy PostgreSQL container
+cd ../server
+npm install
+```
+
+Không cần `cd ai_service`, `pip install` hoặc `uvicorn` cho kiến trúc hiện tại.
+
+---
+
+## 2. Database
+
+Khuyến nghị dùng Docker:
+
+```bash
 docker-compose up postgres -d
-
-# Kiểm tra container đang chạy
-docker ps
 ```
 
-**Cách 2: Dùng PostgreSQL đã cài sẵn**
-```sql
--- Mở pgAdmin hoặc psql, tạo database:
-CREATE DATABASE aura_archive;
-```
+Kiểm tra:
 
-**Verify PostgreSQL đang chạy:**
 ```bash
-# Kiểm tra kết nối (nếu cài psql)
-psql -h localhost -U postgres -d aura_archive -c "SELECT 1;"
-
-# Hoặc kiểm tra qua Docker
 docker exec -it aura-postgres psql -U postgres -d aura_archive -c "SELECT 1;"
 ```
 
-### 4. Cấu hình môi trường
-```bash
-# Copy file .env.example thành .env trong mỗi thư mục
-cd server && copy .env.example .env
-cd ../client && copy .env.example .env
-cd ../ai_service && copy .env.example .env
-# Mở từng file .env và điền thông tin database, API keys
-```
+Database mặc định:
 
-### 5. Seed database (lần đầu)
-```bash
-cd server && npm run seed
-```
-
-### 6. Chạy development
-```bash
-# Terminal 1 - Client (http://localhost:3000)
-cd client && npm run dev
-
-# Terminal 2 - Server (http://localhost:5000)
-cd server && npm run dev
-
-# Terminal 3 - AI Service (http://localhost:8000)
-cd ai_service && uvicorn app.main:app --reload --port 8000
-```
+| Key | Value |
+|---|---|
+| Host | `localhost` |
+| Port | `5432` |
+| Database | `aura_archive` |
+| User | `postgres` |
+| Password | `aura_secret_2024` nếu không override `DB_PASSWORD` |
 
 ---
 
-## 🌿 Git Workflow
+## 3. Cấu hình môi trường
 
-### Cấu trúc nhánh
-```
-main     ← Production (code ổn định, không code trực tiếp)
-└── dev  ← Development (test trước khi lên main)
-      └── feature/xxx  ← Nhánh riêng của từng người
+Server:
+
+```bash
+cd server
+copy .env.example .env
 ```
 
-### ⚠️ QUY TẮC QUAN TRỌNG
-1. **KHÔNG BAO GIỜ** push trực tiếp vào `main` hoặc `dev`
-2. **LUÔN LUÔN** tạo nhánh riêng để code
-3. **LUÔN LUÔN** tạo Pull Request để merge
+Client:
+
+```bash
+cd ../client
+copy .env.example .env
+```
+
+Các nhóm biến cần chú ý:
+
+- Database: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+- Auth: `JWT_SECRET`, `JWT_EXPIRES_IN`.
+- Client: `NUXT_PUBLIC_API_URL`, `NUXT_PUBLIC_SOCKET_URL`, `NUXT_PUBLIC_IMAGE_BASE_URL`.
+- AI: `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_LIVE_MODEL`, `OPENAI_API_KEY`, `CHATBOT_MODE`.
+- Payment: `MOMO_*`, `VNPAY_*`, `PAYPAL_*`.
+- Email: `SMTP_*`, `RESEND_*`.
+
+Không commit file `.env`.
 
 ---
 
-## 📋 Quy trình làm việc
+## 4. Seed database
 
-### Bước 1: Tạo nhánh mới từ dev
 ```bash
-git checkout dev              # Chuyển về dev
-git pull origin dev           # Cập nhật code mới nhất
-git checkout -b feature/ten-tinh-nang   # Tạo nhánh mới
+cd server
+npm run seed
 ```
 
-**Đặt tên nhánh:**
-| Loại | Format | Ví dụ |
-|------|--------|-------|
-| Tính năng mới | `feature/ten` | `feature/about-page` |
-| Sửa bug | `fix/ten` | `fix/checkout-bug` |
-| Hotfix khẩn | `hotfix/ten` | `hotfix/login-error` |
-
-### Bước 2: Code và commit
-```bash
-# Sau khi code xong
-git add .
-git commit -m "feat: add about page"
-```
-
-**Commit message format:**
-| Prefix | Ý nghĩa | Ví dụ |
-|--------|---------|-------|
-| `feat:` | Tính năng mới | `feat: add payment vnpay` |
-| `fix:` | Sửa bug | `fix: cart total calculation` |
-| `docs:` | Cập nhật docs | `docs: update README` |
-| `style:` | CSS/UI | `style: update header color` |
-| `refactor:` | Refactor | `refactor: move utils` |
-
-### Bước 3: Push lên GitHub
-```bash
-git push origin feature/ten-tinh-nang
-```
-
-### Bước 4: Tạo Pull Request
-1. Vào GitHub → Pull Requests → **New Pull Request**
-2. Base: `dev` ← Compare: `feature/ten-tinh-nang`
-3. Điền title và mô tả những gì đã làm
-4. Click **Create Pull Request**
-5. Đợi Leader review
-
-### Bước 5: Leader review và merge
-- Leader xem code, comment nếu cần sửa
-- Sau khi approve → Merge vào `dev`
-- Delete nhánh feature sau khi merge
-
-### Bước 6: Merge dev vào main (Leader làm)
-Khi dev đã test ổn định:
-```bash
-git checkout main
-git merge dev
-git push origin main
-```
-
----
-
-## 🔑 Tài khoản test
+Tài khoản demo:
 
 | Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@aura.com | admin123 |
-| Customer | customer@aura.com | 123456 |
+|---|---|---|
+| Admin | `admin@aura.com` | `admin123` |
+| Customer | `customer@aura.com` | `123456` |
 
 ---
 
-## ⚠️ Lưu ý quan trọng
+## 5. Chạy development
 
-1. **KHÔNG commit file `.env`** - Chứa thông tin nhạy cảm
-2. **KHÔNG push trực tiếp vào `main` hoặc `dev`** - Luôn tạo PR
-3. **Pull code mới trước khi tạo nhánh** - Tránh conflict
-4. **Test kỹ trước khi tạo PR** - Đảm bảo không lỗi
-5. **Viết commit message rõ ràng** - Để dễ track
+Terminal 1 - Server:
+
+```bash
+cd server
+npm run dev
+```
+
+Terminal 2 - Client:
+
+```bash
+cd client
+npm run dev
+```
+
+URL:
+
+| Mục | URL |
+|---|---|
+| Frontend | `http://localhost:3000` |
+| API | `http://localhost:5000/api/v1` |
+| API docs | `http://localhost:5000/docs` |
+| Health | `http://localhost:5000/health` |
 
 ---
 
-## 📞 Liên hệ
+## 6. Chạy bằng Docker Compose
 
-- Leader: [@Anhvu1107](https://github.com/Anhvu1107)
+Development:
+
+```bash
+docker-compose up postgres server-dev client-dev
+```
+
+Production-like:
+
+```bash
+docker-compose up postgres server client nginx
+```
+
+Production-like stack expose:
+
+- Frontend qua Nginx: `http://localhost`
+- API qua Nginx: `http://localhost/api/v1`
+- Uploads qua Nginx: `http://localhost/uploads`
+- Socket.IO qua Nginx: `http://localhost/socket.io/`
+
+---
+
+## 7. Git workflow
+
+### 7.1 Cấu trúc nhánh
+
+```text
+main
+└── dev
+    └── feature/ten-tinh-nang
+```
+
+Quy tắc:
+
+- Không push trực tiếp vào `main` nếu không được yêu cầu rõ.
+- Tạo branch riêng cho feature/fix.
+- Pull code mới trước khi tạo branch.
+- Commit nhỏ, rõ nội dung.
+- Tạo PR để review khi làm việc nhóm.
+
+### 7.2 Đặt tên branch
+
+| Loại | Format | Ví dụ |
+|---|---|---|
+| Feature | `feature/ten` | `feature/admin-chat` |
+| Fix | `fix/ten` | `fix/payment-callback` |
+| Docs | `docs/ten` | `docs/update-srs` |
+| Codex | `codex/ten` | `codex/update-project-docs` |
+
+### 7.3 Commit message
+
+| Prefix | Ý nghĩa | Ví dụ |
+|---|---|---|
+| `feat:` | Tính năng mới | `feat: add admin chat page` |
+| `fix:` | Sửa lỗi | `fix: handle vnpay callback failure` |
+| `docs:` | Tài liệu | `docs: update project architecture` |
+| `style:` | UI/CSS | `style: refine product card` |
+| `refactor:` | Refactor | `refactor: split payment service` |
+| `chore:` | Việc phụ trợ | `chore: update env example` |
+
+---
+
+## 8. Checklist trước khi push/PR
+
+- Chạy phần app liên quan nếu thay đổi code.
+- Chạy lint nếu sửa frontend/backend:
+  - `cd client && npm run lint`
+  - `cd server && npm run lint`
+- Kiểm tra `git diff --check`.
+- Không stage `.env`, log lớn, build output hoặc file tạm.
+- Với thay đổi docs, kiểm tra README/SRS/PROJECT_ANALYSIS không còn mô tả `ai_service` FastAPI cũ.
+
+---
+
+## 9. Ghi chú hiện trạng
+
+- AI chat/voice nằm trong `server/src/services/ai.service.js`, `server/src/services/ai/*`, `server/src/services/voice.service.js`.
+- API AI đi qua `/api/v1/chat/*`.
+- Nginx không cần proxy `/ai` sang service riêng.
+- `setup-project.ps1` là script scaffold ban đầu, không nên xem là nguồn sự thật kiến trúc hiện tại.
