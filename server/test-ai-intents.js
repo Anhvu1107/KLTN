@@ -28,6 +28,9 @@ const { StylistEngine } = require('./src/services/ai/stylist-engine');
 
     const cartIntent = classifyIntent('thêm giỏ hàng cho tôi');
     assert.strictEqual(cartIntent[0], 'CART_ACTION');
+    assert.strictEqual(classifyIntent('mở giỏ hàng')[0], 'OPEN_CART');
+    assert.strictEqual(classifyIntent('thanh toán')[0], 'CHECKOUT_ACTION');
+    assert.strictEqual(classifyIntent('lưu vào wishlist')[0], 'WISHLIST_ACTION');
 
     const engine = new StylistEngine();
     const result = await engine.processMessage('tôi muốn mua áo', 'test-buy-shirt');
@@ -61,11 +64,32 @@ const { StylistEngine } = require('./src/services/ai/stylist-engine');
     assert.match(cartResult.message, /\/add-to-cart\/aura-sample-shirt/);
     assert.doesNotMatch(cartResult.message, /Mình có thể giúp bạn mấy việc này/i);
 
+    const openCartResult = await engine.processMessage('mở giỏ hàng', 'test-buy-shirt-with-products');
+    assert.strictEqual(openCartResult.metadata.intent, 'OPEN_CART');
+    assert.match(openCartResult.message, /\/open-cart/);
+    assert.doesNotMatch(openCartResult.message, /Mình có thể giúp bạn mấy việc này/i);
+
+    const checkoutResult = await engine.processMessage('thanh toán', 'test-buy-shirt-with-products');
+    assert.strictEqual(checkoutResult.metadata.intent, 'CHECKOUT_ACTION');
+    assert.match(checkoutResult.message, /\/checkout/);
+    assert.doesNotMatch(checkoutResult.message, /Mình có thể giúp bạn mấy việc này/i);
+
+    const wishlistResult = await engine.processMessage('lưu vào wishlist', 'test-buy-shirt-with-products');
+    assert.strictEqual(wishlistResult.metadata.intent, 'WISHLIST_ACTION');
+    assert.match(wishlistResult.message, /\/save-wishlist\/aura-sample-shirt/);
+    assert.doesNotMatch(wishlistResult.message, /Mình có thể giúp bạn mấy việc này/i);
+
     const unknownCartResult = await engine.processMessage('thêm giỏ hàng cho tôi', 'test-cart-without-product');
     assert.strictEqual(unknownCartResult.metadata.intent, 'CART_ACTION');
     assert.match(unknownCartResult.message, /món nào|tên sản phẩm|trang sản phẩm/i);
     assert.doesNotMatch(unknownCartResult.message, /Mình có thể giúp bạn mấy việc này/i);
     assert.doesNotMatch(unknownCartResult.message, /\/add-to-cart\//i);
+
+    const unknownWishlistResult = await engine.processMessage('lưu vào wishlist', 'test-wishlist-without-product');
+    assert.strictEqual(unknownWishlistResult.metadata.intent, 'WISHLIST_ACTION');
+    assert.match(unknownWishlistResult.message, /món nào|tên sản phẩm|trang sản phẩm/i);
+    assert.doesNotMatch(unknownWishlistResult.message, /Mình có thể giúp bạn mấy việc này/i);
+    assert.doesNotMatch(unknownWishlistResult.message, /\/save-wishlist\//i);
 
     console.log('[OK] AI intent regressions passed');
 })().catch((error) => {

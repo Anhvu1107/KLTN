@@ -87,6 +87,18 @@ const INTENTS = {
         phrases: ['them vao gio', 'them gio hang', 'them gio', 'bo vao gio', 'cho vao gio', 'add to cart', 'them vao cart', 'mua luon', 'chot', 'lay mon nay', 'dat mua', 'order luon'],
         priority: 10,
     },
+    OPEN_CART: {
+        phrases: ['mo gio hang', 'xem gio hang', 'gio hang', 'open cart', 'view cart'],
+        priority: 10,
+    },
+    CHECKOUT_ACTION: {
+        phrases: ['thanh toan', 'checkout', 'tra tien', 'dat hang', 'chot don', 'mua ngay', 'pay now'],
+        priority: 10,
+    },
+    WISHLIST_ACTION: {
+        phrases: ['luu wishlist', 'luu vao wishlist', 'save wishlist', 'luu yeu thich', 'them vao yeu thich', 'luu lai', 'luu san pham', 'save for later'],
+        priority: 10,
+    },
     AUTHENTICITY: {
         phrases: ['that', 'chinh hang', 'authentic', 'real', 'fake', 'gia', 'xac thuc', 'verify', 'legit', 'bao dam', 'guarantee', 'warranty', 'cam ket', 'certificate'],
         priority: 7,

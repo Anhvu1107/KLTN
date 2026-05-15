@@ -297,13 +297,17 @@ const stopWidgetPolling = () => {
 const autoExecuteActions = async (responseText: string) => {
   if (!responseText) return
 
-  // Extract all action links from markdown: [text](/add-to-cart/slug), [text](/save-wishlist/slug), etc.
-  const actionLinkRegex = /\[.*?\]\(\/(add-to-cart|save-wishlist|open-cart|checkout)\/([\w-]*)\)/g
+  // Extract action links from markdown: [text](/add-to-cart/slug), [text](/open-cart), etc.
+  const actionLinkRegex = /\[.*?\]\((\/(?:add-to-cart|save-wishlist|open-cart|checkout)(?:\/[\w-]+)?)\)/g
   let match: RegExpExecArray | null
 
   while ((match = actionLinkRegex.exec(responseText)) !== null) {
-    const action = match[1]
-    const slug = match[2]
+    const href = match[1]
+    const parsed = href.match(/^\/(add-to-cart|save-wishlist|open-cart|checkout)(?:\/([\w-]+))?$/)
+    if (!parsed) continue
+
+    const action = parsed[1]
+    const slug = parsed[2] || ''
 
     try {
       if (action === 'add-to-cart' && slug) {
@@ -359,6 +363,15 @@ const autoExecuteActions = async (responseText: string) => {
           body: { productId: product.id },
         })
         notifySuccess(`Đã lưu ${product.name} vào wishlist!`)
+      } else if (action === 'open-cart') {
+        emit('close')
+        await router.push('/cart')
+        notifySuccess('Đã mở giỏ hàng.')
+      } else if (action === 'checkout') {
+        emit('close')
+        const target = authStore.isAuthenticated ? '/checkout' : '/auth/login?redirect=/checkout'
+        await router.push(target)
+        notifySuccess(authStore.isAuthenticated ? 'Đã mở trang thanh toán.' : 'Vui lòng đăng nhập để thanh toán.')
       }
     } catch {
       // silently fail for individual actions

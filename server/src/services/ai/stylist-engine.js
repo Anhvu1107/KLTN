@@ -44,6 +44,9 @@ const PRODUCT_DATA_INTENTS = new Set([
 
 const DETERMINISTIC_INTENTS = new Set([
     'CART_ACTION',
+    'OPEN_CART',
+    'CHECKOUT_ACTION',
+    'WISHLIST_ACTION',
 ]);
 
 function escapeRegex(value = '') {
@@ -394,7 +397,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         const objections = [];
         const profilePatch = {};
 
-        if (/(mua luôn|chốt|lấy luôn|order luôn|đặt luôn|đặt mua|thanh toán|checkout|add to cart|thêm vào giỏ|thêm giỏ hàng|thêm giỏ|bỏ vào giỏ|cho vào giỏ)/i.test(text)) {
+        if (/(mua luôn|chốt|lấy luôn|order luôn|đặt luôn|đặt mua|thanh toán|checkout|add to cart|thêm vào giỏ|thêm giỏ hàng|thêm giỏ|bỏ vào giỏ|cho vào giỏ|mua ngay|chốt đơn)/i.test(text)) {
             buyingSignals.push('checkout_ready');
         }
         if (/(mở sản phẩm|xem món này|gửi link|show me|xem thử|xem chi tiết)/i.test(text)) {
@@ -787,6 +790,18 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             return this._generateCartActionResponse(session, enrichment);
         }
 
+        if (intent === 'OPEN_CART') {
+            return 'Mình mở giỏ hàng cho bạn nha. [Mở giỏ hàng](/open-cart)';
+        }
+
+        if (intent === 'CHECKOUT_ACTION') {
+            return 'Mình đưa bạn tới bước thanh toán nha. [Thanh toán ngay](/checkout)';
+        }
+
+        if (intent === 'WISHLIST_ACTION') {
+            return this._generateWishlistActionResponse(session, enrichment);
+        }
+
         // DISCOVERY
         if (intent === 'DISCOVERY') {
             return this._generateDiscoveryResponse(entities, ctx, enrichment);
@@ -1038,6 +1053,22 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             "• **Tìm theo giá** — 'Có gì tầm 15 triệu?'\n" +
             "• **Chính sách** — 'Ký gửi', 'Đổi trả', 'Vận chuyển'\n\n" +
             'Bạn cứ hỏi thoải mái nha, mình ở đây!'
+        );
+    }
+
+    _generateWishlistActionResponse(session, enrichment) {
+        const slug = this._getActionProductSlug(session, enrichment);
+
+        if (slug) {
+            return (
+                `Mình lưu sản phẩm này vào wishlist cho bạn nha. [Lưu vào wishlist](/save-wishlist/${slug})\n\n` +
+                'Bạn muốn xem thêm món tương tự không?'
+            );
+        }
+
+        return (
+            'Bạn muốn lưu món nào vậy? Gửi mình tên sản phẩm hoặc mở trang sản phẩm rồi nhắn ' +
+            '"lưu wishlist", mình sẽ lưu đúng món cho bạn.'
         );
     }
 
