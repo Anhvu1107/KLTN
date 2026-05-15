@@ -68,8 +68,8 @@ const INTENTS = {
         priority: 6,
     },
     CONSIGNMENT: {
-        phrases: ['ky gui', 'consign', 'consignment', 'ban', 'sell', 'ban do', 'gui ban', 'muon ban', 'want to sell', 'listing', 'dang ban'],
-        priority: 7,
+        phrases: ['ky gui', 'consign', 'consignment', 'sell', 'ban do', 'gui ban', 'muon ban', 'can ban', 'ban lai', 'want to sell', 'listing', 'dang ban'],
+        priority: 9,
     },
     ORDER_STATUS: {
         phrases: ['don hang', 'order', 'tracking', 'theo doi', 'giao hang', 'shipping', 'van chuyen', 'trang thai', 'status', 'khi nao', 'when', 'delivery', 'nhan hang', 'doi tra', 'return', 'refund', 'hoan tien', 'bao hanh'],

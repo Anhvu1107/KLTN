@@ -777,6 +777,11 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             );
         }
 
+        // DISCOVERY
+        if (intent === 'DISCOVERY') {
+            return this._generateDiscoveryResponse(entities, ctx, enrichment);
+        }
+
         // PRODUCT SEARCH
         if (intent === 'PRODUCT_SEARCH' || intent === 'CATEGORY_BROWSE') {
             const products = enrichment.products || [];
@@ -1024,6 +1029,51 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             "• **Chính sách** — 'Ký gửi', 'Đổi trả', 'Vận chuyển'\n\n" +
             'Bạn cứ hỏi thoải mái nha, mình ở đây!'
         );
+    }
+
+    _generateDiscoveryResponse(entities, ctx, enrichment) {
+        const products = enrichment.products || [];
+        const category = entities.category || ctx.category || '';
+        const categoryLabel = this._getCategoryLabel(category);
+        const intro = categoryLabel
+            ? `Được nha, mình tìm ${categoryLabel} cho bạn.`
+            : 'Được nha, mình xem đồ trong shop cho bạn.';
+
+        if (products.length) {
+            let response = `${intro} Mình có vài món đang hợp yêu cầu, bạn xem trước nha:\n\n`;
+
+            for (const product of products.slice(0, 3)) {
+                const reason = this._generateProductReason(product, ctx);
+                response += kb.formatProductRecommendation(product, reason) + '\n';
+            }
+
+            response += '\nBạn cho mình thêm chiều cao, cân nặng và số đo vai/ngực/eo nếu có để mình lọc form chuẩn hơn nha?';
+            return response;
+        }
+
+        if (category === 'Tops') {
+            return `${intro} Bạn thích kiểu nào hơn: áo thun, sơ mi, hoodie hay knit? Cho mình thêm chiều cao, cân nặng và số đo vai/ngực/eo nếu có để mình lọc chuẩn hơn cho bạn.`;
+        }
+
+        if (categoryLabel) {
+            return `${intro} Bạn thích kiểu hoặc brand nào hơn? Cho mình thêm chiều cao, cân nặng và số đo cơ thể nếu có, mình sẽ lọc đúng form cho bạn.`;
+        }
+
+        return 'Được nha, bạn đang muốn tìm món gì: áo, quần, giày hay túi? Cho mình thêm chiều cao, cân nặng và số đo cơ thể nếu có để mình lựa đúng form hơn nha.';
+    }
+
+    _getCategoryLabel(category) {
+        const labels = {
+            Shoes: 'giày',
+            Outerwear: 'áo khoác',
+            Pants: 'quần',
+            Tops: 'áo',
+            Bags: 'túi',
+            Dresses: 'váy',
+            Accessories: 'phụ kiện',
+        };
+
+        return labels[category] || '';
     }
 
     _generateProductReason(product, ctx) {

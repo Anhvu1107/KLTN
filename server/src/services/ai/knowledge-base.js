@@ -363,9 +363,9 @@ function formatProductRecommendation(product, reason = '') {
             if (v.size) parts.push(`Size ${v.size}`);
             if (v.color) parts.push(v.color);
             const status = v.status || '';
-            if (status === 'AVAILABLE') parts.push('Con hang');
-            else if (status === 'SOLD') parts.push('Da ban');
-            else if (status === 'RESERVED') parts.push('Dang giu');
+            if (status === 'AVAILABLE') parts.push('Còn hàng');
+            else if (status === 'SOLD') parts.push('Đã bán');
+            else if (status === 'RESERVED') parts.push('Đang giữ');
             variantInfo = parts.join(' · ');
         }
     }
