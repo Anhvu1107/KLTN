@@ -1,0 +1,284 @@
+{
+  "generatedAt": "2026-05-06T18:04:08.153Z",
+  "pptx": "D:\\KLTN\\ppt_work\\output\\AURA_ARCHIVE_PPT_DETAILED.pptx",
+  "slideCount": 30,
+  "previews": [
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-01.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-02.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-03.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-04.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-05.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-06.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-07.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-08.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-09.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-10.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-11.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-12.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-13.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-14.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-15.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-16.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-17.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-18.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-19.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-20.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-21.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-22.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-23.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-24.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-25.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-26.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-27.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-28.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-29.png",
+    "D:\\KLTN\\ppt_work\\output\\previews\\slide-30.png"
+  ],
+  "montage": "D:\\KLTN\\ppt_work\\output\\AURA_ARCHIVE_preview_montage.png",
+  "textObjectCount": 485,
+  "offSlideObjectCount": 0,
+  "offSlide": [],
+  "imageStats": [
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-01.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 245,
+      "coloredSampleRatio": 0.127,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-02.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.046,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-03.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.045,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-04.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.068,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-05.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.038,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-06.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.063,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-07.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.158,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-08.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.049,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-09.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.202,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-10.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.045,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-11.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.04,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-12.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.06,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-13.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.059,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-14.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.198,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-15.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.039,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-16.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.054,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-17.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.056,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-18.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.047,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-19.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.058,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-20.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 250,
+      "coloredSampleRatio": 0.277,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-21.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.039,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-22.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.042,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-23.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.084,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-24.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.068,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-25.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.04,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-26.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.052,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-27.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.037,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-28.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.058,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-29.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.034,
+      "nonBlank": true
+    },
+    {
+      "file": "D:\\KLTN\\ppt_work\\output\\previews\\slide-30.png",
+      "width": 1920,
+      "height": 1080,
+      "contrastRange": 234,
+      "coloredSampleRatio": 0.071,
+      "nonBlank": true
+    }
+  ],
+  "allPreviewsNonBlank": true
+}

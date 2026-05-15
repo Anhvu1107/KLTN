@@ -757,10 +757,32 @@ const getPrimaryProductImage = (product: any) => {
   return ''
 }
 
-const getAvailableVariants = (product: any) =>
-  (Array.isArray(product?.variants) ? product.variants : []).filter((variant: any) => variant?.status === 'AVAILABLE')
+const normalizeVariantText = (value: unknown) =>
+  typeof value === 'string' ? value.trim().toUpperCase() : ''
 
-const addProductToCartBySlug = async (slug: string, quantity = 1) => {
+const getVariantStockQuantity = (variant: any) => {
+  const stock = Number(variant?.stock_quantity)
+  return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0
+}
+
+const isAvailableVariant = (variant: any) =>
+  variant?.status === 'AVAILABLE' && getVariantStockQuantity(variant) > 0
+
+const variantMatchesRequestedSize = (variant: any, size?: string | null) => {
+  const requestedSize = normalizeVariantText(size)
+  if (!requestedSize) return true
+
+  return normalizeVariantText(variant?.size) === requestedSize
+}
+
+const getAvailableVariants = (product: any) =>
+  (Array.isArray(product?.variants) ? product.variants : []).filter(isAvailableVariant)
+
+const addProductToCartBySlug = async (
+  slug: string,
+  quantity = 1,
+  options: { size?: string | null } = {}
+) => {
   if (!authStore.isAuthenticated) {
     openSalesRoute(`/auth/login?redirect=/shop/${slug}`)
     return { success: false, message: 'Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.' }
@@ -768,21 +790,36 @@ const addProductToCartBySlug = async (slug: string, quantity = 1) => {
 
   const product = await fetchProductBySlug(slug)
   const availableVariants = getAvailableVariants(product)
+  const requestedSize = normalizeVariantText(options.size)
 
   if (!availableVariants.length) {
     return { success: false, message: 'Sản phẩm hiện không còn hàng.' }
   }
 
-  const variantsToAdd = availableVariants
-    .filter((variant: any) => !cartStore.isInCart(variant.id))
-    .slice(0, Math.max(1, quantity))
+  const matchingVariants = availableVariants.filter((variant: any) =>
+    variantMatchesRequestedSize(variant, requestedSize)
+  )
 
-  if (!variantsToAdd.length) {
-    return { success: false, message: 'Sản phẩm này đã có trong giỏ hoặc không còn thêm được nữa.' }
+  if (requestedSize && !matchingVariants.length) {
+    return {
+      success: false,
+      message: `Sản phẩm này không còn size ${options.size}.`,
+    }
   }
 
+  let remaining = Math.max(1, Math.floor(Number(quantity) || 1))
   let addedCount = 0
+  const variantsToAdd = requestedSize ? matchingVariants : availableVariants
+
   for (const variant of variantsToAdd) {
+    if (remaining <= 0) break
+
+    const stockQuantity = getVariantStockQuantity(variant)
+    const inCartQuantity = Number(cartStore.items.find(i => i.id === variant.id)?.quantity || 0)
+    const quantityToAdd = Math.min(Math.max(0, stockQuantity - inCartQuantity), remaining)
+
+    if (quantityToAdd <= 0) continue
+
     const added = cartStore.addToCart({
       id: variant.id,
       productId: product.id,
@@ -792,23 +829,28 @@ const addProductToCartBySlug = async (slug: string, quantity = 1) => {
       variantSize: variant.size || '',
       variantColor: variant.color || '',
       variantMaterial: variant.material || '',
-      price: parseFloat(product.sale_price || product.base_price || 0),
+      price: parseFloat(product.sale_price || product.base_price || 0) + Number(variant.price_adjustment || 0),
+      quantity: quantityToAdd,
+      stockQuantity,
+      stockStatus: variant.status,
     })
 
     if (added) {
-      addedCount++
+      addedCount += quantityToAdd
+      remaining -= quantityToAdd
     }
   }
 
   if (!addedCount) {
-    return { success: false, message: 'Không thể thêm sản phẩm vào giỏ.' }
+    return { success: false, message: 'Sản phẩm này đã có trong giỏ hoặc không còn thêm được nữa.' }
   }
 
   return {
     success: true,
-    message: `Đã thêm ${addedCount} sản phẩm vào giỏ hàng.`,
+    message: `Đã thêm ${addedCount} sản phẩm${requestedSize ? ` size ${options.size}` : ''} vào giỏ hàng.`,
     product,
     addedCount,
+    requestedSize: options.size || null,
   }
 }
 
@@ -875,7 +917,9 @@ const handleToolCall = async (toolCall: any) => {
       }
 
       if (call.name === 'add_to_cart' && call.args?.slug) {
-        const result = await addProductToCartBySlug(call.args.slug, call.args?.quantity || 1)
+        const result = await addProductToCartBySlug(call.args.slug, call.args?.quantity || 1, {
+          size: call.args?.size || getSuggestedProductSizeBySlug(call.args.slug) || null,
+        })
         if (result.success) {
           notifySuccess(result.message)
           playHappy()
@@ -1524,8 +1568,20 @@ const stopVoiceSession = () => {
   teardownVoiceSession({ emitClose: true })
 }
 
-const handleQuickAdd = async (slug: string) => {
-  const result = await addProductToCartBySlug(slug, 1)
+const getSuggestedProductSize = (product: any) => {
+  const variants = Array.isArray(product?.variants) ? product.variants : []
+  const firstAvailable = variants.find(isAvailableVariant)
+
+  return product?.requested_size || firstAvailable?.size || null
+}
+
+const getSuggestedProductSizeBySlug = (slug: string) => {
+  const product = suggestedProducts.value.find((item: any) => item?.slug === slug)
+  return product ? getSuggestedProductSize(product) : null
+}
+
+const handleQuickAdd = async (slug: string, size?: string | null) => {
+  const result = await addProductToCartBySlug(slug, 1, { size })
   if (result.success) {
     notifySuccess(result.message)
     playHappy()
@@ -1854,8 +1910,8 @@ onMounted(() => {
             </div>
             <div v-if="p.variants?.length" class="mt-1">
               <span
-                v-for="v in p.variants.filter((v: any) => v.status === 'AVAILABLE').slice(0, 3)"
-                :key="v.size"
+                v-for="v in p.variants.filter(isAvailableVariant).slice(0, 3)"
+                :key="v.id || v.size"
                 class="inline-block text-[9px] bg-white/10 text-white/60 rounded px-1 mr-1"
               >
                 {{ formatSizeLabel(v.size) }}
@@ -1872,7 +1928,7 @@ onMounted(() => {
               <button
                 type="button"
                 class="rounded-md bg-emerald-500/80 px-2 py-1.5 text-[11px] font-medium text-white transition hover:bg-emerald-500"
-                @click="handleQuickAdd(p.slug)"
+                @click="handleQuickAdd(p.slug, getSuggestedProductSize(p))"
               >
                 Thêm giỏ
               </button>

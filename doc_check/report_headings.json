@@ -1,0 +1,778 @@
+[
+  {
+    "style": "Heading1",
+    "text": "TÓM TẮT"
+  },
+  {
+    "style": "Heading1",
+    "text": "ABSTRACT"
+  },
+  {
+    "style": "Heading1",
+    "text": "LỜI CẢM ƠN"
+  },
+  {
+    "style": "Heading1",
+    "text": "DANH MỤC TỪ VIẾT TẮT"
+  },
+  {
+    "style": "Heading1",
+    "text": "CHƯƠNG I: GIỚI THIỆU"
+  },
+  {
+    "style": "Heading2",
+    "text": "1.1 Đặt vấn đề"
+  },
+  {
+    "style": "Heading2",
+    "text": "1.2 Lý do chọn đề tài"
+  },
+  {
+    "style": "Heading3",
+    "text": "1.3 Mục tiêu nghiên cứu"
+  },
+  {
+    "style": "Heading41",
+    "text": "1.3.1 Mục tiêu tổng quát"
+  },
+  {
+    "style": "Heading41",
+    "text": "1.3.2 Mục tiêu cụ thể"
+  },
+  {
+    "style": "Heading2",
+    "text": "1.4 Phạm vi nghiên cứu"
+  },
+  {
+    "style": "Heading3",
+    "text": "1.4.1 Về phạm vi chức năng"
+  },
+  {
+    "style": "Heading3",
+    "text": "1.4.2 Về phạm vi công nghệ"
+  },
+  {
+    "style": "Heading3",
+    "text": "1.4.3 Về phạm vi dữ liệu và không gian"
+  },
+  {
+    "style": "Heading3",
+    "text": "1.4.4 Hạn chế của đề tài"
+  },
+  {
+    "style": "Heading2",
+    "text": "1.5 Cấu trúc khóa luận"
+  },
+  {
+    "style": "Heading1",
+    "text": "CHƯƠNG II: CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ ÁP DỤNG"
+  },
+  {
+    "style": "Heading2",
+    "text": "2.1 Front-end"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.1.1 Vue.js và Nuxt.js"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.1.1 Các tính năng chính của Nuxt.js"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.1.1.1 Server-Side Rendering (SSR)"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.1.1.2 Static Site Generation (SSG)"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.1.1.3 Universal Rendering (Kết xuất phổ quát)"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.1.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.1.2.1 Ưu điểm của Nuxt.js"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.1.2.2 Nhược điểm của Nuxt.js"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.1.2 Giao tiếp HTTP (Axios / Fetch)"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.2.1 Giao thức Fetch và Axios là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.2.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.2.2.1 Ưu điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.2.2.2 Nhược điểm"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.1.3 Tailwind CSS"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.3.1 Tailwind CSS là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.3.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.3.2.1 Ưu điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.3.2.2 Nhược điểm"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.1.4 Pinia (Quản lý trạng thái)"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.4.1 Pinia là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.4.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.4.2.1 Ưu điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.4.2.2 Nhược điểm"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.1.5 Công nghệ Live2D WebGL SDK"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.5.1 Live2D WebGL SDK là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.1.5.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.5.2.1 Ưu điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.1.5.2.2 Nhược điểm"
+  },
+  {
+    "style": "Heading2",
+    "text": "2.2 Back-end"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.2.1 Express.js"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.1.1 Express.js là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.1.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.2.1.2.1 Ưu điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.2.1.2.2 Nhược điểm"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.2.2 PostgreSQL và Sequelize ORM"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.2.1 PostgreSQL và Sequelize là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.2.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.2.2.2.1 Ưu điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.2.2.2.2 Nhược điểm"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.2.3 JSON Web Token (JWT)"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.3.1 JWT là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.3.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.2.2.2.1 Ưu điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.2.2.2.2 Nhược điểm"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.2.4 Socket.io (WebSocket)"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.4.1 Socket.io là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.4.2 Ưu và nhược điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.2.4.2.1 Ưu điểm"
+  },
+  {
+    "style": "Heading5",
+    "text": "2.2.4.2.2 Nhược điểm"
+  },
+  {
+    "style": "Heading3",
+    "text": "2.2.5 Trí tuệ nhân tạo (AI Agent & RAG)"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.5.1 AI Agent và RAG là gì?"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.5.2 Ứng dụng trong hệ thống AURA ARCHIVE"
+  },
+  {
+    "style": "Heading4",
+    "text": "2.2.5.3 Hạn chế"
+  },
+  {
+    "style": "Heading1",
+    "text": "CHƯƠNG III: KHẢO SÁT THỰC TRẠNG"
+  },
+  {
+    "style": "Heading2",
+    "text": "3.1 Mục đích Khảo sát và Tiêu chí Đánh giá"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.1.1 Mục đích khảo sát"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.1.2 Tiêu chí đánh giá"
+  },
+  {
+    "style": "Heading2",
+    "text": "3.2 Khảo sát nền tảng thương mại điện tử Farfetch"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.2.1 Tổng quan về hệ thống Farfetch"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.2.2 Các chức năng nghiệp vụ cốt lõi"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.2.3 Đánh giá Ưu và Nhược điểm"
+  },
+  {
+    "style": "Heading2",
+    "text": "3.3 Khảo sát nền tảng thương mại điện tử Louis Vuitton (LV)"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.3.1 Tổng quan về hệ thống Louis Vuitton"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.3.2 Các chức năng nghiệp vụ cốt lõi"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.3.3 Đánh giá Ưu và Nhược điểm"
+  },
+  {
+    "style": "Heading2",
+    "text": "3.4 Khảo sát nền tảng thương mại điện tử SIXDO"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.4.1 Tổng quan về hệ thống SIXDO"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.4.2 Các chức năng nghiệp vụ cốt lõi"
+  },
+  {
+    "style": "Heading3",
+    "text": "3.4.3 Đánh giá Ưu và Nhược điểm"
+  },
+  {
+    "style": "Heading2",
+    "text": "3.5 Tổng kết quá trình Khảo sát"
+  },
+  {
+    "style": "Heading1",
+    "text": "CHƯƠNG IV: PHÂN TÍCH VÀ ĐẶC TẢ CHỨC NĂNG HỆ THỐNG"
+  },
+  {
+    "style": "Heading2",
+    "text": "4.1 Kiến trúc tổng thể"
+  },
+  {
+    "style": "Heading2",
+    "text": "4.2 Yêu cầu hệ thống"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.2.1 Yêu cầu chức năng"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.2.2 Yêu cầu phi chức năng"
+  },
+  {
+    "style": "Heading2",
+    "text": "4.3 Sơ đồ Usecase"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.1 Sơ đồ Usecase tổng quát"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.2 Usecase đăng ký"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.2.1 Sơ đồ phân rã usecase đăng ký"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.2.2 Đặc tả đăng ký"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.3 Usecase đăng nhập"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.3.1 Sơ đồ phân rã usecase đăng nhập"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.3.2 Đặc tả đăng nhập"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.4 Usecase quên mật khẩu"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.4.1 Sơ đồ phân rã usecase quên mật khẩu"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.4.2 Đặc tả quên mật khẩu"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.5 Usecase đăng xuất"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.5.1 Sơ đồ phân rã usecase đăng xuất"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.5.2 Đặc tả đăng xuất"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.6 Usecase đặt hàng"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.6.1 Sơ đồ phân rã usecase đặt hàng"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.6.2 Đặc tả đặt hàng"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.7 Usecase quản lý blog"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.7.1 Sơ đồ phân rã usecase quản lý blog"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.7.2 Đặc tả quản lý blog"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.8 Usecase Cập nhật tài khoản"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.8.1 Sơ đồ phân rã usecase cập nhật tài khoản"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.8.2 Đặc tả cập nhật tài khoản"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.9 Usecase đánh giá"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.9.1 Sơ đồ phân rã usecase đánh giá"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.9.2 Đặc tả đánh giá"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.10 Usecase quản lý sản phẩm"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.10.1 Sơ đồ phân rã usecase quản lý sản phẩm"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.10.2 Đặc tả quản lý sản phẩm"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.11 Usecase xử lý đơn hàng"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.11.1 Sơ đồ phân rã usecase xử lý đơn hàng"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.11.2 Đặc tả xử lý đơn hàng"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.12 Usecase quản lý người dùng"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.12.1 Sơ đồ phân rã usecase quản lý người dùng"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.12.2 Đặc tả quản lý người dùng"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.13 Usecase quản lý review"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.13.1 Sơ đồ phân rã usecase quản lý review"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.13.2 Đặc tả quản lý review"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.14 Usecase tương tác Trợ lý AI"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.14.1 Sơ đồ phân rã usecase tương tác AI"
+  },
+  {
+    "style": "Heading5",
+    "text": "4.3.14.2 Đặc tả tương tác Trợ lý AI"
+  },
+  {
+    "style": "Heading3",
+    "text": "4.3.15 Các mã thông báo hệ thống"
+  },
+  {
+    "style": "Heading1",
+    "text": "CHƯƠNG V: HIỆN THỰC VÀ KIỂM THỬ HỆ THỐNG"
+  },
+  {
+    "style": "Heading2",
+    "text": "5.1 Sơ đồ tuần tự"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.1.1 Đăng nhập"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.1.2 Đăng ký"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.1.3 Quên mật khẩu"
+  },
+  {
+    "style": "Heading5",
+    "text": "5.1.3.1 Sơ đồ tuần tự Gửi mã PIN đặt lại mật khẩu"
+  },
+  {
+    "style": "Heading5",
+    "text": "5.1.3.2 Sơ đồ tuần tự Xác thực mã PIN"
+  },
+  {
+    "style": "Heading5",
+    "text": "5.1.3.3 Sơ đồ tuần tự Đặt lại mật khẩu mới"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.1.4 Đánh giá"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.1.5 Đặt hàng"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.1.6 Viết blog"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.1.7 Tương tác AI Agent"
+  },
+  {
+    "style": "Heading2",
+    "text": "5.2 Lược đồ ERD (Entity - Relationship Diagram)"
+  },
+  {
+    "style": "Heading2",
+    "text": "5.3 Đặc tả cơ sở dữ liệu"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.1 Bảng Users"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.2 Bảng UserHistory"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.3 Bảng Reviews"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.4 Bảng Products"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.5 Bảng Categories"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.6 Bảng Blogs"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.7 Bảng Variants"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.8 Bảng Orders"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.3.9 Bảng AI_Conversations"
+  },
+  {
+    "style": "Heading2",
+    "text": "5.4 Triển khai Website"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.1 Giao diện xin quyền Micro và Vị trí"
+  },
+  {
+    "style": "",
+    "text": "5.4.2 Giao diện trang chủ"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.3 Giao diện đăng nhập"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.4 Giao diện đăng ký"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.5 Giao diện trang danh sách sản phẩm"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.6 Giao diện trang sản phẩm ưu đãi hot"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.7 Giao diện trang giỏ hàng"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.8 Giao diện trang chi tiết sản phẩm"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.9 Giao diện trang blog thời trang"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.10 Giao diện tương tác AI Agent (chatbot)"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.11 Giao diện mô hình nhân vật ảo Live2D"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.12 Giao diện bảng điều khiển quản trị (Dashboard)"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.13 Giao diện quản lý đơn hàng"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.14 Giao diện quản lý hồ sơ cá nhân"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.4.15 Giao diện thanh toán (Checkout)"
+  },
+  {
+    "style": "Heading2",
+    "text": "5.5 Kiểm thử hệ thống"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.5.1 Kịch bản kiểm thử"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.5.2 Kết quả kiểm thử"
+  },
+  {
+    "style": "Heading3",
+    "text": "5.5.3 Đánh giá chung"
+  },
+  {
+    "style": "Heading5",
+    "text": "5.5.3.1 Đánh giá về mặt chức năng"
+  },
+  {
+    "style": "Heading5",
+    "text": "5.5.3.2 Đánh giá về hiệu năng và độ ổn định"
+  },
+  {
+    "style": "Heading5",
+    "text": "5.5.3.3 Đánh giá về giao diện và trải nghiệm người dùng"
+  },
+  {
+    "style": "Heading5",
+    "text": "5.5.3.4 Kết luận chung"
+  },
+  {
+    "style": "Heading1",
+    "text": "CHƯƠNG VI: KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN"
+  },
+  {
+    "style": "Heading2",
+    "text": "6.1 Kết luận"
+  },
+  {
+    "style": "Heading3",
+    "text": "6.1.1 Những kết quả đạt được"
+  },
+  {
+    "style": "Heading3",
+    "text": "6.1.2 Những hạn chế còn tồn tại"
+  },
+  {
+    "style": "Heading2",
+    "text": "6.2 Hướng phát triển tương lai"
+  },
+  {
+    "style": "Heading3",
+    "text": "6.2.1 Tối ưu hóa hạ tầng AI và hiệu năng hệ thống"
+  },
+  {
+    "style": "Heading3",
+    "text": "6.2.2 Tích hợp công nghệ thực tế tăng cường (AR) và thử đồ ảo (Virtual Try-On)"
+  },
+  {
+    "style": "Heading3",
+    "text": "6.2.3 Mở rộng hệ sinh thái đa kênh (Omnichannel) và cá nhân hóa sâu"
+  },
+  {
+    "style": "Heading1",
+    "text": "TÀI LIỆU THAM KHẢO"
+  },
+  {
+    "style": "Heading2",
+    "text": "Tài liệu Tiếng Anh"
+  },
+  {
+    "style": "Heading2",
+    "text": "Tài liệu Tiếng Việt"
+  },
+  {
+    "style": "Heading1",
+    "text": "NHẬT KÝ LÀM KHOÁ LUẬN"
+  }
+]

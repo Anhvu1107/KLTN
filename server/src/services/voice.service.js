@@ -497,6 +497,7 @@ HỖ TRỢ KHÁCH:
 - Khách muốn xem danh mục -> navigate_to_category
 - Khách muốn xem món cụ thể -> navigate_to_product
 - Khách ưng món, muốn lấy -> add_to_cart
+- Khi add_to_cart: nếu khách nói size hoặc trước đó đã biết size, BẮT BUỘC truyền size để thêm đúng variant.
 - Khách muốn xem giỏ -> open_cart
 - Khách muốn thanh toán -> go_to_checkout
 - Khách muốn lưu xem sau -> save_to_wishlist
@@ -577,6 +578,7 @@ const getToolDeclarations = () => {
                 type: 'object',
                 properties: {
                     slug: { type: 'string', description: 'Slug sản phẩm cần thêm vào giỏ.' },
+                    size: { type: 'string', description: 'Size khách muốn thêm. Bắt buộc truyền nếu khách nói rõ size, vì một sản phẩm có thể có nhiều variant.' },
                     quantity: { type: 'number', description: 'Số lượng muốn thêm. Mặc định là 1.' },
                     openCartAfterAdd: { type: 'boolean', description: 'Nếu true thì mở giỏ hàng ngay sau khi thêm.' },
                 },
@@ -685,7 +687,40 @@ const getToolDeclarations = () => {
     ];
 };
 
-function normalizeVoiceProduct(product) {
+function normalizeVariantText(value) {
+    return typeof value === 'string' ? value.trim().toUpperCase() : '';
+}
+
+function getVariantStockQuantity(variant) {
+    const stock = Number(variant?.stock_quantity);
+    return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0;
+}
+
+function isVariantAvailableForVoice(variant) {
+    return variant?.status === 'AVAILABLE' && getVariantStockQuantity(variant) > 0;
+}
+
+function variantMatchesVoiceFilters(variant, filters = {}) {
+    const requestedSize = normalizeVariantText(filters.size);
+    if (requestedSize && normalizeVariantText(variant?.size) !== requestedSize) {
+        return false;
+    }
+
+    return true;
+}
+
+function normalizeVoiceProduct(product, filters = {}) {
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const hasVariantFilter = Boolean(normalizeVariantText(filters.size));
+    const visibleVariants = hasVariantFilter
+        ? variants.filter((variant) => variantMatchesVoiceFilters(variant, filters))
+        : variants;
+    const availableVariants = visibleVariants.filter(isVariantAvailableForVoice);
+    const availableCount = availableVariants.reduce(
+        (sum, variant) => sum + getVariantStockQuantity(variant),
+        0
+    );
+
     return {
         id: product.id || '',
         name: product.name || 'Unknown',
@@ -696,13 +731,16 @@ function normalizeVoiceProduct(product) {
         condition: product.condition_text || '',
         slug: product.slug || '',
         image: extractFirstImage(product.images),
-        available_count: (Array.isArray(product.variants) ? product.variants : []).filter((variant) => variant?.status === 'AVAILABLE').length,
-        variants: (Array.isArray(product.variants) ? product.variants : []).map((variant) => ({
+        requested_size: normalizeVariantText(filters.size) || null,
+        available_count: availableCount,
+        variants: visibleVariants.map((variant) => ({
             id: variant.id || '',
             size: variant.size || '',
             color: variant.color || '',
             material: variant.material || '',
-            status: variant.status === 'AVAILABLE'
+            stock_quantity: getVariantStockQuantity(variant),
+            status: variant.status || '',
+            status_label: variant.status === 'AVAILABLE'
                 ? 'Còn hàng'
                 : variant.status === 'SOLD'
                     ? 'Đã bán'
@@ -741,6 +779,10 @@ function updateSessionFromTool(sessionId, toolName, args = {}, payload = {}) {
     }
 
     if (['navigate_to_product', 'add_to_cart', 'open_cart', 'go_to_checkout', 'save_to_wishlist'].includes(toolName)) {
+        if (toolName === 'add_to_cart' && args.size) {
+            session.context.size = args.size;
+        }
+
         session.salesState = {
             ...(session.salesState || {}),
             stage: toolName === 'go_to_checkout' ? 'closing' : 'recommendation',
@@ -780,7 +822,9 @@ const executeToolCall = async (toolName, args = {}, sessionId = null, pageContex
                 return { found: 0, message: 'Không tìm thấy sản phẩm phù hợp.' };
             }
 
-            const normalized = products.map(normalizeVoiceProduct);
+            const normalized = products.map((product) => normalizeVoiceProduct(product, {
+                size: args.size || null,
+            }));
             updateSessionFromTool(sessionId, toolName, args, { products: normalized });
 
             return {

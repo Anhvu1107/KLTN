@@ -1,0 +1,897 @@
+BỘ CÔNG THƯƠNGTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP TP. HỒ CHÍ MINHKHOA CÔNG NGHỆ THÔNG TINBỘ CÔNG THƯƠNGTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP TP. HỒ CHÍ MINHKHOA CÔNG NGHỆ THÔNG TIN
+TÊN ĐỀ TÀI
+WEB SITE THƯƠNG MẠI ĐIỆN TỬ THỜI TRANG  CAO CẤP TÍCH HỢP AI AGENTWEB SITE THƯƠNG MẠI ĐIỆN TỬ THỜI TRANG  CAO CẤP TÍCH HỢP AI AGENT
+NGÀNH: CÔNG NGHỆ THÔNG TIN
+MÃ CHUYÊN NGÀNH: 7480201
+SINH VIÊN:VŨ HẢI QUÂN21040391
+NGUYỄN ANH VŨ21004431
+GVHD:  THS. ĐỖ HÀ PHƯƠNG
+THÀNH PHỐ HỒ CHÍ MINH, THÁNG 5 NĂM 2026
+BỘ CÔNG THƯƠNGTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP TP. HỒ CHÍ MINHKHOA CÔNG NGHỆ THÔNG TINBỘ CÔNG THƯƠNGTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP TP. HỒ CHÍ MINHKHOA CÔNG NGHỆ THÔNG TIN
+TÊN ĐỀ TÀI
+WEB SITE THƯƠNG MẠI ĐIỆN TỬ THỜI TRANG  CAO CẤP TÍCH HỢP AI AGENTWEB SITE THƯƠNG MẠI ĐIỆN TỬ THỜI TRANG  CAO CẤP TÍCH HỢP AI AGENT
+NGÀNH: CÔNG NGHỆ THÔNG TIN
+MÃ CHUYÊN NGÀNH: 7480201
+SINH VIÊN:VŨ HẢI QUÂN21040391
+NGUYỄN ANH VŨ21004431
+GVHD:  THS. ĐỖ HÀ PHƯƠNG
+THÀNH PHỐ HỒ CHÍ MINH, THÁNG 5 NĂM 2026
+INDUSTRIAL UNIVERSITY OF HO CHI MINH CITY
+FACULTY OF INFORMATION TECHNOLOGY
+HIGH-END FASHION E-COMMERCE WEBSITE INTEGRATED WITH AI AGENTHIGH-END FASHION E-COMMERCE WEBSITE INTEGRATED WITH AI AGENT
+MAJOR: INFORMATION TECHNOLOGY                               MAJOR CODE: 7480201                          STUDENTS:         VU HAI QUAN 21040391                                NGUYEN ANH VU 21004431                            SUPERVISOR:       MSC. DO HA PHUONGMAJOR: INFORMATION TECHNOLOGY                               MAJOR CODE: 7480201                          STUDENTS:         VU HAI QUAN 21040391                                NGUYEN ANH VU 21004431                            SUPERVISOR:       MSC. DO HA PHUONG
+HO CHI MINH CITY, MAY 2026
+TÓM TẮT
+Trong bối cảnh thương mại điện tử ngày càng cạnh tranh, đặc biệt ở phân khúc thời trang cao cấp, người dùng không chỉ cần một website bán hàng cơ bản mà còn đòi hỏi một môi trường mua sắm có khả năng tư vấn cá nhân hóa và tạo sự tin cậy cao. Từ yêu cầu đó, đề tài “Web thương mại điện tử thời trang cao cấp tích hợp AI Agent” được thực hiện nhằm xây dựng hệ thống AURA ARCHIVE – một nền tảng bán hàng hiện đại, kết hợp giữa trải nghiệm mua sắm mượt mà và khả năng quản trị vận hành chặt chẽ. Hệ thống được phát triển dựa trên kiến trúc Full-stack với các công nghệ tiên tiến như Nuxt 3 (Vue.js) cho phía giao diện, Express.js cho phía máy chủ và PostgreSQL làm cơ sở dữ liệu cốt lõi. Nền tảng cung cấp đầy đủ các nghiệp vụ TMĐT chuyên sâu như xác thực bảo mật JWT, đăng nhập xã hội, xử lý đơn hàng đa trạng thái và tích hợp đa dạng các cổng thanh toán trực tuyến như VNPay, MoMo, PayPal.
+Điểm đột phá và là trọng tâm nghiên cứu của đề tài chính là việc phát triển một Trợ lý AI (AI Agent) chuyên biệt cho lĩnh vực thời trang. Khác với việc chỉ sử dụng các API thương mại có sẵn, mô hình AI trong hệ thống được huấn luyện chuyên sâu (Fine-tuning) trên tập dữ liệu đặc thù về tư vấn bán lẻ. Nhờ đó, AI Agent có khả năng hiểu sâu các thuật ngữ chuyên môn, phân tích số đo để tư vấn kích cỡ (Sizing) và đưa ra các gợi ý phối đồ (Mix & Match) độc bản cho từng khách hàng. Trải nghiệm tương tác còn được nâng cấp toàn diện thông qua công nghệ Voice AI (nhận dạng và tổng hợp giọng nói) kết hợp với mô hình nhân vật ảo Live2D, mang lại cảm giác được phục vụ bởi một trợ lý cá nhân chuyên nghiệp. Kết quả thực nghiệm cho thấy hệ thống hoạt động ổn định, đáp ứng xuất sắc các mục tiêu đề ra và mở ra hướng đi mới trong việc ứng dụng AI để tối ưu hóa trải nghiệm khách hàng cao cấp tại Việt Nam.
+ABSTRACT
+In the increasingly competitive e-commerce landscape, especially within the luxury fashion segment, users demand more than a conventional online store; they expect a highly personalized shopping environment that fosters intelligence and trust. Addressing this demand, the thesis “High-End Fashion E-Commerce Website Integrated with AI Agent” introduces AURA ARCHIVE – a premium platform that seamlessly combines a smooth user experience with robust administrative operations. The system is built on a modern Full-stack architecture featuring Nuxt 3 (Vue.js) for the frontend, Express.js for the backend server, and PostgreSQL as the core relational database. The platform supports a comprehensive suite of professional e-commerce functionalities, including JWT-based security, multi-state order processing, and integration with popular payment gateways such as VNPay, MoMo, and PayPal.
+The breakthrough and core research focus of this project lies in the development of a specialized AI Agent tailored for the fashion domain. Rather than relying solely on off-the-shelf commercial APIs, the AI model is custom-trained (Fine-tuned) on a dedicated dataset specific to fashion consulting and retail. Consequently, the AI Agent possesses a profound understanding of styling terminologies, accurately analyzes body measurements for sizing recommendations, and provides unique "Mix & Match" suggestions for individual customers. Furthermore, the interactive experience is comprehensively elevated through Voice AI technology integrated with Live2D virtual avatars, delivering a consulting experience reminiscent of a professional "Personal Shopper." The implementation results demonstrate a stable system that successfully achieves its objectives, pioneering the application of custom-trained AI models to elevate personalized high-end customer experiences in Vietnam's retail market.
+LỜI CẢM ƠN
+Để hoàn thành khóa luận này, trước hết chúng em xin gửi lời cảm ơn chân thành đến Ban Giám hiệu, quý Thầy Cô Trường Đại học Công nghiệp TP. Hồ Chí Minh và đặc biệt là quý Thầy Cô Khoa Công nghệ Thông tin đã tạo điều kiện học tập, nghiên cứu và cung cấp nền tảng kiến thức giúp chúng em có thể triển khai đề tài.
+Chúng em xin bày tỏ lòng biết ơn sâu sắc đến ThS. Đỗ Hà Phương - giảng viên hướng dẫn đã trực tiếp theo sát, góp ý và định hướng cho nhóm trong suốt quá trình thực hiện khóa luận. Những nhận xét chuyên môn, sự nghiêm túc trong nghiên cứu và tinh thần làm việc cẩn trọng của Cô là cơ sở quan trọng để chúng em hoàn thiện đề tài theo đúng hướng.
+Chúng em cũng xin cảm ơn gia đình, bạn bè và các anh chị đồng hành đã luôn hỗ trợ về tinh thần, tạo điều kiện về thời gian và động viên trong những giai đoạn khó khăn của quá trình phát triển hệ thống, rà soát mã nguồn và hoàn thiện tài liệu báo cáo.
+Mặc dù đã cố gắng bám sát mã nguồn thực tế và hệ thống hóa nội dung theo tình trạng triển khai hiện có, báo cáo vẫn có thể còn một số thiếu sót. Chúng em rất mong nhận được ý kiến đóng góp của quý Thầy Cô để tiếp tục hoàn thiện hơn trong các bước tiếp theo.
+Nhận xét của giảng viên hướng dẫn
+TP. Hồ Chí Minh, ngày…. tháng…. năm….
+Chữ ký của giảng viên
+Nhận xét của giảng viên phản biện 1
+TP. Hồ Chí Minh, ngày…. tháng….  năm….
+Chữ ký của giảng viên
+Nhận xét của giảng viên phản biện 2
+TP. Hồ Chí Minh, ngày…. tháng….  năm….
+Chữ ký của giảng viên
+DANH MỤC TỪ VIẾT TẮT
+Viết tắt | Viết đầy đủ | Giải thích ngắn
+AI | Artificial Intelligence | Trí tuệ nhân tạo. Trong khuôn khổ đồ án, AI đại diện cho các mô hình ngôn ngữ lớn được ứng dụng để tạo ra trợ lý ảo có khả năng tư vấn phối đồ thời trang tự động.
+API | Application Programming Interface | Giao diện lập trình ứng dụng. Phương thức giao tiếp chuẩn mực cho phép trình duyệt (Frontend) trao đổi dữ liệu với máy chủ (Backend) thông qua các điểm cuối (endpoints).
+AR | Augmented Reality | Thực tế tăng cường. Kỹ thuật chồng ghép hình ảnh 3D của các trang phục lên thế giới thực thông qua camera của thiết bị di động.
+B2C | Business to Consumer | Mô hình thương mại điện tử giao dịch trực tiếp giữa doanh nghiệp bán lẻ (AURA ARCHIVE) và người tiêu dùng cuối.
+CMS | Content Management System | Hệ thống quản trị nội dung. Phân hệ dành riêng cho quản trị viên để quản lý toàn bộ bài viết blog, thông tin sản phẩm và cấu hình trang web.
+COD | Cash On Delivery | Hình thức thanh toán khi nhận hàng. Người mua chỉ thanh toán tiền mặt cho bưu tá khi bưu kiện được giao đến tận tay một cách an toàn.
+CRUD | Create, Read, Update, Delete | Nhóm 4 thao tác nền tảng và cơ bản nhất trên cơ sở dữ liệu: Thêm mới, Đọc dữ liệu, Cập nhật và Xóa bản ghi.
+CSS | Cascading Style Sheets | Ngôn ngữ quy định cách thức trình bày, định dạng kiểu dáng, màu sắc, font chữ và bố cục của các thành phần HTML trên trang web.
+DBMS | Database Management System | Hệ quản trị cơ sở dữ liệu. Cung cấp môi trường để lưu trữ, truy xuất và quản lý lượng lớn dữ liệu có cấu trúc.
+DOM | Document Object Model | Mô hình đối tượng tài liệu. Thể hiện cấu trúc dạng cây của mã HTML để JavaScript có thể dễ dàng can thiệp và thay đổi giao diện động.
+ERD | Entity - Relationship Diagram | Lược đồ thực thể - mối quan hệ. Bản vẽ thiết kế mô phỏng lại các bảng trong cơ sở dữ liệu và cách chúng liên kết với nhau qua các khóa ngoại.
+HTML | HyperText Markup Language | Ngôn ngữ đánh dấu siêu văn bản. Nền tảng cốt lõi dùng để xây dựng và định hình cấu trúc nội dung văn bản của một trang web.
+HTTP | Hypertext Transfer Protocol | Giao thức truyền tải siêu văn bản. Đây là nền tảng giao tiếp định tuyến dữ liệu trên toàn bộ mạng không gian World Wide Web.
+HTTPS | Hypertext Transfer Protocol Secure | Phiên bản bảo mật của giao thức HTTP, được mã hóa bằng chứng chỉ SSL/TLS nhằm ngăn chặn các hành vi đánh cắp dữ liệu đường truyền.
+i18n | Internationalization | Cơ chế quốc tế hóa phần mềm. Đây là quy chuẩn hỗ trợ thiết kế phần mềm để có thể dễ dàng chuyển đổi qua lại giữa nhiều ngôn ngữ khác nhau (VD: Anh - Việt).
+IDE | Integrated Development Environment | Môi trường phát triển tích hợp. Các phần mềm chuyên dụng như Visual Studio Code hỗ trợ lập trình viên soạn thảo, gỡ lỗi và biên dịch mã nguồn.
+JSON | JavaScript Object Notation | Ký hiệu đối tượng JavaScript. Định dạng trao đổi dữ liệu dạng văn bản cực kỳ nhẹ, thân thiện với con người và máy móc để giao tiếp qua API.
+JWT | JSON Web Token | Chuẩn công nghiệp mở đại diện cho các yêu cầu bảo mật giữa hai bên. Được sử dụng chủ yếu trong cơ chế đăng nhập, xác thực và phân quyền người dùng.
+LLM | Large Language Model | Mô hình ngôn ngữ lớn. Mô hình AI được huấn luyện trên lượng dữ liệu khổng lồ, có khả năng hiểu và sinh ra văn bản ngôn ngữ tự nhiên.
+MVC | Model-View-Controller | Mẫu kiến trúc thiết kế phần mềm chia ứng dụng thành 3 thành phần riêng biệt: Mô hình dữ liệu, Giao diện hiển thị và Bộ điều khiển logic.
+NLP | Natural Language Processing | Xử lý ngôn ngữ tự nhiên. Một nhánh của AI giúp máy tính có khả năng đọc, thấu hiểu và trích xuất ý nghĩa từ tiếng nói và văn bản của con người.
+OAuth | Open Authorization | Chuẩn ủy quyền mở phổ biến nhất. Cho phép người dùng đăng nhập vào ứng dụng bằng tài khoản bên thứ ba (Google, Facebook) mà không cần tạo mật khẩu mới.
+ORM | Object Relational Mapping | Kỹ thuật lập trình ánh xạ trực tiếp các bảng dữ liệu quan hệ (SQL) thành các đối tượng (Objects) trong ngôn ngữ lập trình hướng đối tượng.
+OTP | One-Time Password | Mã xác thực chỉ có giá trị sử dụng duy nhất một lần và thường hết hạn trong thời gian ngắn (1-5 phút) để xác thực độ bảo mật ở mức cao nhất.
+PIN | Personal Identification Number | Mã số nhận dạng cá nhân. Một chuỗi các chữ số bảo mật dùng làm rào cản thứ cấp để người dùng khôi phục lại tài khoản.
+QA | Quality Assurance | Đảm bảo chất lượng. Quy trình hệ thống nhằm kiểm thử, phát hiện lỗi phần mềm và duy trì tiêu chuẩn chất lượng trước khi bàn giao ứng dụng.
+RAG | Retrieval-Augmented Generation | Sinh văn bản tăng cường truy xuất. Kỹ thuật cung cấp thêm kiến thức nền (dữ liệu sản phẩm) để mô hình AI sinh ra câu trả lời tư vấn chính xác.
+RDBMS | Relational Database Management System | Hệ quản trị cơ sở dữ liệu quan hệ. Nơi lưu trữ dữ liệu dưới dạng các bảng liên kết khăng khít với nhau, tuân thủ nguyên tắc ACID.
+REST | Representational State Transfer | Kiến trúc phần mềm xác định một tập hợp các ràng buộc để tạo ra các dịch vụ Web an toàn, nhanh chóng và có tính phân tán cao.
+SDK | Software Development Kit | Bộ công cụ phát triển phần mềm cung cấp sẵn các thư viện và tài liệu để lập trình viên nhanh chóng tích hợp công nghệ của bên thứ ba.
+SEO | Search Engine Optimization | Tối ưu hóa công cụ tìm kiếm. Quá trình cấu trúc website để các cỗ máy như Google Bot có thể dễ dàng lập chỉ mục và xếp hạng cao trên kết quả tìm kiếm.
+SKU | Stock Keeping Unit | Đơn vị lưu kho. Một chuỗi ký tự định danh duy nhất dùng để phân loại, theo dõi và quản lý hàng hóa (màu sắc, size) một cách khoa học nhất.
+SPA | Single Page Application | Ứng dụng trang đơn. Kỹ thuật phát triển web tải duy nhất một trang HTML ở lần truy cập đầu và sau đó chỉ tự động cập nhật nội dung mà không tải lại trang.
+SQL | Structured Query Language | Ngôn ngữ truy vấn mang tính cấu trúc. Công cụ tiêu chuẩn dùng để tương tác, truy xuất và sửa đổi dữ liệu bên trong các cơ sở dữ liệu quan hệ.
+SSG | Static Site Generation | Kỹ thuật kết xuất trang web tĩnh. HTML được tạo ra sẵn trong quá trình biên dịch (build time), mang lại tốc độ tải trang nhanh tuyệt đối.
+SSR | Server-Side Rendering | Kết xuất giao diện phía máy chủ. Mỗi khi có truy cập, máy chủ sẽ tự động gọi API, render sẵn HTML rồi mới trả về trình duyệt để tối ưu hóa SEO.
+UI | User Interface | Giao diện người dùng. Tổng thể các thành phần hình ảnh, màu sắc, nút bấm mà người tiêu dùng tương tác trực tiếp trên màn hình.
+URL | Uniform Resource Locator | Trình định vị tài nguyên thống nhất. Địa chỉ tham chiếu được dùng để định hướng người dùng đến một trang cụ thể trên Internet.
+UUID | Universally Unique Identifier | Mã định danh duy nhất toàn cục. Chuỗi ký tự ngẫu nhiên gồm 36 ký tự cực kỳ phức tạp dùng làm khóa chính trong cơ sở dữ liệu.
+UX | User Experience | Trải nghiệm người dùng. Cảm xúc, tính tiện dụng và độ mượt mà mà khách hàng cảm nhận được xuyên suốt quá trình mua sắm trên nền tảng.
+VNPay | Vietnam Payment Solution | Cổng thanh toán điện tử hàng đầu tại Việt Nam, cho phép hệ thống thu tiền trực tuyến một cách an toàn và tự động thông qua mã QR hoặc thẻ ngân hàng.
+VR | Virtual Reality | Thực tế ảo. Công nghệ mô phỏng toàn bộ một không gian 3D, ứng dụng vào việc xây dựng showroom thời trang giả lập trên web.
+WebGL | Web Graphics Library | Thư viện đồ họa trên nền tảng Web. Cung cấp giao diện lập trình để kết xuất hình ảnh 2D và 3D hiệu suất cao, trực tiếp trên mọi trình duyệt tương thích.
+CHƯƠNG I: GIỚI THIỆU
+1.1 Đặt vấn đề
+Trong kỉ nguyên chuyển đổi số, thương mại điện tử đã trở thành xương sống của ngành công nghiệp bán lẻ toàn cầu. Tuy nhiên, khi xét riêng tại phân khúc thời trang cao cấp (High Fashion) và đặc biệt là thị trường thời trang thiết kế, hàng hiệu qua sử dụng (Resale) và hàng ký gửi (Consignment), hành vi tiêu dùng mang những đặc thù hoàn toàn khác biệt. Khách hàng ở phân khúc này không xem giá cả là yếu tố tiên quyết. Quyết định mua sắm của họ bị chi phối bởi các yếu tố vô hình như: tính độc bản của thương hiệu, độ tin cậy của thông tin sản phẩm, tính tương thích với phong cách cá nhân, và đặc biệt là trải nghiệm dịch vụ chăm sóc khách hàng.
+Hiện nay, phần lớn các hệ thống website bán hàng truyền thống vẫn vận hành theo mô hình "Self-service" (Tự phục vụ). Nghĩa là hệ thống chỉ đơn thuần cung cấp các chức năng tĩnh như trưng bày sản phẩm, tìm kiếm từ khóa, thêm vào giỏ hàng và thanh toán. Mô hình này rất hiệu quả đối với các mặt hàng tiêu dùng nhanh, nhưng lại bộc lộ những khiếm khuyết lớn khi áp dụng vào ngành thời trang cao cấp. Người dùng trên môi trường số thường bị rơi vào trạng thái "đơn độc", thiếu vắng đi sự hỗ trợ của các chuyên gia tư vấn (Personal Shoppers) như khi bước vào một cửa hàng vật lý. Mặc dù một số hệ thống có tích hợp Chatbot, nhưng chúng chủ yếu hoạt động dựa trên các kịch bản tĩnh (Rule-based) vô hồn, hoàn toàn bất lực trước những yêu cầu tư vấn mang tính định tính như: "Hãy gợi ý cho tôi một chiếc túi xách phù hợp với đầm dạ hội màu đen cho sự kiện tối nay".
+Xuất phát từ điểm nghẽn thực tiễn đó, việc đưa Trí tuệ nhân tạo (AI) vào giải quyết bài toán tư vấn cá nhân hóa là một xu thế tất yếu. Tuy nhiên, việc chỉ tích hợp các mô hình ngôn ngữ lớn (LLMs) chung chung thông qua các hàm gọi API có sẵn thường không đem lại độ chính xác chuyên môn cao, bởi AI đại chúng thiếu hụt vốn từ vựng và tư duy phối đồ đặc thù của ngành thời trang. Do đó, nhu cầu cấp thiết hiện nay là xây dựng một hệ thống E-commerce hiện đại, đi kèm với một Tác nhân Thông minh (AI Agent) được huấn luyện chuyên sâu (Datatrain / Fine-tuning) trên nền tảng dữ liệu thời trang thực tế.
+Từ những lập luận trên, đề tài “Website thương mại điện tử thời trang cao cấp tích hợp AI Agent” được lựa chọn nghiên cứu và triển khai, với sản phẩm cốt lõi là nền tảng “AURA ARCHIVE” hiện thực hóa khái niệm Thương mại Hội thoại (Conversational Commerce) một cách trọn vẹn nhất.
+1.2 Lý do chọn đề tài
+Về mặt thực tiễn thị trường: Sự cạnh tranh khốc liệt trong lĩnh vực thương mại điện tử buộc các thương hiệu phải đi tìm lợi thế cạnh tranh mới. Đối với ngành thời trang cao cấp, lợi thế đó nằm ở dịch vụ. Việc tích hợp một Trợ lý AI có khả năng giao tiếp, am hiểu số đo và tư vấn phong cách theo ngữ cảnh sẽ giúp các thương hiệu tối ưu hóa tỷ lệ chuyển đổi (Conversion Rate), giảm thiểu tỷ lệ hoàn trả hàng (do tư vấn sai kích cỡ), và nâng tầm đẳng cấp của hệ thống.
+Về mặt xu hướng công nghệ Trí tuệ Nhân tạo: Trong những năm gần đây, cộng đồng học thuật và công nghệ không còn thỏa mãn với việc chỉ sử dụng AI như một công cụ hỏi đáp (Q&A) dựa trên API của bên thứ ba. Xu hướng lõi (Core trend) hiện tại là khả năng tùy biến và tự huấn luyện (Data-training) các mô hình ngôn ngữ trên những tập dữ liệu chuyên ngành (Domain-specific datasets) để tạo ra các AI Agent thực sự hiểu biết về lĩnh vực đó. Đề tài chọn hướng đi tự huấn luyện dữ liệu thời trang nhằm khẳng định hàm lượng kỹ thuật chuyên sâu và bắt kịp với xu hướng AI tiên tiến nhất trên thế giới.
+Về tính khả thi và thách thức kỹ thuật: Đề tài đặt ra một bài toán đầy tham vọng khi kết hợp một lúc nhiều công nghệ phức tạp: Kiến trúc web Full-stack (Nuxt 3, Express.js, PostgreSQL), mô hình AI tự huấn luyện, công nghệ xử lý giọng nói (Voice AI) thời gian thực và mô phỏng nhân vật ảo 2D (Live2D WebGL). Việc gắn kết thành công toàn bộ các thành phần này thành một hệ thống AURA ARCHIVE hoạt động trơn tru là một minh chứng xuất sắc cho năng lực nghiên cứu, phân tích thiết kế và lập trình thực hành.
+1.3 Mục tiêu nghiên cứu
+1.3.1 Mục tiêu tổng quát
+Mục tiêu tổng quát của đề tài là xây dựng thành công một nền tảng thương mại điện tử thời trang cao cấp mang tên AURA ARCHIVE, hoàn thiện từ giao diện người dùng đến hệ thống quản trị backend, đồng thời phát triển và tích hợp thành công một Trợ lý AI (AI Agent) tự huấn luyện chuyên biệt, nhằm mang lại trải nghiệm mua sắm có tính tương tác, cá nhân hóa và thân thiện nhất cho khách hàng.
+1.3.2 Mục tiêu cụ thể
+Để đạt được mục tiêu tổng quát, đề tài vạch ra 5 mục tiêu cụ thể như sau:
+Thiết kế và xây dựng kiến trúc hệ thống (Full-stack Architecture): Phát triển giao diện Front-end hiện đại, tối ưu SEO bằng Nuxt 3 (Vue.js); phát triển hệ thống API linh hoạt và hiệu suất cao ở Back-end bằng Express.js; thiết kế hệ quản trị cơ sở dữ liệu quan hệ chặt chẽ bằng PostgreSQL.
+Nghiên cứu và huấn luyện dữ liệu AI (Data-training): Đây là mục tiêu cốt lõi. Tiến hành thu thập, làm sạch và đóng gói tập dữ liệu (dataset) chuyên ngành thời trang. Sau đó thực hiện huấn luyện (Fine-tuning) để mô hình AI có thể hiểu sâu sắc các thuật ngữ chuyên môn, tư duy phối đồ (Mix & Match) và phân tích số đo kích cỡ (Sizing).
+Phát triển tương tác Đa phương thức (Multimodal Interaction): Tích hợp công nghệ nhận diện và tổng hợp giọng nói (Voice AI), kết hợp cùng công nghệ hiển thị nhân vật ảo (Live2D) để biến AI Agent thành một hình mẫu "Cửa hàng trưởng" có khả năng giao tiếp bằng giọng nói thời gian thực.
+Hoàn thiện các nghiệp vụ Thương mại điện tử cao cấp: Hiện thực hóa các tính năng nghiệp vụ E-commerce quan trọng như: quản lý xác thực (JWT, OAuth 2.0), quản lý giỏ hàng, wishlist, blog, tích hợp các cổng thanh toán (VNPay, MoMo, PayPal) và phát triển Dashboard quản trị cho Admin để theo dõi đơn hàng, doanh thu.
+Đảm bảo tính bảo mật và khả năng mở rộng: Thiết kế cấu trúc cơ sở dữ liệu và mã nguồn theo tiêu chuẩn để ngăn chặn các lỗ hổng bảo mật cơ bản, đồng thời cho phép dễ dàng tích hợp thêm các công cụ giám sát hoặc mở rộng năng lực xử lý của máy chủ trong tương lai.
+1.4 Phạm vi nghiên cứu
+1.4.1 Về phạm vi chức năng
+Hệ thống AURA ARCHIVE tập trung hoàn thiện các chức năng lõi của một quy trình mua sắm E-commerce độc lập: từ lúc khách hàng đăng nhập, tìm kiếm bộ lọc, thêm vào giỏ, đến quá trình thanh toán và theo dõi tình trạng đơn hàng. Lớp AI Agent được giới hạn trong phạm vi tư vấn bán hàng, giải đáp thông tin sản phẩm có sẵn trong kho dữ liệu và hỗ trợ tương tác giọng nói.
+1.4.2 Về phạm vi công nghệ
+Front-end: Giới hạn sử dụng framework Nuxt 3 (chạy trên nền Vue 3), Tailwind CSS cho thiết kế giao diện, Pinia cho quản lý trạng thái, và thư viện Live2D Cubism WebGL.
+Back-end: Sử dụng môi trường Node.js với framework Express.js, thao tác với cơ sở dữ liệu PostgreSQL thông qua ORM Sequelize.
+AI & Security: Sử dụng JWT cho cơ chế bảo mật phiên đăng nhập, tích hợp các công nghệ huấn luyện mô hình (Data-training pipeline) dựa trên các bộ khung AI nguồn mở tiên tiến nhất; sử dụng các API thanh toán bên thứ ba được cung cấp (Sandbox).
+1.4.3 Về phạm vi dữ liệu và không gian
+Dữ liệu sử dụng trong nghiên cứu là dữ liệu mô phỏng nghiệp vụ thực tế, bao gồm hình ảnh quần áo, các biến thể (màu sắc, kích cỡ), và dữ liệu người dùng thử nghiệm. Đối với AI, tập dữ liệu huấn luyện (Training dataset) được nhóm nghiên cứu tự tổng hợp từ các kho kiến thức thời trang, các kịch bản hội thoại tư vấn bán lẻ và chuẩn hóa theo định dạng yêu cầu của mô hình học máy.
+1.4.4 Hạn chế của đề tài
+Dù đã nỗ lực hoàn thiện ở mức độ cao nhất, đề tài không thể tránh khỏi một số giới hạn khách quan:
+Giới hạn về tài nguyên phần cứng huấn luyện: Việc tự huấn luyện một mô hình ngôn ngữ lớn (LLM) đòi hỏi năng lực tính toán cực lớn (GPU Clusters). Do điều kiện sinh viên, quá trình Data-train chỉ dừng lại ở quy mô tinh chỉnh các mô hình nhỏ gọn (Small Language Models) hoặc các thuật toán phân loại ý định (Intent Classification) đặc thù, chưa thể so sánh sức mạnh sinh văn bản đa miền với các siêu mô hình bản thương mại.
+Giới hạn triển khai: Hệ thống hiện tại tập trung báo cáo về thiết kế kiến trúc và mã nguồn logic. Việc triển khai hệ thống lên các cụm máy chủ phân tán (Cloud Auto-scaling) để chịu tải hàng triệu lượt truy cập cùng lúc nằm ngoài phạm vi thực hiện của đồ án này.
+1.5 Cấu trúc khóa luận
+Nội dung của khóa luận được tổ chức chặt chẽ thành 6 chương với trình tự lô-gic như sau:
+Chương 1: Giới thiệu đề tài. Trình bày bối cảnh ra đời, lý do chọn đề tài, mục tiêu, phạm vi và những hạn chế khách quan trong quá trình nghiên cứu.
+Chương 2: Cơ sở lý thuyết và công nghệ áp dụng. Mổ xẻ chi tiết các nền tảng kiến thức và lý do lựa chọn các công nghệ cho hệ thống (Nuxt 3, Express, PostgreSQL, AI Fine-tuning, Live2D).
+Chương 3: Khảo sát thực trạng. Đánh giá ưu nhược điểm các hệ thống hiện hành (Farfetch, Louis Vuitton, SIXDO) để tìm ra các khoảng trống nghiệp vụ.
+Chương 4: Phân tích và thiết kế hệ thống. Trình bày sơ đồ kiến trúc tổng quan, thiết kế cơ sở dữ liệu (ERD), thiết kế giao diện và luồng hoạt động của các nghiệp vụ cốt lõi.
+Chương 5: Cài đặt và hiện thực hệ thống. Cung cấp hình ảnh và phân tích kết quả hiện thực hóa các chức năng thực tế của phần mềm, từ giao diện cửa hàng đến không gian quản trị và khả năng tương tác của trợ lý AI.
+Chương 6: Kết luận: Tổng kết những thành quả đã đạt được trong quá trình thực hiện đồ án, đồng thời đề xuất những hướng phát triển trong tương lai để đưa sản phẩm ứng dụng vào thực tế kinh doanh.
+CHƯƠNG II: CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ ÁP DỤNG
+Chương 2 trình bày chi tiết về các nền tảng lý thuyết, các công cụ, thư viện và framework được sử dụng để xây dựng và phát triển hệ thống thương mại điện tử AURA ARCHIVE. Các công nghệ được chia làm hai phần chính: Front-end (Giao diện người dùng) và Back-end (Máy chủ xử lý và Cơ sở dữ liệu), đi kèm với các phân tích chuyên sâu về ưu, nhược điểm để làm rõ lý do tại sao chúng được lựa chọn cho dự án này.
+2.1 Front-end
+Phân hệ Front-end của hệ thống chịu trách nhiệm trực tiếp tương tác với người dùng cuối, do đó yêu cầu về hiệu năng tải trang, trải nghiệm mượt mà (UX) và tối ưu hóa công cụ tìm kiếm (SEO) được đặt lên hàng đầu.
+2.1.1 Vue.js và Nuxt.js
+2.1.1.1 Các tính năng chính của Nuxt.js
+Nuxt.js là một meta-framework mã nguồn mở được xây dựng trên nền tảng của Vue.js. Nếu Vue.js cung cấp các công cụ cốt lõi để xây dựng giao diện (như Virtual DOM, Reactivity System, Component-based architecture), thì Nuxt.js cung cấp một kiến trúc tổng thể, giải quyết triệt để các bài toán khó của ứng dụng trang đơn (SPA) truyền thống. Các tính năng cốt lõi làm nên sức mạnh của Nuxt.js bao gồm:
+2.1.1.1.1 Server-Side Rendering (SSR)
+Server-Side Rendering (Kết xuất phía máy chủ) là quá trình máy chủ xử lý các component của Vue.js và biến chúng thành một chuỗi HTML hoàn chỉnh trước khi gửi trả về cho trình duyệt của người dùng.
+Khi người dùng gửi một yêu cầu truy cập trang web (ví dụ: truy cập trang chi tiết sản phẩm), máy chủ Nuxt (được vận hành bởi Nitro engine) sẽ chạy các hàm gọi dữ liệu (API calls), nạp dữ liệu đó vào các Vue component, và kết xuất ra mã HTML.
+Khác với SPA truyền thống (nơi trình duyệt nhận về một file HTML gần như trống rỗng và phải chờ JavaScript tải về để tự vẽ giao diện), SSR cho phép trình duyệt hiển thị nội dung ngay lập tức khi nhận được phản hồi.
+Sau khi HTML được hiển thị, trình duyệt tiếp tục tải ngầm Vue.js và thực hiện quá trình "Hydration" (thủy hợp) – gắn các trình lắng nghe sự kiện (event listeners) vào các phần tử HTML tĩnh, biến chúng thành một ứng dụng tương tác đầy đủ.
+Hình 1: Cơ chế hoạt động của Server-Side Rendering (SSR)
+2.1.1.1.2 Static Site Generation (SSG)
+Static Site Generation (Tạo trang tĩnh) là khả năng kết xuất toàn bộ các trang của ứng dụng thành các file HTML tĩnh ngay từ giai đoạn "Build" (biên dịch mã nguồn) thay vì kết xuất vào lúc người dùng yêu cầu (Runtime) như SSR.
+Trong quá trình build, Nuxt.js sẽ duyệt qua toàn bộ các route (đường dẫn) của ứng dụng, gọi API lấy dữ liệu và tạo sẵn các file `.html`.
+Khi người dùng truy cập, máy chủ (hoặc mạng phân phối nội dung CDN) chỉ việc trả thẳng file `.html` này về mà không cần tốn bất kỳ tài nguyên CPU nào để tính toán lại. Tính năng này mang lại tốc độ tải trang nhanh kỷ lục, nhưng chỉ phù hợp với các trang web có nội dung ít thay đổi (như trang Giới thiệu, Blog, Điều khoản dịch vụ).
+2.1.1.1.3 Universal Rendering (Kết xuất phổ quát)
+Nuxt 3 cung cấp khả năng kết xuất phổ quát, đây là sự kết hợp tinh túy giữa SSR và SPA. Khi người dùng truy cập trang web lần đầu (First Load), Nuxt sẽ sử dụng cơ chế SSR để trả về HTML hoàn chỉnh, giúp tối ưu SEO và thời gian First Contentful Paint. Tuy nhiên, ở các lần điều hướng tiếp theo (nhấp vào liên kết chuyển trang), Nuxt sẽ hoạt động hoàn toàn như một SPA – chỉ lấy dữ liệu định dạng JSON từ máy chủ và kết xuất phần giao diện thay đổi ngay trên trình duyệt (Client-side Rendering). Cơ chế này mang lại trải nghiệm mượt mà tuyệt đối mà không cần tải lại toàn bộ trang.
+2.1.1.2 Ưu và nhược điểm
+2.1.1.2.1 Ưu điểm của Nuxt.js
+Tối ưu hóa SEO mạnh mẽ: Các trình thu thập dữ liệu của Google (Googlebot) có thể dễ dàng đọc được mã HTML được kết xuất hoàn chỉnh từ SSR, từ đó lập chỉ mục (index) các trang chi tiết sản phẩm một cách chính xác. Đây là ưu điểm mang tính quyết định đối với một website E-commerce.
+Tốc độ phản hồi và UX vượt trội: Trải nghiệm chuyển trang nhanh chóng của kiến trúc Universal Rendering kết hợp với tính năng tự động tìm nạp trước (Prefetching) các liên kết xuất hiện trên màn hình giúp ứng dụng mượt mà như ứng dụng gốc (Native App).
+Kiến trúc thư mục tự động (File-based Routing): Nuxt.js tự động tạo các bộ định tuyến (router) dựa trên cấu trúc cây thư mục trong folder “pages/”. Nhà phát triển không cần phải cấu hình file router thủ công phức tạp.
+Auto-imports thông minh: Nuxt tự động nhận diện và nhập (import) các component, các hàm hỗ trợ (composables) và API của Vue (như ref`, computed) vào mọi nơi trong dự án mà không cần nhà phát triển phải viết lệnh “import”.
+2.1.1.2.2 Nhược điểm của Nuxt.js
+Chi phí vận hành máy chủ (Server Costs): Do cần có một môi trường Node.js chạy liên tục để thực hiện kết xuất SSR, chi phí triển khai và cấu hình máy chủ cho Nuxt.js tốn kém và phức tạp hơn so với việc lưu trữ các ứng dụng SPA tĩnh trên các dịch vụ như S3 hay GitHub Pages.
+Xử lý Hydration Mismatch: Đây là một lỗi rất phổ biến khi sử dụng Nuxt. Nếu mã HTML được sinh ra ở server không khớp hoàn toàn với cấu trúc DOM mà client tạo ra (thường do sự khác biệt về thời gian, múi giờ, hoặc việc sử dụng thẻ HTML không hợp lệ), Vue sẽ báo lỗi và buộc phải kết xuất lại toàn bộ từ đầu, gây ảnh hưởng xấu đến hiệu năng.
+Hình 2: Logo Nuxt.js
+2.1.2 Giao tiếp HTTP (Axios / Fetch)
+2.1.2.1 Giao thức Fetch và Axios là gì?
+Trong kiến trúc phần mềm Decoupled (Tách rời Frontend và Backend), Frontend bắt buộc phải giao tiếp với Backend thông qua các API HTTP.
+Fetch API là một giao diện lập trình ứng dụng tiêu chuẩn được tích hợp sẵn trong tất cả các trình duyệt hiện đại, cung cấp phương thức để lấy và gửi tài nguyên qua mạng lưới internet một cách bất đồng bộ bằng `Promise`.
+Axios (hoặc `ofetch` tích hợp sẵn trong Nuxt 3) là một thư viện HTTP Client dựa trên Promise. Nó đóng vai trò như một lớp bọc (wrapper) bảo vệ và nâng cấp các tính năng nguyên thủy của Fetch API, cung cấp một API thân thiện và dễ sử dụng hơn.
+Trong dự án AURA ARCHIVE, các hàm `useFetch` và `$fetch` (được xây dựng trên nền tảng của ofetch/Axios) được tận dụng triệt để để gọi API lấy danh sách sản phẩm, tạo đơn hàng và kiểm tra xác thực.
+Hình 3: Sơ đồ mô tả quá trình Request/Response thông qua HTTP Client
+2.1.2.2 Ưu và nhược điểm
+2.1.2.2.1 Ưu điểm
+Tự động chuyển đổi dữ liệu (Auto JSON transformation): Khác với Fetch nguyên thủy yêu cầu nhà phát triển phải gọi hàm “.json()” để giải mã dữ liệu, các thư viện như Axios tự động chuyển đổi định dạng chuỗi JSON trả về từ máy chủ thành các đối tượng JavaScript, giúp mã nguồn sạch sẽ hơn.
+Bộ chặn (Interceptors): Tính năng quyền lực nhất của thư viện HTTP Client. Interceptor cho phép hệ thống "đón lỏng" và can thiệp vào mọi request trước khi nó được gửi đi (ví dụ: tự động đính kèm token JWT vào Header xác thực) và mọi response trước khi nó trả về hàm gọi (ví dụ: tự động làm mới token nếu bị hết hạn, hoặc bật thông báo lỗi toàn cục).
+Ngăn chặn yêu cầu đồng thời (Request Cancellation): Hỗ trợ tính năng hủy yêu cầu đang dang dở thông qua AbortController, cực kỳ hữu ích đối với tính năng tìm kiếm (Search) khi người dùng gõ phím quá nhanh.
+2.1.2.2.2 Nhược điểm
+Phụ thuộc bên thứ ba: Mặc dù mang lại nhiều tiện ích, việc sử dụng các thư viện như Axios đồng nghĩa với việc tăng thêm kích thước bundle (gói thư viện) tải về trình duyệt của khách hàng, dù không đáng kể.
+2.1.3 Tailwind CSS
+2.1.3.1 Tailwind CSS là gì?
+Tailwind CSS là một framework CSS theo xu hướng "Utility-First" (Ưu tiên tiện ích). Khác với các framework truyền thống như Bootstrap hay Material-UI cung cấp sẵn các thành phần giao diện đã thiết kế cứng (ví dụ: một cái nút bấm “.btn-primary” có sẵn màu sắc, bóng đổ, kích thước), Tailwind chỉ cung cấp các lớp (class) CSS cấp thấp nhất, ứng với từng thuộc tính đồ họa đơn lẻ.
+Ví dụ: Thay vì dùng class “.card”, lập trình viên sẽ kết hợp các class “bg-white rounded-lg shadow-md p-4” trực tiếp vào thẻ HTML để tự cấu thành một giao diện thẻ bài theo ý muốn.
+2.1.3.2 Ưu và nhược điểm
+2.1.3.2.1 Ưu điểm
+Tốc độ thiết kế cực nhanh: Lập trình viên không cần phải liên tục chuyển đổi qua lại giữa file HTML và file CSS để xem hoặc viết class. Toàn bộ thiết kế được khai báo trực tiếp ngay trên thẻ HTML.
+Tối ưu hóa dung lượng (JIT Compiler): Với trình biên dịch Just-In-Time (JIT), Tailwind sẽ quét toàn bộ mã nguồn của dự án (Vue, HTML), phân tích xem lập trình viên đã thực sự dùng các class nào, và chỉ tạo ra file CSS chứa đúng những class đó. Một dự án khổng lồ khi build ra file CSS thường chỉ nặng dưới 10KB (đã nén Gzip).
+Hạn chế xung đột CSS: Vì không cần phải nghĩ tên cho các class (Ví dụ: wrapper-outer, inner-container), dự án hoàn toàn tránh được tình trạng rò rỉ hoặc ghi đè CSS ngoài ý muốn, một vấn đề vô cùng nhức nhối khi bảo trì các file CSS toàn cục lớn.
+2.1.3.2.2 Nhược điểm
+Mã HTML trở nên lộn xộn (Ugly HTML): Đây là lời phàn nàn phổ biến nhất. Việc gắn hàng chục class vào một thẻ (ví dụ “<div class="flex items-center justify-between px-4 py-2 bg-red-500 hover:bg-red-600 transition-colors duration-300">”) làm cho mã nguồn HTML trở nên rất dài, khó đọc và khó bảo trì bằng mắt thường nếu không có sự hỗ trợ của các Editor thông minh.
+Đường cong học tập (Learning Curve): Người lập trình bắt buộc phải nắm vững kiến thức về CSS thuần (Flexbox, Grid, Positioning) thì mới có thể sử dụng các class tiện ích của Tailwind một cách hiệu quả.
+Hình 4: Logo Tailwind CSS
+2.1.4 Pinia (Quản lý trạng thái)
+2.1.4.1 Pinia là gì?
+Trong các ứng dụng giao diện phức tạp, dữ liệu (State) thường xuyên phải được chia sẻ giữa nhiều màn hình khác nhau (ví dụ: số lượng sản phẩm trong giỏ hàng cần hiển thị ở mọi nơi, thông tin người dùng cần được kiểm tra liên tục). Nếu truyền dữ liệu thủ công qua lại giữa các Component mẹ và Component con (Prop Drilling), cấu trúc ứng dụng sẽ nhanh chóng trở nên rối rắm.
+Pinia (Tương đương với Zustand trong React) là thư viện quản lý trạng thái chính thức thế hệ mới dành cho hệ sinh thái Vue.js. Pinia cung cấp một kho chứa dữ liệu tập trung (Store) có tính phản ứng (reactive), giúp mọi thành phần giao diện đều có thể đọc và ghi dữ liệu một cách đồng bộ.
+Hình 5: Logo Pinia
+2.1.4.2 Ưu và nhược điểm
+2.1.4.2.1 Ưu điểm
+Thiết kế phân tán linh hoạt: Khác với Vuex phiên bản cũ bắt buộc mọi dữ liệu phải nhét vào một cây trạng thái khổng lồ, Pinia cho phép tạo ra nhiều Store nhỏ độc lập (như useAuthStore, useCartStore, useProductStore). Điều này giúp phân tách logic theo từng miền nghiệp vụ rõ ràng.
+Tích hợp sâu TypeScript: Pinia được thiết kế dành cho TypeScript. Nó cung cấp khả năng tự động gợi ý code (Autocompletion) cực kỳ chính xác cho các biến và hàm trong Store mà không cần phải định nghĩa các kiểu rườm rà.
+Tính năng mở rộng (Plugins): Pinia hỗ trợ hệ sinh thái plugin rất tốt, đặc biệt là “pinia-plugin-persistedstate”. Plugin này cho phép tự động đồng bộ hóa trạng thái của Store vào Local Storage của trình duyệt. Nhờ đó, giỏ hàng của người dùng không bị biến mất ngay cả khi họ F5 tải lại trang hay tắt trình duyệt.
+2.1.4.2.2 Nhược điểm
+Rủi ro bảo mật ở phía Client: Các dữ liệu lưu trong Store (khi kết hợp với Persisted State) có thể dễ dàng bị xem hoặc chỉnh sửa bằng công cụ DevTools của trình duyệt. Do đó, lập trình viên không được phép lưu trữ các thông tin nhạy cảm như Mật khẩu dạng rõ, hay logic quyết định giá cả cuối cùng tại Pinia. (Mọi quyết định trừ tiền đều phải được xác minh lại ở máy chủ).
+2.1.5 Công nghệ Live2D WebGL SDK
+2.1.5.1 Live2D WebGL SDK là gì?
+Để tạo ra điểm nhấn khác biệt cho trợ lý ảo (AI Agent) trong dự án AURA ARCHIVE, hệ thống tích hợp công nghệ Live2D thay vì chỉ sử dụng cửa sổ chat văn bản tĩnh. Live2D là công nghệ phần mềm tạo hoạt ảnh 2D thông qua việc cắt nhỏ các hình vẽ 2D (phẳng) thành một mạng lưới đa giác (mesh) và tác động biến dạng (deform) lên chúng để tạo ảo giác chuyển động 3D.
+Live2D Cubism WebGL SDK là bộ công cụ cho phép nhúng trực tiếp các mô hình nhân vật này lên nền tảng web (Canvas) và tương tác với chuột hoặc âm thanh bằng ngôn ngữ JavaScript.
+2.1.5.2 Ưu và nhược điểm
+2.1.5.2.1 Ưu điểm
+Giữ nguyên phong cách nghệ thuật: Không giống như dựng hình 3D nguyên khối đòi hỏi phải xây dựng texture phức tạp, Live2D sử dụng trực tiếp nét vẽ gốc của họa sĩ 2D, giữ được tính nghệ thuật (Anime/Manga style) một cách trọn vẹn nhất.
+Tương tác thời gian thực: Thông qua WebGL, mô hình có thể phản hồi lập tức với tọa độ con trỏ chuột (mắt nhân vật nhìn theo chuột) và đặc biệt là khả năng kết nối với Audio API của trình duyệt. Biên độ sóng âm thanh phát ra (TTS) có thể được chuyển đổi thành tham số há miệng (Lip-sync), tạo cảm giác AI đang thực sự nói chuyện.
+2.1.5.2.2 Nhược điểm
+Chi phí phần cứng máy khách (Client-side Rendering overhead): Việc render liên tục một khung vẽ Canvas chứa các lưới đa giác bằng WebGL đòi hỏi máy tính/điện thoại của khách hàng phải xử lý bằng GPU. Trên các thiết bị di động cũ, chức năng này có thể làm hao pin nhanh hoặc gây hiện tượng giật lag khung hình (FPS drop).
+Hình 6: Mô hình nhân vật Live2D
+2.2 Back-end
+Phân hệ Back-end, hay còn gọi là Máy chủ, là bộ não điều phối dữ liệu, xử lý các nghiệp vụ cốt lõi, bảo mật hệ thống và lưu trữ trạng thái lâu dài. Dự án ứng dụng kiến trúc RESTful API.
+2.2.1 Express.js
+2.2.1.1 Express.js là gì?
+Express.js là khung làm việc (framework) ứng dụng web nhanh, linh hoạt và cực kỳ phổ biến được xây dựng trên nền tảng môi trường thực thi Node.js. Nhiệm vụ của Express.js là cung cấp một lớp vỏ bọc gọn nhẹ bên trên các hàm API HTTP phức tạp nguyên thủy của Node.js, giúp các nhà phát triển dễ dàng xây dựng hệ thống API, quản lý bộ định tuyến (Routing) và kết nối với cơ sở dữ liệu.
+Cốt lõi của Express.js là kiến trúc Middleware. Middleware là các hàm trung gian nằm giữa luồng Request (Yêu cầu) và Response (Phản hồi). Khi máy chủ nhận một truy cập, nó sẽ truyền truy cập đó qua một đường ống chứa nhiều màng lọc Middleware. Ví dụ: Filter 1 kiểm tra xem chuỗi JSON có đúng cấu trúc không -> Filter 2 kiểm tra người dùng có quyền đăng nhập không -> Filter 3 mới thực sự truy vấn Database.
+2.2.1.2 Ưu và nhược điểm
+2.2.1.2.1 Ưu điểm
+Mô hình I/O không chặn (Non-blocking I/O): Kế thừa từ Node.js, Express.js sử dụng kiến trúc Event-Driven cực kỳ hiệu quả. Khi Express gọi một lệnh lưu đơn hàng vào DB, thay vì bắt toàn bộ máy chủ dừng lại chờ DB lưu xong (Blocking), nó sẽ đẩy tác vụ đó vào Event Loop và lập tức quay ra phục vụ người dùng thứ hai, thứ ba. Khi DB lưu xong, hệ thống sẽ đánh thức tác vụ cũ để trả kết quả. Nhờ vậy, một máy chủ Express nhỏ bé có thể chịu tải hàng ngàn truy cập đồng thời.
+Hệ sinh thái khổng lồ: Trải qua hơn một thập kỷ tồn tại, Express.js sở hữu kho thư viện (npm packages) hỗ trợ đồ sộ. Bất cứ vấn đề nào nhà phát triển gặp phải (như mã hóa mật khẩu, upload file, chặn IP spam) đều có sẵn thư viện giải quyết hoàn chỉnh.
+2.2.1.2.2 Nhược điểm
+Thiết kế không theo khuôn định sẵn: Khác với NestJS hay Laravel ép buộc lập trình viên phải tổ chức thư mục theo cấu trúc chuẩn MVC nghiêm ngặt, Express cho phép viết code theo bất kỳ cấu trúc nào. Điều này là con dao hai lưỡi. Với dự án lớn, nếu không có kinh nghiệm tổ chức kiến trúc phân tầng (Layered Architecture), mã nguồn Express.js sẽ nhanh chóng trở thành một mớ hỗn độn (Spaghetti Code) không thể bảo trì.
+Hình 7: Khung làm việc Express.js
+2.2.2 PostgreSQL và Sequelize ORM
+2.2.2.1 PostgreSQL và Sequelize là gì?
+PostgreSQL là hệ quản trị cơ sở dữ liệu quan hệ mã nguồn mở (RDBMS) mang tính định hướng đối tượng, được công nhận là một trong những cơ sở dữ liệu tiên tiến, ổn định và tuân thủ các tiêu chuẩn SQL nghiêm ngặt nhất thế giới hiện nay. Nó quản lý dữ liệu bằng cách sử dụng các bảng chứa dòng và cột, được liên kết với nhau bằng các khóa ngoại (Foreign Keys).
+Sequelize là một thư viện Object-Relational Mapping (ORM) dành cho Node.js. Thay vì lập trình viên phải viết các câu lệnh truy vấn SQL thô cứng (ví dụ: `SELECT * FROM users WHERE email='...'`), Sequelize cho phép tương tác với Database thông qua các lớp Đối tượng JavaScript (Classes/Objects).
+Hình 8: Hệ quản trị CSDL PostgreSQL
+2.2.2.2 Ưu và nhược điểm
+2.2.2.2.1 Ưu điểm
+Toàn vẹn Giao dịch (ACID) tuyệt đối: Trong thương mại điện tử, việc trừ tiền và trừ kho phải xảy ra đồng thời. PostgreSQL hỗ trợ cơ chế Transaction và Row-Level Lock mạnh mẽ. Kỹ thuật `SELECT ... FOR UPDATE` đảm bảo khi hai khách hàng cùng ấn mua sản phẩm duy nhất cuối cùng ở cùng 1 mili-giây, máy chủ sẽ bắt 1 người đứng chờ để kiểm tra, ngăn chặn tuyệt đối tình trạng tranh chấp dữ liệu gây âm kho (Race Condition).
+Bảo mật SQL Injection: Việc sử dụng Sequelize ORM giải quyết hoàn toàn nguy cơ bảo mật SQL Injection phổ biến, do thư viện này tự động tham số hóa (Parameterized queries) và làm sạch toàn bộ dữ liệu đầu vào trước khi đưa xuống Database.
+Hỗ trợ dữ liệu phi cấu trúc JSONB: PostgreSQL cho phép tạo cột dữ liệu dạng JSONB. Điều này rất tuyệt vời để lưu trữ cấu hình linh hoạt (ví dụ: Địa chỉ nhận hàng có cấu trúc không cố định) mà không cần phải đẻ ra hàng chục bảng trung gian.
+2.2.2.2.2 Nhược điểm
+Hiệu suất ORM khi truy vấn phức tạp: Đối với các câu truy vấn báo cáo thống kê phức tạp (chứa hàng loạt lệnh JOIN nhiều cấp, GROUP BY, Pivot), Sequelize tạo ra các câu lệnh SQL tự sinh khá cồng kềnh và chậm chạp. Trong những trường hợp cực độ, lập trình viên vẫn phải viết Raw Query để tối ưu hiệu năng.
+Khả năng mở rộng theo chiều ngang khó khăn: RDBMS truyền thống như PostgreSQL có kiến trúc Single-Master. Rất dễ dàng nâng cấp bằng cách mua máy chủ mạnh hơn (Scale-up), nhưng lại rất phức tạp để chia nhỏ cơ sở dữ liệu ra chạy trên nhiều máy chủ cùng lúc (Scale-out) so với cơ sở dữ liệu NoSQL như MongoDB.
+2.2.3 JSON Web Token (JWT)
+2.2.3.1 JWT là gì?
+JSON Web Token (JWT) là một tiêu chuẩn mở (RFC 7519) định nghĩa một cách nhỏ gọn và độc lập để truyền tải thông tin an toàn giữa các bên dưới dạng đối tượng JSON. Thông tin này có thể được xác minh và tin cậy vì nó được ký điện tử.
+Trong hệ thống AURA ARCHIVE, JWT được dùng làm công cụ xác thực (Authentication) thay thế cho cơ chế Session truyền thống.
+Cấu trúc JWT gồm 3 phần:
+Header: Chứa thuật toán mã hóa chữ ký (thường là HMAC SHA256).
+Payload: Chứa các yêu cầu xác nhận (claims), ví dụ ID người dùng, email, và quyền hạn (Role), kèm theo thời gian hết hạn (EXP).
+Signature: Chữ ký tạo ra bằng cách kết hợp Header, Payload và một "Khóa bí mật" (Secret Key) chỉ được lưu trữ tuyệt mật trên máy chủ backend.
+Hình 9: Cấu trúc 3 phần cấu thành của JSON Web Token
+2.2.3.2 Ưu và nhược điểm
+2.2.2.2.1 Ưu điểm
+Kiến trúc Phi trạng thái (Stateless): Ưu điểm lớn nhất của JWT. Máy chủ không cần lưu bất kỳ dữ liệu đăng nhập nào của người dùng vào RAM (Memory) hay Database. Khi client gửi token lên, server chỉ cần dùng Khóa bí mật giải mã chữ ký. Nếu chữ ký đúng, server chấp nhận yêu cầu. Điều này giúp hệ thống Backend rất dễ dàng nhân bản (Scale) lên nhiều cụm máy chủ vì không phải lo đồng bộ session.
+Linh hoạt qua mọi nền tảng: Chuỗi token JWT cực kỳ gọn nhẹ, có thể đính kèm vào Header HTTP (Authorization: Bearer <token>), dễ dàng sử dụng cho cả ứng dụng Web, ứng dụng Mobile, hay giao tiếp giữa các Server với nhau (Microservices).
+2.2.2.2.2 Nhược điểm
+Không thể bị thu hồi trước hạn (Revocation Problem): Do server không lưu trữ danh sách token đang hoạt động, một khi token được phát hành, nó sẽ tiếp tục có hiệu lực cho đến khi hết hạn (EXP). Nếu tin tặc trộm được token của nạn nhân, server không có cách nào chặn token đó ngay lập tức (ngoại trừ việc lập ra một Blacklist cồng kềnh, làm mất đi tính stateless nguyên thủy).
+Giải pháp trong dự án là sử dụng thời hạn sống của Access Token cực ngắn (15-30 phút), kết hợp với Refresh Token (lưu an toàn trong HttpOnly Cookie) để tái cấp phát token liên tục.
+2.2.4 Socket.io (WebSocket)
+2.2.4.1 Socket.io là gì?
+Giao thức HTTP truyền thống chỉ hoạt động theo nguyên lý "Yêu cầu - Phản hồi" (Request-Response) một chiều. Tức là Client hỏi, Server trả lời, rồi lập tức ngắt kết nối. Server hoàn toàn mù tịt và không thể chủ động gửi thông báo xuống Client nếu Client chưa hỏi.
+Socket.io là một thư viện JavaScript hỗ trợ giao tiếp hai chiều (Bidirectional) và thời gian thực (Real-time) theo sự kiện. Dưới màng bọc, nó sử dụng giao thức WebSocket (một kênh kết nối TCP liên tục mở).
+Trong dự án AURA ARCHIVE, Socket.io đóng vai trò xương sống cho tính năng Chatbot AI. Khi người dùng nhập một câu hỏi, AI Agent ở server có thể mất 3-5 giây để suy nghĩ (gọi API LLM). Thay vì client phải thiết lập vòng lặp gọi HTTP liên tục (Polling) hỏi "Có kết quả chưa?", Socket.io duy trì kết nối. Ngay khi có phản hồi, Server chủ động phát sự kiện (Emit) đẩy text thẳng xuống màn hình Client ngay lập tức.
+Hình 10: Cơ chế giao tiếp đa chiều, thời gian thực của giao thức WebSocket
+2.2.4.2 Ưu và nhược điểm
+2.2.4.2.1 Ưu điểm
+Độ trễ tối thiểu (Low Latency): Vì kênh truyền tải TCP luôn được mở giữ chỗ, dữ liệu đi qua lại không phải chịu gánh nặng khởi tạo kết nối mạng (TCP Handshake, TLS Negotiation) như HTTP. Tốc độ truyền tin đạt mức mili-giây.
+Dự phòng thông minh (Fallback): Nếu người dùng sử dụng trình duyệt mạng công ty cũ kỹ bị tường lửa chặn WebSocket, Socket.io tự động chuyển hạ tầng xuống kỹ thuật HTTP Long-polling để đảm bảo tính năng chat không bao giờ bị sập.
+2.2.4.2.2 Nhược điểm
+Tốn kém tài nguyên máy chủ: Giữ hàng ngàn kết nối hở liên tục (Open Sockets) đòi hỏi dung lượng bộ nhớ RAM lớn ở máy chủ. Cấu hình máy chủ cần được tinh chỉnh (ví dụ: tăng giới hạn file descriptors trong Linux) để tránh bị sập hệ thống khi lượng người truy cập tăng đột biến.
+2.2.5 Trí tuệ nhân tạo (AI Agent & RAG)
+2.2.5.1 AI Agent và RAG là gì?
+AI Agent (Tác nhân Thông minh): Là một phần mềm được nhúng sức mạnh của Mô hình Ngôn ngữ Lớn (LLMs như Gemini 1.5 hoặc GPT-4), có khả năng hiểu ngôn ngữ tự nhiên, lập kế hoạch và thực hiện các tác vụ theo ủy quyền.
+RAG (Retrieval-Augmented Generation - Tăng cường sinh văn bản bằng truy xuất): Đây là kỹ thuật mang tính đột phá nhằm giải quyết nhược điểm trí mạng của LLM: Hiện tượng Ảo giác (Hallucination - tự bịa ra thông tin giả). Cơ chế của RAG là: Trước khi LLM trả lời khách hàng, hệ thống Backend sẽ tự động tìm kiếm thông tin thật trong Database (Retrieval), đóng gói thông tin thật này cùng với câu hỏi, rồi mới nạp vào cho LLM (Augmentation). LLM buộc phải lấy kiến thức từ gói thông tin này để tổng hợp câu trả lời ngôn ngữ tự nhiên (Generation).
+Hình 11: Sơ đồ luồng hoạt động của mô hình kiến trúc RAG
+2.2.5.2 Ứng dụng trong hệ thống AURA ARCHIVE
+Trong hệ thống AURA ARCHIVE, AI Agent không phải là một con chatbot trả lời FAQ (Câu hỏi thường gặp) khô khan dựa trên kịch bản cứng (Rule-based). Nó đóng vai trò là một "Stylist - Cửa hàng trưởng" ảo đích thực:
+Nhờ RAG, AI truy cập trực tiếp vào CSDL tồn kho. Khách hàng hỏi: "Tôi có 2 triệu, muốn mua quần âu đi làm, size L".
+Đầu tiên, Backend sẽ tiếp nhận câu hỏi và tiến hành truy vấn cơ sở dữ liệu để tìm kiếm các sản phẩm thuộc danh mục "Quần âu" có mức giá "Dưới 2 triệu" và tình trạng tồn kho "Còn Size L". Sau đó, tập dữ liệu kết quả này sẽ được đóng gói và gửi lên mô hình Gemini. Cuối cùng, Gemini dựa vào những thông tin đó để tự động sinh ra câu trả lời mạch lạc bằng ngôn ngữ tự nhiên: "Dạ, với ngân sách 2 triệu, bạn có thể tham khảo 3 mẫu quần âu sau đây đang có sẵn size L...".
+Sự thông minh này còn được biểu diễn qua giao diện Live2D phát âm thanh qua Voice AI, biến hệ thống thành một nền tảng Thương mại Hội thoại (Conversational Commerce) hoàn chỉnh.
+2.2.5.3 Hạn chế
+Độ trễ phản hồi (Latency): Việc gọi qua lại các API của Gemini hoặc OpenAI phụ thuộc hoàn toàn vào tốc độ đường truyền quốc tế và tải hệ thống của nhà cung cấp, đôi khi phản hồi có thể mất đến vài giây.
+Chi phí vận hành API: Việc gửi đi toàn bộ ngữ cảnh lịch sử chat cùng cấu trúc dữ liệu sản phẩm tiêu tốn một lượng Token đầu vào khá lớn cho mỗi lượt yêu cầu. Mặc dù chi phí Token đang giảm dần, đây vẫn là khoản chi trả cố định cần tối ưu hóa bằng các phương pháp tóm tắt bộ nhớ (Memory Summarization).
+CHƯƠNG III: KHẢO SÁT THỰC TRẠNG
+3.1 Mục đích Khảo sát và Tiêu chí Đánh giá
+3.1.1 Mục đích khảo sát
+Trong bối cảnh ngành công nghiệp thời trang xa xỉ và cao cấp đang dịch chuyển mạnh mẽ lên không gian số, việc hiểu rõ cách thức vận hành của các nền tảng thương mại điện tử đi trước là vô cùng cấp thiết. Khách hàng thuộc phân khúc cao cấp (High-end consumers) có những đòi hỏi hoàn toàn khác biệt so với thị trường đại chúng (Mass market). Họ không mua sắm vì các chương trình giảm giá chớp nhoáng (Flash sale) hay giá thành rẻ, mà họ chi trả cho trải nghiệm mua sắm mang tính cá nhân hóa, sự tinh tế trong thiết kế giao diện, và dịch vụ chăm sóc khách hàng độc bản.
+Mục đích của chương này là tiến hành khảo sát và mổ xẻ chi tiết các nền tảng thương mại điện tử thời trang cao cấp hàng đầu hiện nay. Thông qua quá trình phân tích độc lập, mục tiêu đặt ra là hiểu rõ các luồng nghiệp vụ cốt lõi mà các hệ thống này đang áp dụng để duy trì trải nghiệm sang trọng trên môi trường trực tuyến, đồng thời nhận diện những hạn chế và điểm mù trong việc phục vụ tệp khách hàng khó tính này.
+3.1.2 Tiêu chí đánh giá
+Việc khảo sát các hệ thống được thực hiện dựa trên 3 trụ cột tiêu chí nghiệp vụ chính:
+Nghiệp vụ Trưng bày và Thẩm mỹ (Visual & Catalog Management): Đánh giá cách hệ thống thiết kế giao diện người dùng (UI), sử dụng không gian trắng (White space), nghệ thuật kể chuyện thương hiệu (Storytelling) và cách hiển thị hình ảnh/video chất lượng cao để giữ vững tính sang trọng.
+Nghiệp vụ Dịch vụ Cá nhân hóa và Hỗ trợ (Personalized Services): Phân tích cách hệ thống giao tiếp với khách hàng, tư vấn kích cỡ, hỗ trợ phối đồ, và đặc quyền dành cho thành viên VIP.
+Nghiệp vụ Chuyển đổi và Thanh toán (Premium Checkout): Đánh giá quy trình đặt hàng, sự minh bạch trong việc tính thuế/phí đối với hàng xa xỉ, và mức độ trơn tru, bảo mật của các cổng thanh toán.
+Đối tượng khảo sát được lựa chọn bao gồm ba hệ thống mang tính biểu tượng ở các mô hình khác nhau: Farfetch (Mô hình phân phối đa thương hiệu toàn cầu), Louis Vuitton (Mô hình thương hiệu độc lập toàn cầu), và SIXDO (Mô hình thương hiệu thiết kế cao cấp nội địa).
+3.2 Khảo sát nền tảng thương mại điện tử Farfetch
+3.2.1 Tổng quan về hệ thống Farfetch
+Farfetch là nền tảng thương mại điện tử B2C (Business-to-Consumer) lớn nhất toàn cầu trong lĩnh vực thời trang xa xỉ. Không giống như các thương hiệu tự sản xuất tự bán, Farfetch đóng vai trò là một "đại siêu thị xa xỉ", kết nối khách hàng với hàng trăm boutique và các nhà mốt cao cấp (như Gucci, Prada, Balenciaga) trên toàn thế giới. Do đặc thù này, hệ thống của Farfetch phải xử lý một lượng dữ liệu sản phẩm (SKU) khổng lồ và đối mặt với bài toán vận chuyển xuyên biên giới cực kỳ phức tạp.
+3.2.2 Các chức năng nghiệp vụ cốt lõi
+Nghiệp vụ Quản trị Danh mục Khổng lồ (Massive SKU Management): Với hàng triệu biến thể sản phẩm đến từ nhiều nguồn khác nhau, Farfetch xây dựng một hệ thống Tìm kiếm và Lọc đa chiều (Faceted Search) cực kỳ uy lực. Khách hàng không chỉ lọc theo "Size" hay "Màu sắc", mà hệ thống cung cấp các bộ lọc nghiệp vụ chuyên sâu của ngành xa xỉ: lọc theo "Boutique đối tác" (Ví dụ: Chỉ mua hàng từ boutique ở Milan), lọc theo "Chất liệu bền vững" (Conscious materials), hoặc lọc theo "Tình trạng hàng hiệu cũ" (Pre-owned).
+Nghiệp vụ Hiển thị Trực quan Cao cấp: Dù là một trang web có khối lượng thông tin khổng lồ, giao diện của Farfetch tuân thủ triệt để chủ nghĩa Tối giản (Minimalism). Hệ thống sử dụng phông nền xám trắng đồng nhất, phông chữ không chân (Sans-serif) màu đen cơ bản làm nền tảng để tôn lên tối đa màu sắc chân thực của món đồ. Trên website tuyệt đối không có sự xuất hiện của các banner nhấp nháy, các cửa sổ quảng cáo rác (Pop-up ads) hay các luồng thông tin gây nhiễu, đảm bảo khách hàng hoàn toàn tập trung vào sản phẩm.
+Hình 12: Giao diện danh mục sản phẩm tối giản và bộ lọc chuyên sâu của Farfetch
+Nghiệp vụ Tính toán Thuế và Hải quan Tự động: Đối với mặt hàng xa xỉ, thuế nhập khẩu thường chiếm một tỷ trọng rất lớn trong giá thành. Luồng Checkout của Farfetch giải quyết triệt để nghiệp vụ này bằng cách tích hợp công cụ tính Thuế nhập khẩu (Import Duties) ngay tại thời điểm khách hàng xem giỏ hàng. Dựa vào IP và địa chỉ giao hàng, hệ thống cộng gộp chính xác số tiền thuế vào tổng hóa đơn (DDP - Delivered Duty Paid). Khách hàng cao cấp chỉ cần thanh toán một lần và nhận hàng tại cửa, không bao giờ bị phiền hà bởi các thủ tục hải quan rắc rối.
+3.2.3 Đánh giá Ưu và Nhược điểm
+Ưu điểm:
+Kiến trúc Dữ liệu siêu việt: Khả năng xử lý tìm kiếm thời gian thực (Real-time Search) cho hàng triệu sản phẩm xa xỉ vô cùng mượt mà. Hệ thống đồng bộ tồn kho từ hàng ngàn boutique thực tế trên toàn thế giới với độ chính xác cao.
+Quy trình thanh toán an tâm tuyệt đối: Việc tính toán minh bạch mọi loại thuế phí và luồng thanh toán một trang (Single-page Checkout) mang lại sự tin tưởng tối đa cho các giao dịch có giá trị lên tới hàng ngàn đô la.
+Nhược điểm:
+Thiếu sự gắn kết cảm xúc (Emotional Disconnect): Do Farfetch là nền tảng phân phối trung gian, họ không tập trung vào việc "kể câu chuyện thương hiệu" (Storytelling). Việc trình bày sản phẩm dưới dạng lưới đơn điệu khiến trải nghiệm mua sắm khá khô khan, giống như đang truy cập vào một kho hàng trực tuyến khổng lồ chứ không giống như bước vào một cửa hàng thời trang sang trọng.
+Vắng bóng sự tư vấn cá nhân: Khâu tư vấn phối đồ của Farfetch hoàn toàn dựa vào thuật toán tĩnh (Gợi ý các sản phẩm khách hàng khác cũng mua). Hệ thống thiếu đi sự tương tác với con người, không có nhân viên tư vấn cá nhân (Personal Shopper) để hỗ trợ các khách hàng VIP đưa ra quyết định thẩm mỹ.
+3.3 Khảo sát nền tảng thương mại điện tử Louis Vuitton (LV)
+3.3.1 Tổng quan về hệ thống Louis Vuitton
+Louis Vuitton (louisvuitton.com) đại diện cho mô hình D2C (Direct-to-Consumer) của một thương hiệu xa xỉ độc bản. Đối với Louis Vuitton, website không chỉ là một công cụ để bán hàng, mà là một triển lãm nghệ thuật số, một không gian để truyền tải di sản và triết lý thiết kế của hãng đến với giới thượng lưu toàn cầu.
+3.3.2 Các chức năng nghiệp vụ cốt lõi
+Nghiệp vụ Kể chuyện Thương hiệu (Storytelling) qua Không gian 3D/Video: Giao diện trang chủ của Louis Vuitton hoàn toàn phá vỡ các quy tắc của thương mại điện tử thông thường (hiển thị lưới sản phẩm). Thay vào đó, ngay khi truy cập, người dùng được tiếp đón bằng các video Lookbook độ phân giải 4K toàn màn hình (Full-screen Video). Khi đi sâu vào trang chi tiết sản phẩm, khách hàng không chỉ xem ảnh 2D mà có thể tương tác với không gian 3D, xoay sản phẩm 360 độ để soi từng đường kim mũi chỉ. Thậm chí, hệ thống hỗ trợ công nghệ AR (Thực tế tăng cường) để khách hàng dùng camera điện thoại ướm thử chiếc túi xách lên mặt bàn thực tế.
+Hình 13: Giao diện trang chủ sử dụng Video toàn màn hình đậm chất Storytelling của Louis Vuitton
+Nghiệp vụ Dịch vụ Độc quyền (Exclusive Personalization): Louis Vuitton số hóa dịch vụ cá nhân hóa đặc quyền của họ thông qua tính năng "Hot Stamping" (Khắc tên viết tắt). Trên website, khi chọn mua các món đồ da, khách hàng có thể gõ các chữ cái viết tắt của tên mình. Hệ thống sẽ ngay lập tức kết xuất (render) hình ảnh giả lập lớp ép kim màu vàng/bạc lên bề mặt chiếc túi theo thời gian thực. Đây là một nghiệp vụ đỉnh cao khẳng định vị thế cá nhân của người mua.
+Nghiệp vụ Chăm sóc Khách hàng Premium: Louis Vuitton cung cấp tính năng "Client Advisor" – một dịch vụ chăm sóc khách hàng đẳng cấp nhất. Thay vì dùng chatbot kịch bản, hệ thống cho phép khách hàng chọn giờ và đặt lịch hẹn (Booking) để gọi Video Call trực tiếp với một chuyên gia tư vấn (Stylist) của hãng đang ngồi tại Paris hoặc các cửa hàng Flagship lớn, mang lại trải nghiệm mua sắm như ngoài đời thực.
+Hình 14: Giao diện nghiệp vụ cá nhân hóa (Hot Stamping) trên website Louis Vuitton
+3.3.3 Đánh giá Ưu và Nhược điểm
+Ưu điểm:
+Trải nghiệm UX/UI mang tính nghệ thuật: Giao diện khẳng định vị thế xa xỉ tuyệt đối. Các hiệu ứng chuyển cảnh (Micro-interactions) cực kỳ mượt mà và tinh tế. Nghiệp vụ cá nhân hóa sản phẩm (Khắc tên) tạo ra giá trị cảm xúc rất lớn cho khách hàng.
+Giao tiếp thị giác xuất sắc: Hình ảnh và video chất lượng vượt trội, truyền tải được trọn vẹn chất liệu (vân da, độ bóng của kim loại) qua màn hình số.
+Nhược điểm:
+Rào cản về Hiệu năng hệ thống (Performance): Việc nhồi nhét quá nhiều thư viện WebGL và Video 4K chưa qua nén triệt để làm cho thời gian First Load (tải lần đầu) của trang khá chậm, đặc biệt khi khách hàng sử dụng mạng di động.
+Rào cản tư vấn thời gian thực: Mặc dù có dịch vụ "Client Advisor" cực kỳ VIP, sự bất tiện nằm ở chỗ khách hàng bắt buộc phải "đặt lịch hẹn" và chờ đợi theo múi giờ làm việc của nhân viên. Sự đứt gãy trải nghiệm xảy ra nếu một khách hàng nảy sinh nhu cầu muốn được tư vấn kích cỡ ngay lập tức vào lúc nửa đêm, họ sẽ không có bất kỳ công cụ tự động nào hỗ trợ ngoài việc chờ đợi đến sáng hôm sau.
+3.4 Khảo sát nền tảng thương mại điện tử SIXDO
+3.4.1 Tổng quan về hệ thống SIXDO
+Tại thị trường nội địa Việt Nam, SIXDO (thương hiệu thuộc nhà thiết kế Đỗ Mạnh Cường) là một trong những tên tuổi định hình cho phân khúc thời trang thiết kế cao cấp. Nền tảng thương mại điện tử của SIXDO được thiết kế tập trung sâu sắc vào việc thấu hiểu thói quen mua sắm của tệp khách hàng có thu nhập cao tại thị trường bản địa.
+3.4.2 Các chức năng nghiệp vụ cốt lõi
+Nghiệp vụ Trưng bày theo Lookbook (Shop the Look): Đặc thù của thời trang thiết kế là sự đồng bộ trong phong cách. Thay vì hiển thị sản phẩm một cách rời rạc (chỉ có áo, chỉ có quần), SIXDO trình bày sản phẩm theo dạng các "Bộ Sưu Tập" (Collections). Khách hàng có thể chiêm ngưỡng một bức ảnh người mẫu mặc nguyên một set đồ hoàn chỉnh. Ngay bên cạnh bức ảnh, hệ thống cung cấp các nút "Shop the Look", liệt kê chi tiết chiếc áo, chiếc váy và phụ kiện xuất hiện trong ảnh để khách hàng dễ dàng đưa toàn bộ vào giỏ hàng. Nghiệp vụ bán chéo (Cross-selling) này kích thích mạnh mẽ quyết định mua sắm của giới thượng lưu.
+Hình 15: Giao diện hiển thị sản phẩm theo Bộ sưu tập và tính năng "Shop the Look" của SIXDO
+Nghiệp vụ Quản lý Khách hàng VIP nội địa: Hệ thống SIXDO xây dựng một kiến trúc quản trị quan hệ khách hàng (CRM) mạnh mẽ, phân cấp rõ ràng các hạng thẻ thành viên (VIP, VVIP). Khi khách hàng đăng nhập thành công, hệ thống tự động đối chiếu hạng thẻ và hiển thị giá đã được chiết khấu trực tiếp trên mọi danh mục sản phẩm, tạo cảm giác được tôn vinh đặc quyền.
+Nghiệp vụ Thanh toán Bản địa hóa: Khác với sự phức tạp của các nền tảng quốc tế, luồng thanh toán của SIXDO được tối ưu hóa xuất sắc cho thói quen tài chính của người Việt. Hệ thống tích hợp trực tiếp với các cổng thanh toán nội địa như VNPAY, MoMo và cung cấp luồng hướng dẫn chuyển khoản ngân hàng trực tiếp rất rõ ràng và bảo mật.
+3.4.3 Đánh giá Ưu và Nhược điểm
+Ưu điểm:
+Am hiểu sâu sắc thị trường bản địa: Từ phương thức thanh toán đến quy trình tích điểm thẻ VIP, mọi nghiệp vụ đều đánh trúng tâm lý và thói quen của tệp khách hàng cao cấp tại Việt Nam.
+Thẩm mỹ chuẩn mực: Giao diện Clean UI sạch sẽ, hình ảnh người mẫu được đầu tư đồng đều, bối cảnh sang trọng, giúp truyền tải xuất sắc định vị thương hiệu.
+Nhược điểm:
+Sự lạc hậu trong khâu tư vấn khách hàng: Khách hàng cao cấp của SIXDO thường có yêu cầu rất khắt khe và tỉ mỉ về thông số kích thước (vì đồ thiết kế thường có form dáng đặc thù). Tuy nhiên, website chỉ cung cấp một bảng size tĩnh. Khi có thắc mắc, khách hàng bị buộc phải thoát khỏi website, mở ứng dụng Zalo hoặc gọi Hotline để nhân viên trực page tiến hành đo đạc và tư vấn thủ công.
+Việc phụ thuộc hoàn toàn vào sức người (nhân viên trực chat) khiến hệ thống mất đi tính tự động hóa, làm đứt gãy luồng mua sắm liền mạch (Seamless shopping experience) ngay tại khoảnh khắc khách hàng có ý định chốt đơn.
+3.5 Tổng kết quá trình Khảo sát
+Sau quá trình khảo sát và phân tích sâu ba nền tảng thương mại điện tử đại diện cho phân khúc thời trang xa xỉ và cao cấp (Farfetch, Louis Vuitton, SIXDO), có thể rút ra một số kết luận mang tính bản chất về thị trường hiện tại:
+Đầu tiên về mặt giao diện và luồng thanh toán cơ bản, các hệ thống đều đã đạt đến sự hoàn thiện cực kỳ cao. Nguyên tắc thiết kế tối giản (Minimalism), nghệ thuật kể chuyện bằng hình ảnh lớn (Storytelling), và các quy trình bảo mật giao dịch đã trở thành tiêu chuẩn bắt buộc (Standard requirements) của ngành hàng cao cấp. Các tính năng như phân loại đa chiều hay thanh toán một trang không còn là lợi thế cạnh tranh mang tính đột phá.
+Tiếp theo cũng là điểm hạn chế nghiêm trọng nhất được bộc lộ qua tất cả các nền tảng: Đó là sự đứt gãy trong trải nghiệm Dịch vụ Tư vấn.
+Trong môi trường bán lẻ trực tiếp (Offline Boutique), khách hàng cao cấp luôn được chào đón bởi các nhân viên tư vấn cá nhân (Personal Shoppers) – những người có thể quan sát vóc dáng, tư vấn kích thước chính xác và gợi ý các set đồ phù hợp với từng ngữ cảnh dự tiệc hay đi làm.
+Trên môi trường trực tuyến (Online), khách hàng lại rơi vào trạng thái "đơn độc". Các hệ thống hiện tại hoặc là bỏ mặc khách hàng tự mò mẫm bảng size tĩnh (SIXDO), hoặc gợi ý sản phẩm một cách vô hồn bằng thuật toán (Farfetch), hoặc yêu cầu khách hàng phải thực hiện các thủ tục đặt lịch hẹn rườm rà để được nói chuyện với nhân viên (Louis Vuitton).
+Có thể thấy, dù các thương hiệu xa xỉ chi hàng triệu đô la để thiết kế website hào nhoáng, họ vẫn đang thất bại trong việc số hóa "trải nghiệm được phục vụ tận tình" (Hospitality) – vốn là linh hồn của ngành hàng cao cấp. Những hạn chế này chính là bài toán lớn nhất mà các hệ thống thương mại điện tử thế hệ tiếp theo cần tập trung giải quyết thông qua việc ứng dụng các công nghệ tự động hóa và trí tuệ nhân tạo.
+Hình 16: Mô phỏng sự khác biệt về chất lượng tư vấn giữa không gian trực tuyến và cửa hàng vật lý
+CHƯƠNG IV: PHÂN TÍCH VÀ ĐẶC TẢ CHỨC NĂNG HỆ THỐNG
+4.1 Kiến trúc tổng thể
+Hệ thống thương mại điện tử thời trang cao cấp AURA ARCHIVE được thiết kế theo kiến trúc máy khách và máy chủ nhiều tầng (multi-tier architecture). Mục tiêu của kiến trúc này là tách biệt rõ ràng các trách nhiệm của từng thành phần trong hệ thống, từ đó giúp mã nguồn dễ dàng bảo trì, mở rộng và tăng cường khả năng chịu tải khi có lượng lớn người dùng truy cập. Kiến trúc của hệ thống được chia thành ba lớp chính bao gồm lớp giao diện người dùng, lớp máy chủ ứng dụng và lớp cơ sở dữ liệu.
+Lớp giao diện người dùng (client-side) được xây dựng bằng framework Nuxt 3 dựa trên nền tảng Vue.js. Lớp này chịu trách nhiệm hiển thị giao diện mua sắm trực quan, xử lý các tương tác của người dùng như nhấp chuột, cuộn trang, và gửi các yêu cầu dữ liệu thông qua giao thức HTTP.
+Lớp máy chủ ứng dụng (backend-side) được phát triển trên môi trường Node.js kết hợp với framework Express.js. Đây là trái tim của hệ thống, nơi chứa toàn bộ logic nghiệp vụ phức tạp và khối xử lý AI Agent.
+Lớp cơ sở dữ liệu (database tier) sử dụng PostgreSQL. Lớp này có nhiệm vụ lưu trữ toàn bộ dữ liệu bền vững của hệ thống bao gồm thông tin người dùng, danh mục sản phẩm, biến thể hàng hóa, hóa đơn và lịch sử giao dịch.
+Hình 17: Sơ đồ kiến trúc tổng thể hệ thống thương mại điện tử AURA ARCHIVE
+4.2 Yêu cầu hệ thống
+4.2.1 Yêu cầu chức năng
+Hệ thống bao gồm ba nhóm chức năng chính dành cho khách hàng, quản trị viên và hệ thống trợ lý ảo. Khách hàng có thể đăng nhập, tìm kiếm sản phẩm, đặt hàng, thanh toán và tương tác với AI. Quản trị viên quản lý danh mục sản phẩm, xử lý đơn hàng, duyệt đánh giá và kiểm soát người dùng. Trợ lý AI thực hiện việc phân tích ngữ cảnh, đối chiếu kho hàng và trả lời tư vấn mua sắm.
+4.2.2 Yêu cầu phi chức năng
+Hệ thống cần đảm bảo tốc độ phản hồi nhanh, giao diện tương thích tốt trên nhiều loại thiết bị. Dữ liệu mật khẩu và giao dịch thanh toán phải được mã hóa bảo mật. Hệ thống cần có khả năng mở rộng để chịu tải cao trong các dịp khuyến mãi lớn.
+4.3 Sơ đồ Usecase
+4.3.1 Sơ đồ Usecase tổng quát
+Sơ đồ Usecase tổng quát mô tả toàn bộ tương tác giữa khách hàng, quản trị viên và các hệ thống nội bộ.
+Hình 18: Sơ đồ Usecase tổng quát toàn bộ hệ thống
+4.3.2 Usecase đăng ký
+4.3.2.1 Sơ đồ phân rã usecase đăng ký
+Hình 19: Sơ đồ phân rã usecase đăng ký tài khoản
+4.3.2.2 Đặc tả đăng ký
+Đặc tả | Nội dung chi tiết
+User Story | US01: Đăng ký tài khoản mới
+As a | Guest
+I want | Tạo một tài khoản người dùng trên hệ thống
+So that | Tôi có thể lưu trữ thông tin nhận hàng và mua sắm dễ dàng
+Acceptance Criteria | AC1: Nhập thông tin đăng ký hợp lệGIVEN Khách hàng muốn tạo tài khoản mớiWHEN Khách hàng điền đầy đủ tên, email, số điện thoại và mật khẩu hợp lệTHEN Hệ thống kiểm tra dữ liệu và lưu tài khoản vào cơ sở dữ liệu, sau đó thông báo thành côngAC2: Xử lý email trùng lặpGIVEN Địa chỉ email đã được sử dụng bởi một tài khoản khácWHEN Khách hàng nhấn nút đăng kýTHEN Hệ thống hiển thị thông báo lỗi email đã tồn tạiAC3: Xử lý bỏ trống thông tinGIVEN Khách hàng bỏ trống trường thông tin bắt buộcWHEN Khách hàng nhấn đăng kýTHEN Hệ thống chặn yêu cầu và bôi đỏ yêu cầu nhập đầy đủ
+Error message | Từ M1 đến M8
+4.3.3 Usecase đăng nhập
+4.3.3.1 Sơ đồ phân rã usecase đăng nhập
+Hình 20: Sơ đồ phân rã usecase đăng nhập hệ thống
+4.3.3.2 Đặc tả đăng nhập
+Đặc tả | Nội dung chi tiết
+User Story | US02: Đăng nhập vào hệ thống
+As a | User
+I want | Xác thực danh tính để vào hệ thống
+So that | Tôi có thể xem lịch sử mua hàng và thanh toán nhanh chóng
+Acceptance Criteria | AC1: Đăng nhập thành côngGIVEN Người dùng có tài khoản hợp lệWHEN Người dùng nhập chính xác email và mật khẩuTHEN Hệ thống cấp phát mã thông báo JWT và chuyển hướng vào trang chủAC2: Xử lý sai mật khẩuGIVEN Người dùng nhập mật khẩu không khớpWHEN Người dùng nhấn đăng nhậpTHEN Hệ thống báo lỗi sai mật khẩu hoặc tài khoản không tồn tạiAC3: Xử lý tài khoản bị khóaGIVEN Tài khoản đã bị quản trị viên khóa do vi phạmWHEN Người dùng cố gắng đăng nhậpTHEN Hệ thống từ chối và hiển thị lỗi tài khoản đã bị đình chỉ
+Error message | Từ M9 đến M14
+4.3.4 Usecase quên mật khẩu
+4.3.4.1 Sơ đồ phân rã usecase quên mật khẩu
+Hình 21: Sơ đồ phân rã usecase quên mật khẩu
+4.3.4.2 Đặc tả quên mật khẩu
+Đặc tả | Nội dung chi tiết
+User Story | US03: Khôi phục mật khẩu tài khoản
+As a | User
+I want | Đặt lại mật khẩu mới thông qua email
+So that | Tôi có thể lấy lại quyền truy cập vào tài khoản khi quên mật khẩu cũ
+Acceptance Criteria | AC1: Yêu cầu khôi phục hợp lệGIVEN Người dùng nhập email đã đăng kýWHEN Người dùng gửi yêu cầu khôi phụcTHEN Hệ thống tự động sinh mã OTP và gửi qua hệ thống emailAC2: Đặt lại mật khẩu thành côngGIVEN Người dùng nhận được mã OTP hợp lệWHEN Người dùng nhập đúng mã OTP và mật khẩu mớiTHEN Hệ thống cập nhật mật khẩu mới vào cơ sở dữ liệuAC3: Xử lý mã OTP hết hạnGIVEN Thời gian gửi OTP đã quá giới hạnWHEN Người dùng nhập mã OTP cũTHEN Hệ thống từ chối và yêu cầu gửi lại mã mới
+Error message | Từ M15 đến M20
+4.3.5 Usecase đăng xuất
+4.3.5.1 Sơ đồ phân rã usecase đăng xuất
+Hình 22: Sơ đồ phân rã usecase đăng xuất
+4.3.5.2 Đặc tả đăng xuất
+Đặc tả | Nội dung chi tiết
+User Story | US04: Đăng xuất khỏi hệ thống
+As a | User
+I want | Kết thúc phiên làm việc hiện tại
+So that | Tôi có thể bảo vệ an toàn thông tin tài khoản trên thiết bị
+Acceptance Criteria | AC1: Đăng xuất thành côngGIVEN Người dùng đang trong trạng thái đăng nhậpWHEN Người dùng chọn tùy chọn đăng xuấtTHEN Trình duyệt xóa toàn bộ mã thông báo truy cập và hệ thống chuyển hướng về trang khách vãng lai
+Error message | Từ M21 đến M22
+4.3.6 Usecase đặt hàng
+4.3.6.1 Sơ đồ phân rã usecase đặt hàng
+Hình 23: Sơ đồ phân rã usecase đặt hàng trực tuyến
+4.3.6.2 Đặc tả đặt hàng
+Đặc tả | Nội dung chi tiết
+User Story | US05: Đặt hàng trực tuyến
+As a | User
+I want | Tiến hành mua các sản phẩm thời trang trong giỏ hàng
+So that | Tôi có thể hoàn tất quy trình giao dịch và chờ nhận hàng
+Acceptance Criteria | AC1: Đặt hàng thanh toán khi nhận hàng (COD)GIVEN Khách hàng đã chọn sản phẩm hợp lệWHEN Khách hàng điền địa chỉ giao hàng và chọn phương thức CODTHEN Hệ thống kiểm tra tồn kho, trừ số lượng và tạo đơn hàng trạng thái chờ xác nhậnAC2: Đặt hàng thanh toán trực tuyếnGIVEN Khách hàng chọn phương thức thanh toán VNPayWHEN Khách hàng nhấn đặt hàngTHEN Hệ thống tạo đơn hàng và chuyển hướng sang cổng thanh toán của ngân hàngAC3: Xử lý hết hàng trong khoGIVEN Sản phẩm trong giỏ vừa hết hàng trước đó vài giâyWHEN Khách hàng nhấn đặt hàngTHEN Hệ thống chặn yêu cầu và báo lỗi sản phẩm đã hết hàng
+Error message | Từ M23 đến M36
+4.3.7 Usecase quản lý blog
+4.3.7.1 Sơ đồ phân rã usecase quản lý blog
+Hình 24: Sơ đồ phân rã usecase quản lý bài viết blog
+4.3.7.2 Đặc tả quản lý blog
+Đặc tả | Nội dung chi tiết
+User Story | US06: Quản lý bài viết blog thời trang
+As a | Admin
+I want | Soạn thảo và chỉnh sửa các bài viết về xu hướng thời trang
+So that | Tôi có thể cập nhật nội dung marketing cho trang web
+Acceptance Criteria | AC1: Thêm bài viết mớiGIVEN Quản trị viên nhập đủ tiêu đề, nội dung và hình ảnhWHEN Quản trị viên nhấn nút xuất bảnTHEN Hệ thống lưu bài viết và hiển thị ngay trên trang chủAC2: Chỉnh sửa bài viếtGIVEN Bài viết đã tồn tại trong hệ thốngWHEN Quản trị viên chỉnh sửa nội dung và lưu lạiTHEN Hệ thống cập nhật thông tự bài viết cũAC3: Xử lý lỗi định dạng hình ảnhGIVEN Tệp tải lên không phải là định dạng hình ảnhWHEN Quản trị viên nhấn tải lênTHEN Hệ thống báo lỗi định dạng không hỗ trợ
+Error message | Từ M37 đến M43
+4.3.8 Usecase Cập nhật tài khoản
+4.3.8.1 Sơ đồ phân rã usecase cập nhật tài khoản
+Hình 25: Sơ đồ phân rã usecase cập nhật thông tin tài khoản
+4.3.8.2 Đặc tả cập nhật tài khoản
+Đặc tả | Nội dung chi tiết
+User Story | US07: Cập nhật thông tin cá nhân
+As a | User
+I want | Chỉnh sửa số điện thoại và tên hiển thị
+So that | Hồ sơ của tôi luôn chính xác để phục vụ giao hàng
+Acceptance Criteria | AC1: Cập nhật thông tin thành côngGIVEN Người dùng nhập thông tin họ tên hợp lệWHEN Người dùng nhấn lưu thay đổiTHEN Hệ thống cập nhật bản ghi trong cơ sở dữ liệu và hiển thị lại giao diệnAC2: Số điện thoại trùng lặpGIVEN Người dùng đổi số điện thoại thành số đã có người khác dùngWHEN Người dùng nhấn lưuTHEN Hệ thống báo lỗi số điện thoại đã được đăng ký
+Error message | Từ M44 đến M49
+4.3.9 Usecase đánh giá
+4.3.9.1 Sơ đồ phân rã usecase đánh giá
+Hình 26: Sơ đồ phân rã usecase đánh giá sản phẩm
+4.3.9.2 Đặc tả đánh giá
+Đặc tả | Nội dung chi tiết
+User Story | US08: Đánh giá chất lượng sản phẩm
+As a | User
+I want | Viết nhận xét và chấm sao cho sản phẩm
+So that | Tôi có thể chia sẻ cảm nhận thực tế cho các khách hàng khác
+Acceptance Criteria | AC1: Đăng đánh giá hợp lệGIVEN Người dùng đã mua và nhận sản phẩm thành côngWHEN Người dùng chọn số sao và viết nội dung đánh giáTHEN Hệ thống tính toán lại điểm sao trung bình và hiển thị đánh giá công khaiAC2: Chặn đánh giá ảoGIVEN Người dùng chưa từng mua sản phẩm nàyWHEN Người dùng cố truy cập giao diện đánh giáTHEN Hệ thống ẩn tính năng và báo lỗi không đủ điều kiện
+Error message | Từ M50 đến M56
+4.3.10 Usecase quản lý sản phẩm
+4.3.10.1 Sơ đồ phân rã usecase quản lý sản phẩm
+Hình 27: Sơ đồ phân rã usecase quản lý kho sản phẩm thời trang
+4.3.10.2 Đặc tả quản lý sản phẩm
+Đặc tả | Nội dung chi tiết
+User Story | US09: Quản lý danh mục hàng hóa
+As a | Admin
+I want | Thêm mới quần áo, kích cỡ, màu sắc và số lượng tồn kho
+So that | Khách hàng có thông tin chính xác nhất để mua sắm
+Acceptance Criteria | AC1: Thêm sản phẩm cùng biến thểGIVEN Quản trị viên nhập thông tin sản phẩm và thiết lập các biến thể kích cỡWHEN Quản trị viên lưu thông tinTHEN Hệ thống chèn dữ liệu vào bảng sản phẩm và bảng biến thể trong cơ sở dữ liệuAC2: Xử lý mã SKU trùng lặpGIVEN Quản trị viên nhập mã SKU đã tồn tạiWHEN Quản trị viên nhấn lưuTHEN Hệ thống bắt lỗi ràng buộc cơ sở dữ liệu và yêu cầu nhập mã SKU khác
+Error message | Từ M57 đến M65
+4.3.11 Usecase xử lý đơn hàng
+4.3.11.1 Sơ đồ phân rã usecase xử lý đơn hàng
+Hình 28: Sơ đồ phân rã usecase luồng xử lý đơn hàng của quản trị viên
+4.3.11.2 Đặc tả xử lý đơn hàng
+Đặc tả | Nội dung chi tiết
+User Story | US10: Theo dõi và cập nhật trạng thái đơn hàng
+As a | Admin
+I want | Chuyển đổi trạng thái đơn từ lúc khách đặt đến lúc giao thành công
+So that | Quy trình vận hành kho và đối soát thanh toán diễn ra trơn tru
+Acceptance Criteria | AC1: Xác nhận đơn hàng thành côngGIVEN Đơn hàng đang ở trạng thái chờ xác nhậnWHEN Quản trị viên nhấn nút duyệt đơnTHEN Hệ thống chuyển trạng thái sang đang chuẩn bị hàng và gửi email thông báo cho kháchAC2: Hủy đơn hàng và hoàn khoGIVEN Quản trị viên phát hiện đơn hàng ảoWHEN Quản trị viên nhấn nút hủy đơnTHEN Hệ thống cập nhật trạng thái hủy và tự động cộng dồn số lượng sản phẩm trả lại kho
+Error message | Từ M66 đến M72
+4.3.12 Usecase quản lý người dùng
+4.3.12.1 Sơ đồ phân rã usecase quản lý người dùng
+Hình 29: Sơ đồ phân rã usecase quản lý danh sách người dùng
+4.3.12.2 Đặc tả quản lý người dùng
+Đặc tả | Nội dung chi tiết
+User Story | US11: Quản trị tài khoản khách hàng
+As a | Admin
+I want | Xem lịch sử mua hàng và đình chỉ các tài khoản vi phạm
+So that | Tôi có thể bảo vệ hệ thống khỏi các hành vi phá hoại
+Acceptance Criteria | AC1: Khóa tài khoản vi phạmGIVEN Tài khoản có hành vi đặt đơn ảo nhiều lầnWHEN Quản trị viên chọn khóa tài khoảnTHEN Hệ thống cập nhật cờ trạng thái vô hiệu hóa, mọi phiên đăng nhập tiếp theo của người dùng này đều bị từ chốiAC2: Phân quyền quản trịGIVEN Một tài khoản nhân viên mới được tạoWHEN Quản trị viên cấp cao chỉnh sửa vai trò thành adminTHEN Tài khoản đó được cấp quyền truy cập bảng điều khiển hệ thống
+Error message | Từ M73 đến M77
+4.3.13 Usecase quản lý review
+4.3.13.1 Sơ đồ phân rã usecase quản lý review
+Hình 30: Sơ đồ phân rã usecase kiểm duyệt đánh giá sản phẩm
+4.3.13.2 Đặc tả quản lý review
+Đặc tả | Nội dung chi tiết
+User Story | US12: Kiểm duyệt nội dung đánh giá
+As a | Admin
+I want | Ẩn các bài đánh giá thô tục và trả lời khiếu nại của khách
+So that | Giao diện sản phẩm luôn giữ được sự chuyên nghiệp của thương hiệu cao cấp
+Acceptance Criteria | AC1: Ẩn bài đánh giá spamGIVEN Bài đánh giá chứa nội dung sai sự thậtWHEN Quản trị viên nhấn nút ẩn nội dungTHEN Đánh giá đó bị gỡ khỏi giao diện sản phẩm của khách hàngAC2: Trả lời bài đánh giáGIVEN Bài đánh giá phàn nàn về lỗi sản phẩmWHEN Quản trị viên nhập phản hồi xin lỗi và gửiTHEN Hệ thống hiển thị câu trả lời công khai của cửa hàng ngay bên dưới đánh giá
+Error message | Từ M78 đến M81
+4.3.14 Usecase tương tác Trợ lý AI
+4.3.14.1 Sơ đồ phân rã usecase tương tác AI
+Hình 31: Sơ đồ phân rã usecase tương tác tư vấn với Trợ lý AI
+4.3.14.2 Đặc tả tương tác Trợ lý AI
+Đặc tả | Nội dung chi tiết
+User Story | US13: Trò chuyện và nhận tư vấn thời trang từ AI
+As a | User
+I want | Hỏi các thông tin phối đồ và tìm kiếm sản phẩm thông qua văn bản hoặc giọng nói
+So that | Tôi có thể được phục vụ như bởi một chuyên gia tư vấn (Personal Shopper)
+Acceptance Criteria | AC1: Xử lý ngữ cảnh thành côngGIVEN Người dùng hỏi tìm đầm dự tiệcWHEN Tin nhắn được gửi lên máy chủTHEN AI trích xuất yêu cầu, đối chiếu kho hàng và trả về câu trả lời tự nhiên kèm danh sách sản phẩm còn hàngAC2: Xử lý tương tác giọng nói và Live2DGIVEN Người dùng nhấn nút thu âmWHEN Gửi tệp âm thanh lên máy chủTHEN Hệ thống chuyển thành văn bản, sinh câu trả lời, đọc bằng Voice AI và mô phỏng cử động môi của nhân vật ảo Live2DAC3: Xử lý không tìm thấy hàngGIVEN Khách yêu cầu một sản phẩm hệ thống không kinh doanhWHEN AI tìm trong cơ sở dữ liệu và nhận về mảng rỗngTHEN AI trả lời xin lỗi và chủ động gợi ý các danh mục có sẵn
+Error message | Từ M82 đến M88
+4.3.15 Các mã thông báo hệ thống
+Bảng mô tả các mã thông báo chuẩn (Error Messages) được máy chủ trả về cho trình duyệt khi người dùng thực hiện các thao tác thành công hoặc gặp sự cố.
+No | Screen name | Message
+M1 | Đăng ký | Vui lòng điền đầy đủ họ tên
+M2 |  | Địa chỉ email không đúng định dạng
+M3 |  | Số điện thoại không hợp lệ
+M4 |  | Mật khẩu phải chứa ít nhất 8 ký tự, 1 ký tự viết thường, 1 ký tự viết hoa, và 1 ký tự đặc biệt
+M5 |  | Mật khẩu xác nhận không trùng khớp
+M6 |  | Địa chỉ email đã được đăng ký
+M7 |  | Số điện thoại đã tồn tại trên hệ thống
+M8 |  | Đăng ký tài khoản thành công
+M9 | Đăng nhập | Vui lòng nhập địa chỉ email
+M10 |  | Vui lòng nhập mật khẩu
+M11 |  | Email chưa được đăng ký trong hệ thống
+M12 |  | Mật khẩu không chính xác
+M13 |  | Tài khoản của bạn đã bị vô hiệu hóa
+M14 |  | Đăng nhập thành công, đang chuyển hướng
+M15 | Quên mật khẩu | Email khôi phục không tồn tại
+M16 |  | Đã gửi mã OTP đến email của bạn
+M17 |  | Mã OTP không chính xác
+M18 |  | Mã OTP đã hết hạn sử dụng
+M19 |  | Yêu cầu gửi lại OTP quá số lần quy định
+M20 |  | Đặt lại mật khẩu thành công
+M21 | Đăng xuất | Đang xử lý đăng xuất
+M22 |  | Đăng xuất thành công
+M23 | Đặt hàng | Vui lòng chọn ít nhất một sản phẩm
+M24 |  | Sản phẩm bạn chọn hiện tại đã hết hàng
+M25 |  | Số lượng đặt mua vượt quá tồn kho hiện tại
+M26 |  | Vui lòng điền địa chỉ giao hàng
+M27 |  | Vui lòng nhập số điện thoại người nhận
+M28 |  | Vui lòng chọn phương thức vận chuyển
+M29 |  | Vui lòng chọn phương thức thanh toán
+M30 |  | Mã giảm giá không tồn tại
+M31 |  | Mã giảm giá đã hết hạn sử dụng
+M32 |  | Đơn hàng chưa đạt giá trị tối thiểu để dùng mã
+M33 |  | Khởi tạo giao dịch thanh toán thất bại
+M34 |  | Ngân hàng từ chối thanh toán
+M35 |  | Người dùng hủy giao dịch thanh toán
+M36 |  | Đặt hàng thành công, mã đơn của bạn là...
+M37 | Quản lý blog | Tiêu đề bài viết không được để trống
+M38 |  | Tiêu đề bài viết đã tồn tại
+M39 |  | Vui lòng nhập nội dung bài viết
+M40 |  | Định dạng hình ảnh không hợp lệ
+M41 |  | Kích thước ảnh vượt quá 5MB
+M42 |  | Vui lòng chọn ít nhất một danh mục bài viết
+M43 |  | Cập nhật bài viết thành công
+M44 | Cập nhật tài khoản | Họ tên chứa ký tự không hợp lệ
+M45 |  | Định dạng ngày sinh không chính xác
+M46 |  | Số điện thoại mới bị trùng với người khác
+M47 |  | Mật khẩu hiện tại không đúng
+M48 |  | Mật khẩu mới không được trùng mật khẩu cũ
+M49 |  | Lưu thông tin hồ sơ thành công
+M50 | Đánh giá | Vui lòng chọn số sao đánh giá
+M51 |  | Bạn chưa mua sản phẩm này
+M52 |  | Đơn hàng chưa được giao thành công
+M53 |  | Bạn đã đánh giá sản phẩm này rồi
+M54 |  | Đánh giá chứa từ ngữ lăng mạ, vi phạm tiêu chuẩn
+M55 |  | Không thể tải lên hình ảnh đánh giá
+M56 |  | Gửi đánh giá thành công, cảm ơn bạn
+M57 | Quản lý sản phẩm | Tên sản phẩm không được để trống
+M58 |  | Giá bán không thể là số âm
+M59 |  | Vui lòng chọn danh mục cho sản phẩm
+M60 |  | Vui lòng thiết lập màu sắc cho biến thể
+M61 |  | Vui lòng thiết lập kích cỡ cho biến thể
+M62 |  | Số lượng tồn kho không hợp lệ
+M63 |  | Không thể xóa sản phẩm đã có lịch sử giao dịch
+M64 |  | Sản phẩm đang tham gia chương trình khuyến mãi
+M65 |  | Cập nhật thông tin sản phẩm thành công
+M66 | Xử lý đơn hàng | Không tìm thấy mã đơn hàng này
+M67 |  | Trạng thái đơn hàng không hợp lệ để cập nhật
+M68 |  | Vui lòng nhập mã vận đơn trước khi giao hàng
+M69 |  | Không thể hủy đơn hàng đã thanh toán
+M70 |  | Quá trình hoàn tiền qua cổng thanh toán thất bại
+M71 |  | Lỗi hoàn trả số lượng sản phẩm vào kho
+M72 |  | Cập nhật trạng thái đơn hàng thành công
+M73 | Quản lý người dùng | Không thể khóa tài khoản của chính mình
+M74 |  | Bạn không có quyền thao tác trên tài khoản Admin cấp cao
+M75 |  | Vui lòng nhập lý do khóa tài khoản
+M76 |  | Vai trò cập nhật không hợp lệ
+M77 |  | Thay đổi trạng thái tài khoản thành công
+M78 | Quản lý review | Không tìm thấy bài đánh giá này
+M79 |  | Phản hồi đánh giá không được để trống
+M80 |  | Lỗi thay đổi trạng thái hiển thị đánh giá
+M81 |  | Gửi phản hồi khiếu nại thành công
+M82 | Tương tác AI | Máy chủ AI hiện đang bảo trì
+M83 |  | Số lượng token cho phép đã vượt quá giới hạn
+M84 |  | Mô hình không thể nhận diện được ý định người dùng
+M85 |  | Microphone chưa được cấp quyền truy cập
+M86 |  | Dịch vụ Audio-to-Text tạm thời không phản hồi
+M87 |  | Lỗi kết xuất mô hình nhân vật Live2D
+M88 |  | Mất kết nối đường truyền, vui lòng tải lại trang
+CHƯƠNG V: HIỆN THỰC VÀ KIỂM THỬ HỆ THỐNG
+5.1 Sơ đồ tuần tự
+Sơ đồ tuần tự là một loại biểu đồ tương tác trong ngôn ngữ mô hình hóa thống nhất UML, cho phép trực quan hóa cách thức các đối tượng hoặc các thành phần trong một hệ thống trao đổi thông điệp với nhau theo trình tự thời gian. Trong phần này, hệ thống AURA ARCHIVE sẽ được phân tích chi tiết thông qua các biểu đồ tuần tự cho những chức năng cốt lõi.
+5.1.1 Đăng nhập
+Quá trình đăng nhập bắt đầu khi khách hàng nhập địa chỉ email và mật khẩu vào biểu mẫu trên giao diện trình duyệt. Giao diện sẽ đóng gói dữ liệu và gửi một yêu cầu HTTP đến máy chủ ứng dụng Express. Tại đây, máy chủ tiếp nhận yêu cầu và khởi tạo kết nối đến cơ sở dữ liệu PostgreSQL để tìm kiếm thông tin tài khoản tương ứng với email. Nếu tài khoản tồn tại, hệ thống tiếp tục trích xuất hàm băm mật khẩu được lưu trữ và sử dụng thư viện mã hóa để đối chiếu với mật khẩu do khách hàng cung cấp. Nếu quá trình đối chiếu thành công, máy chủ sẽ tiến hành sinh ra một mã thông báo truy cập JSON Web Token có chứa thông tin định danh và quyền hạn của người dùng. Mã thông báo này sau đó được gửi trả về cho trình duyệt. Trình duyệt lưu trữ mã này vào bộ nhớ cục bộ và tự động tải lại trạng thái ứng dụng, chuyển hướng người dùng vào trang chủ mua sắm.
+Hình 32: Sơ đồ tuần tự quy trình đăng nhập hệ thống
+5.1.2 Đăng ký
+Khi người dùng mới muốn tạo một tài khoản, họ truy cập vào trang đăng ký và điền các thông tin cá nhân cần thiết. Trình duyệt sau đó gọi đến máy chủ giao diện để gửi gói thông tin định dạng JSON. Máy chủ ứng dụng nhận dữ liệu, thực hiện việc xác thực đầu vào nhằm đảm bảo định dạng email hợp lệ và mật khẩu đủ độ dài an toàn. Sau bước kiểm tra sơ bộ, máy chủ truy vấn cơ sở dữ liệu để kiểm tra tính duy nhất của email. Khi xác nhận email chưa được đăng ký trước đó, máy chủ sẽ thực thi thuật toán mã hóa một chiều để băm mật khẩu. Cuối cùng, một bản ghi người dùng mới sẽ được chèn vào bảng dữ liệu. Máy chủ phản hồi trạng thái thành công về cho trình duyệt, kèm theo lời nhắc người dùng có thể bắt đầu đăng nhập ngay lập tức.
+Hình 33: Sơ đồ tuần tự quy trình đăng ký tài khoản
+5.1.3 Quên mật khẩu
+5.1.3.1 Sơ đồ tuần tự Gửi mã PIN đặt lại mật khẩu
+Khi người dùng quên mật khẩu, họ gửi địa chỉ email lên hệ thống. Máy chủ kiểm tra sự tồn tại của email này trong kho dữ liệu. Nếu xác nhận đúng, máy chủ sẽ gọi đến một thư viện tạo số ngẫu nhiên để sinh ra một đoạn mã PIN gồm sáu chữ số. Mã PIN này được lưu tạm vào cơ sở dữ liệu kèm theo thời gian hết hạn là mười lăm phút. Song song đó, máy chủ kết nối với dịch vụ email để gửi thư chứa mã PIN đến hòm thư của người dùng. Máy chủ trả về thông báo yêu cầu người dùng kiểm tra hòm thư.
+Hình 34: Sơ đồ tuần tự tiến trình gửi mã xác thực khôi phục mật khẩu qua email
+5.1.3.2 Sơ đồ tuần tự Xác thực mã PIN
+Người dùng lấy mã PIN từ hòm thư và điền vào giao diện web. Trình duyệt gửi mã này lên máy chủ. Máy chủ thực hiện truy vấn cơ sở dữ liệu để tìm kiếm mã PIN tương ứng với email yêu cầu. Hệ thống tiếp tục so sánh thời gian hiện tại với thời gian hết hạn của mã PIN. Nếu mã còn hiệu lực và trùng khớp hoàn toàn, máy chủ sẽ đánh dấu mã này là đã xác thực và cấp quyền cho trình duyệt chuyển sang màn hình nhập mật khẩu mới. Nếu sai lệch, máy chủ từ chối yêu cầu.
+Hình 35: Sơ đồ tuần tự tiến trình xác thực mã PIN bảo mật
+5.1.3.3 Sơ đồ tuần tự Đặt lại mật khẩu mới
+Tại bước cuối cùng, người dùng nhập mật khẩu mới và xác nhận mật khẩu mới. Trình duyệt gửi thông tin này cùng với một thẻ thông báo xác thực tạm thời lên máy chủ. Máy chủ kiểm tra lại lần cuối tính hợp lệ của thẻ thông báo. Sau đó, máy chủ băm mật khẩu mới và tiến hành ghi đè dữ liệu cũ trong cơ sở dữ liệu. Ngay khi cơ sở dữ liệu xác nhận việc cập nhật thành công, máy chủ vô hiệu hóa hoàn toàn mã PIN đã dùng và thông báo cho người dùng rằng mật khẩu của họ đã được thay đổi an toàn.
+Hình 36: Sơ đồ tuần tự tiến trình lưu trữ mật khẩu mới vào cơ sở dữ liệu
+5.1.4 Đánh giá
+Khách hàng muốn để lại đánh giá cho một sản phẩm thời trang vừa mua. Họ truy cập vào giao diện chi tiết đơn hàng, chọn số lượng ngôi sao và viết lời nhận xét. Trình duyệt gửi gói dữ liệu đánh giá lên máy chủ. Máy chủ ứng dụng phải thực hiện một bước kiểm tra ràng buộc quan trọng là truy vấn cơ sở dữ liệu xem khách hàng này có thực sự sở hữu hóa đơn mua sản phẩm đó và hóa đơn đã ở trạng thái giao hàng thành công hay chưa. Nếu điều kiện tiên quyết được thỏa mãn, máy chủ sẽ tiến hành lọc các từ ngữ vi phạm tiêu chuẩn cộng đồng. Khi nội dung đánh giá được coi là sạch, máy chủ chèn bài đánh giá vào cơ sở dữ liệu, đồng thời kích hoạt một hàm tính toán ngầm để cập nhật lại điểm số trung bình của sản phẩm đó. Máy chủ gửi tín hiệu thành công về giao diện.
+Hình 37: Sơ đồ tuần tự tiến trình đánh giá sản phẩm
+5.1.5 Đặt hàng
+Quy trình đặt hàng bắt đầu khi khách hàng rà soát danh sách sản phẩm trong giỏ hàng và điền đầy đủ địa chỉ nhận hàng. Khách hàng nhấp vào nút thanh toán trực tuyến. Trình duyệt truyền tải toàn bộ thông tin giỏ hàng lên máy chủ. Máy chủ sẽ thực thi các vòng lặp kiểm tra số lượng tồn kho của từng biến thể sản phẩm trực tiếp với cơ sở dữ liệu. Sau khi đảm bảo toàn bộ mặt hàng đều còn số lượng lớn hơn không, máy chủ sẽ giảm trừ kho tương ứng và sinh ra một bản ghi hóa đơn tạm thời. Tiếp theo, máy chủ sử dụng các khóa bảo mật bí mật để tạo một chữ ký điện tử và gọi API sang hệ thống ngân hàng VNPay. Ngân hàng phản hồi bằng một đường dẫn thanh toán. Máy chủ gửi đường dẫn này về giao diện để trình duyệt tự động chuyển hướng khách hàng sang cổng thanh toán. Sau khi khách hàng quẹt thẻ thành công, ngân hàng sẽ gọi một webhook ngược về máy chủ ứng dụng để báo cáo. Máy chủ sẽ cập nhật trạng thái đơn hàng thành đã thanh toán.
+Hình 38: Sơ đồ tuần tự quy trình đặt hàng và thanh toán điện tử
+5.1.6 Viết blog
+Quản trị viên biên soạn nội dung một bài viết giới thiệu xu hướng thời trang mới. Khi nhấn nút lưu, giao diện trình duyệt không chỉ gửi văn bản mà còn truyền tải các tệp tin hình ảnh đính kèm thông qua giao thức truyền tải biểu mẫu. Máy chủ ứng dụng tiếp nhận, tách các tệp tin hình ảnh ra và tiến hành lưu trữ chúng vào thư mục cục bộ hoặc tải lên đám mây. Máy chủ lấy lại các đường dẫn, kết hợp với nội dung văn bản và tiêu đề để tạo thành một đối tượng hoàn chỉnh, sau đó chèn vào bảng dữ liệu bài viết trong cơ sở dữ liệu.
+Hình 39: Sơ đồ tuần tự quy trình xuất bản bài viết blog
+5.1.7 Tương tác AI Agent
+Khách hàng nhấp vào biểu tượng micro và nói ra yêu cầu phối đồ của mình. Trình duyệt thu âm thanh, nén thành tệp và gửi lên máy chủ. Máy chủ lập tức chuyển tiếp tệp âm thanh này sang dịch vụ xử lý âm thanh để lấy về chuỗi văn bản tương ứng. Sau đó, khối xử lý tác nhân trí tuệ nhân tạo bên trong máy chủ sẽ phân tích ngữ nghĩa của câu văn, trích xuất ra các từ khóa quan trọng về màu sắc, kiểu dáng và kích cỡ. Máy chủ truy vấn cơ sở dữ liệu để tìm kiếm các sản phẩm phù hợp với những từ khóa này. Các sản phẩm tìm được, kết hợp với câu hỏi của khách hàng, được đóng gói và gửi qua kết nối bảo mật đến mô hình ngôn ngữ lớn đã được huấn luyện riêng. Mô hình ngôn ngữ sẽ tổng hợp lại và sinh ra câu trả lời tư vấn xuất sắc nhất. Máy chủ nhận lại câu trả lời này, một mặt gửi phần văn bản về cho giao diện hiển thị, mặt khác lại tiếp tục gọi một dịch vụ chuyển đổi văn bản thành giọng nói để sinh ra luồng âm thanh. Giao diện nhận đồng thời cả chữ và âm thanh, sau đó đồng bộ hóa với mô hình nhân vật ảo Live2D để nhân vật có thể cử động môi theo từng âm tiết phát ra.
+Hình 40: Sơ đồ tuần tự quy trình tương tác đa phương thức với trợ lý AI
+5.2 Lược đồ ERD (Entity - Relationship Diagram)
+Lược đồ thực thể mối quan hệ là sơ đồ biểu diễn trực quan cấu trúc của cơ sở dữ liệu, cho thấy cách thức các bảng dữ liệu liên kết và ràng buộc lẫn nhau. Trong kiến trúc của hệ thống AURA ARCHIVE, các thực thể chính bao gồm người dùng, sản phẩm, biến thể, đơn hàng, chi tiết đơn hàng, đánh giá và bài viết blog. Mối quan hệ giữa người dùng và đơn hàng là quan hệ một nhiều. Tương tự, một sản phẩm có thể sở hữu nhiều biến thể kích cỡ và màu sắc khác nhau. Chi tiết đơn hàng đóng vai trò là thực thể trung gian giải quyết bài toán quan hệ nhiều nhiều giữa đơn hàng và biến thể sản phẩm.
+Hình 41: Lược đồ thực thể mối quan hệ của cơ sở dữ liệu hệ thống
+5.3 Đặc tả cơ sở dữ liệu
+Phần đặc tả cơ sở dữ liệu cung cấp thông tin chi tiết về từng bảng trong hệ thống. Cấu trúc bảng bao gồm các trường dữ liệu, kiểu, ý nghĩa và đặc biệt là các quy tắc xác thực (validate) để đảm bảo tính toàn vẹn của dữ liệu.
+5.3.1 Bảng Users
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất, không rỗng.
+2 | displayName | String | Tên hiển thị | Bắt buộc (Required), Trim (cắt khoảng trắng).
+3 | username | String | Tên đăng nhập | Unique (Duy nhất), Sparse (cho phép null), Trim.
+4 | email | String | Email đăng nhập | Required, Unique, Lowercase, Trim, Index.
+5 | passwordHash | String | Mật khẩu đã mã hóa | Required.
+6 | roles | Array[String] | Vai trò người dùng | Enum: ['customer', 'admin']. Mặc định: ['customer']. Bắt buộc có ít nhất 1 phần tử.
+7 | phone | String | Số điện thoại chính | Trim, Index. Regex kiểm tra: /^[+0-9\s\-]{8,20}$/.
+8 | avatarUrl | String | Ảnh đại diện | Trim.
+9 | addresses | Array[Object] | Danh sách địa chỉ | Mặc định: []. Chứa các thông tin: tên, sđt, đường, phường, xã.
+10 | emailVerified | Boolean | Xác thực email | Mặc định: false.
+11 | resetExpires | Number | Hạn mã reset mật khẩu | Mặc định: null.
+12 | isActive | Boolean | Trạng thái kích hoạt | Mặc định: true (Hoạt động).
+13 | createdAt | Date | Thời gian tạo | Tự động sinh (do timestamps: true).
+14 | updatedAt | Date | Thời gian cập nhật | Tự động cập nhật (do timestamps: true).
+5.3.2 Bảng UserHistory
+Bảng lưu trữ lịch sử hành vi mua sắm, các sản phẩm đã xem hoặc các từ khóa mà người dùng đã tìm kiếm để phục vụ cho hệ thống AI Agent gợi ý cá nhân hóa.
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất.
+2 | userId | String | ID người dùng tham gia | Bắt buộc. Có đánh Index để tối ưu tốc độ truy vấn lịch sử.
+3 | actionType | String | Loại hành vi (Xem, Thêm giỏ) | Bắt buộc. Chỉ chấp nhận giá trị: “VIEW”, “ADD_CART”, “SEARCH”.
+4 | productId | ObjectId | Sản phẩm tương tác | Tham chiếu đến Products. Cho phép null nếu là SEARCH.
+5 | searchQuery | String | Từ khóa tìm kiếm | Dành riêng cho actionType là SEARCH. Trim.
+6 | createdAt | Date | Thời gian thực hiện hành động | Tự động sinh (timestamps).
+7 | updatedAt | Date | Thời gian cập nhật | Tự động cập nhật (timestamps).
+5.3.3 Bảng Reviews
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất.
+2 | userId | String | ID người dùng đánh giá | Bắt buộc (Required). Lưu ID của người mua hàng.
+3 | productId | ObjectId | ID sản phẩm được đánh giá | Bắt buộc. Tham chiếu (Ref) đến Collection Products. Có Index.
+4 | content | String | Nội dung bình luận | Bắt buộc. Tự động cắt khoảng trắng thừa (Trim).
+5 | images | Array[String] | Danh sách hình ảnh | Mặc định là []. Lưu đường dẫn URL hình ảnh thực tế.
+6 | rating | Number | Điểm đánh giá (Sao) | Mặc định: 0. Giá trị nằm trong khoảng từ 1 đến 5.
+7 | createdAt | Date | Thời gian tạo đánh giá | Tự động sinh (timestamps).
+8 | updatedAt | Date | Thời gian chỉnh sửa | Tự động cập nhật (timestamps).
+5.3.4 Bảng Products
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất.
+2 | categoryId | ObjectId | ID danh mục thời trang | Tham chiếu đến Categories. Có đánh Index.
+3 | name | String | Tên sản phẩm | Bắt buộc, Trim. Có đánh Text Index phục vụ tìm kiếm.
+4 | slug | String | Đường dẫn URL (SEO) | Trim, Lowercase, có đánh Index.
+5 | brand | String | Thương hiệu | Trim, có đánh Text Index.
+6 | basePrice | Object | Giá bán khởi điểm | Bắt buộc. Cấu trúc { amount: number, currency: 'VND' }.
+7 | thumbnail | String | Ảnh đại diện sản phẩm | Trim. Bắt buộc có định dạng URL hợp lệ.
+8 | gallery | Array[String] | Thư viện ảnh chi tiết | Mặc định [].
+9 | description | String | Mô tả sản phẩm | Mặc định rỗng. Có đánh Text Index.
+10 | rating | Number | Điểm đánh giá trung bình | Mặc định null. Được tính toán từ bảng Reviews.
+11 | isFeatured | Boolean | Trạng thái nổi bật | Mặc định false.
+12 | isActive | Boolean | Trạng thái kinh doanh | Mặc định true (Đang bán).
+13 | createdAt | Date | Thời gian tạo | Tự động sinh.
+14 | updatedAt | Date | Thời gian cập nhật | Tự động cập nhật.
+5.3.5 Bảng Categories
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất.
+2 | name | String | Tên danh mục | Bắt buộc, Trim, Max length: 150 ký tự. Có Text Index.
+3 | slug | String | Đường dẫn URL (SEO) | Bắt buộc, Unique, Lowercase, Trim, Có Index.
+4 | description | String | Mô tả ngắn gọn | Trim, Max length: 500 ký tự.
+5 | image | String | Đường dẫn ảnh đại diện | Trim.
+6 | parentId | ObjectId | ID danh mục cha | Mặc định null. Tham chiếu chính nó (Self-reference).
+7 | isActive | Boolean | Trạng thái hiển thị | Mặc định true.
+8 | sortIndex | Number | Thứ tự sắp xếp | Mặc định 0. Dùng để tùy chỉnh vị trí ưu tiên.
+9 | createdAt | Date | Thời gian tạo | Tự động sinh.
+10 | updatedAt | Date | Thời gian cập nhật | Tự động cập nhật.
+5.3.6 Bảng Blogs
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất.
+2 | authorId | ObjectId | ID tác giả bài viết | Bắt buộc. Tham chiếu đến Users.
+3 | title | String | Tiêu đề bài viết | Bắt buộc, Trim. Có đánh Text Index.
+4 | slug | String | Đường dẫn URL (SEO) | Bắt buộc, Unique, Lowercase, Trim, Có Index.
+5 | excerpt | String | Đoạn trích mô tả | Trim. Có đánh Text Index.
+6 | contentHtml | String | Nội dung bài viết (HTML) | Bắt buộc. Lưu trữ nội dung đã render sang HTML.
+7 | tags | Array[String] | Thẻ bài viết (Tags) | Mặc định []. Có đánh Text Index.
+8 | heroImageUrl | String | Ảnh bìa bài viết | Trim.
+9 | status | String | Trạng thái bài viết | Enum: ['DRAFT', 'PUBLISHED']. Mặc định: 'DRAFT'.
+10 | viewCount | Number | Số lượt truy cập | Mặc định 0.
+11 | createdAt | Date | Thời gian tạo | Tự động sinh.
+12 | updatedAt | Date | Thời gian cập nhật | Tự động cập nhật.
+5.3.7 Bảng Variants
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất.
+2 | productId | ObjectId | ID sản phẩm gốc | Bắt buộc. Tham chiếu đến Products. Có Index.
+3 | sku | String | Mã kho sản phẩm (SKU) | Bắt buộc, Unique, Trim. Không được trùng lặp toàn hệ thống.
+4 | color | String | Tùy chọn màu sắc | Bắt buộc, Trim.
+5 | size | String | Tùy chọn kích cỡ | Bắt buộc, Trim.
+6 | priceAdjustment | Number | Chênh lệch giá so với gốc | Mặc định 0. Có thể âm hoặc dương.
+7 | stockQuantity | Number | Số lượng tồn kho | Mặc định 0. Giá trị Min: 0.
+8 | isAvailable | Boolean | Trạng thái sẵn sàng | Mặc định true.
+9 | createdAt | Date | Thời gian tạo | Tự động sinh.
+10 | updatedAt | Date | Thời gian cập nhật | Tự động cập nhật.
+5.3.8 Bảng Orders
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất.
+2 | userId | ObjectId | ID khách hàng đặt | Bắt buộc. Tham chiếu đến Users. Có Index.
+3 | items | Array[Object] | Danh sách hàng mua | Mặc định []. Chứa chi tiết: productId, variantId, số lượng, đơn giá.
+4 | totalAmount | Object | Tổng giá trị hóa đơn | Bắt buộc. Cấu trúc { amount, currency }.
+5 | shippingAddress | Object | Địa chỉ giao hàng | Bắt buộc. Chứa: đường, phường, quận, sđt người nhận.
+6 | paymentMethod | String | Phương thức thanh toán | Enum: ['COD', 'VNPAY']. Bắt buộc.
+7 | status | String | Trạng thái đơn hàng | Enum: ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']. Mặc định: 'PENDING'.
+8 | paymentReference | String | Mã giao dịch ngân hàng | Trim. Dùng để đối soát với cổng thanh toán.
+9 | note | String | Ghi chú của khách | Trim.
+10 | createdAt | Date | Thời gian tạo đơn | Tự động sinh.
+11 | updatedAt | Date | Thời gian cập nhật | Tự động cập nhật.
+5.3.9 Bảng AI_Conversations
+STT | Thuộc tính | Kiểu dữ liệu | Ý nghĩa | Validate
+1 | _id | ObjectId | Khóa chính (Primary Key) | Tự động sinh, duy nhất.
+2 | userId | String | ID khách hàng trò chuyện | Bắt buộc. Có Index để truy vấn lịch sử hội thoại.
+3 | role | String | Vai trò người nhắn | Bắt buộc. Chỉ chấp nhận: "user" hoặc "bot".
+4 | text | String | Nội dung tin nhắn | Bắt buộc. Lưu trữ văn bản khách hỏi hoặc AI trả lời.
+5 | intentDetected | String | Ý định mua sắm AI hiểu | Tùy chọn. Dùng để phân tích độ chính xác của mô hình.
+6 | createdAt | Date | Thời gian tạo tin nhắn | Tự động sinh (timestamps).
+7 | updatedAt | Date | Thời gian cập nhật | Tự động cập nhật (timestamps).
+5.4 Triển khai Website
+Giai đoạn triển khai website minh họa các kết quả thực tế của quá trình phát triển thông qua việc chụp lại các giao diện chức năng chính đã được hiện thực hóa và vận hành ổn định trên trình duyệt.
+5.4.1 Giao diện xin quyền Micro và Vị trí
+Do đặc thù hệ thống có tích hợp tính năng giao tiếp bằng giọng nói, ngay khi người dùng lần đầu tiên truy cập vào chức năng trợ lý ảo, trình duyệt sẽ hiển thị một cửa sổ bật lên nhỏ gọn yêu cầu cấp quyền sử dụng microphone. Giao diện được thiết kế tối giản, giải thích rõ lý do hệ thống cần quyền này để thu âm lời nói.
+Hình 42: Cửa sổ hiển thị yêu cầu cấp quyền sử dụng micro của trình duyệt
+5.4.2 Giao diện trang chủ
+Giao diện trang chủ được thiết kế theo phong cách tối giản và sang trọng. Phần trên cùng là thanh điều hướng cố định với biểu tượng thương hiệu ở giữa. Ngay phía dưới là dải băng hình ảnh lớn hiển thị các bộ sưu tập thời trang mới nhất đang thịnh hành. Phần thân trang được chia thành các khu vực lưới hiển thị danh mục sản phẩm nổi bật.
+Hình 43: Giao diện trang chủ mang phong cách hiện đại và tối giản
+5.4.3 Giao diện đăng nhập
+Trang đăng nhập được cấu trúc trực quan với một khung biểu mẫu duy nhất nằm giữa màn hình. Các trường thông tin email và mật khẩu được thiết kế to, rõ ràng kèm theo hiệu ứng chuyển động nhẹ khi nhấp chuột.
+Hình 44: Giao diện trang đăng nhập tài khoản bảo mật
+5.4.4 Giao diện đăng ký
+Tương tự trang đăng nhập, trang đăng ký mở rộng thêm các trường thông tin cần thiết. Bên phải biểu mẫu đăng ký là những lợi ích tóm tắt khi khách hàng trở thành thành viên của AURA ARCHIVE, nhằm thôi thúc hành động tạo tài khoản.
+Hình 45: Giao diện biểu mẫu đăng ký thành viên mới
+5.4.5 Giao diện trang danh sách sản phẩm
+Đây là nơi khách hàng duyệt qua các danh mục quần áo. Giao diện bao gồm một thanh công cụ lọc mạnh mẽ nằm bên tay trái, cho phép khách hàng thu hẹp kết quả tìm kiếm dựa trên mức giá trần, giá sàn, màu sắc cụ thể và các kích cỡ đang còn hàng. Khung bên phải là một lưới các thẻ sản phẩm.
+Hình 46: Giao diện hiển thị danh sách sản phẩm kết hợp bộ lọc nâng cao
+5.4.6 Giao diện trang sản phẩm ưu đãi hot
+Một trang đích đặc biệt được tạo ra dành riêng cho các sự kiện xả kho hoặc giảm giá theo mùa. Các sản phẩm tại đây được gắn thêm những nhãn dán màu đỏ hoặc đen ghi rõ phần trăm giảm giá. Một bộ đếm ngược thời gian sự kiện cũng được đặt ở vị trí trung tâm.
+Hình 47: Giao diện chuyên trang khuyến mãi và các ưu đãi giới hạn thời gian
+5.4.7 Giao diện trang giỏ hàng
+Giao diện giỏ hàng được chia làm hai cột rõ rệt. Cột bên trái liệt kê chi tiết từng mặt hàng khách đã chọn, bao gồm ảnh thu nhỏ, tên biến thể màu sắc kích cỡ và nút tăng giảm số lượng. Cột bên phải là bảng tóm tắt chi phí, hiển thị minh bạch tiền hàng, ước tính phí giao hàng và ô nhập mã giảm giá.
+Hình 48: Giao diện quản lý các mặt hàng trong giỏ hàng tạm tính
+5.4.8 Giao diện trang chi tiết sản phẩm
+Trang chi tiết là nơi cung cấp trải nghiệm đa phương tiện phong phú nhất. Một bộ sưu tập hình ảnh lớn chiếm phần lớn không gian, đi kèm tính năng phóng to khi di chuột. Phía bên phải là các nút chọn biến thể được thiết kế dưới dạng các ô vuông nhỏ.
+Hình 49: Giao diện trang thông tin chi tiết của một thiết kế thời trang
+5.4.9 Giao diện trang blog thời trang
+Trang blog đóng vai trò như một tạp chí điện tử thu nhỏ. Giao diện được dàn trang theo dạng lưới xen kẽ giữa các bài viết nổi bật có hình ảnh lớn và các tin tức nhỏ hơn. Các bài viết có tính thẩm mỹ cao, cỡ chữ lớn dễ đọc, khoảng cách dòng thoáng đãng.
+Hình 50: Giao diện mục tin tức và tư vấn phong cách sống
+5.4.10 Giao diện tương tác AI Agent (chatbot)
+Cửa sổ tương tác AI Agent được thiết kế dưới dạng một khối nổi (popup) bo tròn ở góc dưới màn hình. Giao diện chat mô phỏng các ứng dụng nhắn tin quen thuộc với bong bóng thoại hai màu phân biệt khách và máy. Hệ thống có thêm nút bấm micro lớn ở khung nhập liệu.
+Hình 51: Giao diện cửa sổ trò chuyện thông minh với trợ lý AI
+5.4.11 Giao diện mô hình nhân vật ảo Live2D
+Điểm độc đáo nhất của giao diện tương tác là vùng hiển thị nhân vật ảo ở phía trên khung chat. Nhân vật này được vẽ kỹ lưỡng bằng phần mềm chuyên dụng và kết xuất trên nền web thông qua công nghệ WebGL. Khi máy chủ phát âm thanh giọng nói, một thuật toán đồng bộ âm thanh sẽ phân tích và điều khiển miệng nhân vật mấp máy khớp với từng từ ngữ đang được phát ra.
+Hình 52: Giao diện hiển thị nhân vật ảo tương tác theo thời gian thực
+5.4.12 Giao diện bảng điều khiển quản trị (Dashboard)
+Bảng điều khiển là trung tâm chỉ huy dành riêng cho quản trị viên. Giao diện này mang màu sắc tông tối hoặc xám nhạt để tránh mỏi mắt. Ngay màn hình chính là các biểu đồ thống kê sinh động hiển thị doanh thu theo tuần, số lượng đơn hàng mới và top các sản phẩm bán chạy nhất.
+Hình 53: Giao diện thống kê tổng quan của hệ thống quản lý nội bộ
+5.4.13 Giao diện quản lý đơn hàng
+Màn hình quản lý đơn hàng hiển thị một bảng dữ liệu dày đặc nhưng được phân chia cột rất gọn gàng. Các trạng thái đơn hàng như chờ xử lý, đang giao, hoàn thành được đánh dấu bằng các thẻ màu sắc bắt mắt. Quản trị viên có thể sử dụng tính năng thao tác nhanh để cập nhật tiến độ.
+Hình 54: Giao diện theo dõi và cập nhật tiến độ các đơn đặt hàng
+5.4.14 Giao diện quản lý hồ sơ cá nhân
+Đây là một màn hình riêng tư của khách hàng. Giao diện được tối giản hóa, cho phép khách hàng nhanh chóng tải lên hình ảnh chân dung mới, thay đổi tên gọi hoặc cập nhật lại danh sách các địa chỉ thường xuyên nhận hàng.
+Hình 55: Giao diện cập nhật thông tin cá nhân dành cho người dùng
+5.4.15 Giao diện thanh toán (Checkout)
+Bước cuối cùng của hành trình mua sắm là trang thanh toán an toàn. Màn hình này loại bỏ mọi thanh điều hướng và liên kết thừa thãi để khách hàng không bị xao nhãng. Bên trái là biểu mẫu điền thông tin ngắn gọn, bên phải là bảng chọn phương thức thanh toán.
+Hình 57: Giao diện màn hình xác nhận và thanh toán đơn hàng
+5.5 Kiểm thử hệ thống
+Kiểm thử phần mềm là khâu bắt buộc và mang tính chất sống còn nhằm đảm bảo hệ thống phần mềm đáp ứng hoàn hảo mọi yêu cầu nghiệp vụ đã đề ra ở đầu chương trình. Quá trình kiểm thử giúp phát hiện sớm các lỗ hổng kỹ thuật, những lỗi sai logic và đảm bảo trải nghiệm người dùng không bị đứt gãy.
+5.5.1 Kịch bản kiểm thử
+Dưới đây là bảng liệt kê các kịch bản kiểm thử chức năng đã được xây dựng và thực thi cho hệ thống AURA ARCHIVE.
+TestID | Phân hệ | Tên kịch bản | Các bước thực hiện | Dữ liệu đầu vào | Kết quả mong đợi
+TC01 | Auth | Đăng ký tài khoản mới | 1. Nhấn nút Đăng ký.2. Nhập thông tin.3. Xác nhận. | Email: test@gmail.comPass: 123456Tên: Khách Hàng | Tạo tài khoản thành công, hệ thống chuyển về trang chủ mua sắm.
+TC02 | Auth | Đăng nhập sai mật khẩu | 1. Vào trang Đăng nhập.2. Nhập sai mật khẩu. | Email: test@gmail.comPass: sai_pass | Hệ thống hiển thị thông báo lỗi màu đỏ: "Mật khẩu không chính xác".
+TC03 | Home | Hiển thị Popup xin quyền Micro | 1. Bật cửa sổ AI lần đầu. | Trình duyệt chưa cấp quyền Audio. | Xuất hiện Popup yêu cầu cho phép truy cập Microphone để nhận diện giọng nói.
+TC04 | Search | Tìm kiếm theo tên sản phẩm | 1. Nhập từ khóa vào ô tìm kiếm.2. Nhấn Enter. | Keyword: "Áo sơ mi lụa" | Kết quả trả về đúng áo sơ mi lụa kèm theo hình ảnh, giá và đánh giá sao.
+TC05 | Category | Lọc sản phẩm theo danh mục | 1. Tại trang chủ chọn mục "Áo khoác". | Danh mục: Áo khoác | Chỉ hiển thị các sản phẩm thuộc phân loại áo khoác mùa đông.
+TC06 | Deals | Xem trang Flash Sale | 1. Click menu "Ưu đãi hot". | Không có | Hiển thị danh sách các sản phẩm đang được giảm giá (ví dụ: Giảm 20%).
+TC07 | Chatbot | Trợ lý AI gợi ý phối đồ | 1. Mở Chatbot AI.2. Nhập câu hỏi tư vấn. | Prompt: "Gợi ý phối đồ đi tiệc tối sang trọng" | Chatbot trả lời ngôn ngữ tự nhiên và đính kèm trực tiếp các mẫu đầm dạ hội đang có sẵn size.
+TC08 | Voice | Giao tiếp bằng giọng nói | 1. Nhấn icon Micro.2. Nói yêu cầu. | Voice: "Kiểm tra đơn hàng của tôi" | AI nhận diện âm thanh thành văn bản, tự động báo cáo tình trạng đơn hàng mới nhất.
+TC09 | Order | Thêm sản phẩm vào giỏ hàng | 1. Chọn màu Đen, Size M.2. Bấm "Thêm vào giỏ". | Món: Áo sơ mi lụaGiá: 500.000đSố lượng: 2 | Sản phẩm được thêm vào giỏ. Icon giỏ hàng cập nhật số lượng (2) và tổng tiền (1.000.000đ).
+TC10 | Blog | Đọc bài viết tạp chí | 1. Vào mục Blog.2. Chọn bài viết mới. | Bài viết: "Xu hướng Thu Đông 2026" | Hiển thị chi tiết bài viết với hình ảnh cover rõ nét và layout chuẩn tạp chí.
+TC11 | Admin | Chỉnh sửa giá sản phẩm | 1. Login Admin.2. Cập nhật biến thể sản phẩm. | Giá cũ: 500.000đGiá mới: 450.000đ | Giá trên trang chủ người dùng thay đổi ngay lập tức thành 450.000đ.
+TC12 | Admin | Xác nhận đơn hàng mới | 1. Login Admin.2. Vào tab "Orders". | Đơn hàng chờ duyệt từ TC09. | Admin bấm duyệt -> Trạng thái đổi thành "Đang giao", gửi email cho khách.
+TC13 | Admin | Cập nhật kho khi hủy đơn | 1. Hủy đơn hàng spam. | Đơn bị đánh dấu spam. | Trạng thái chuyển thành "Đã hủy". Số lượng hàng tự động được cộng trả lại vào kho.
+5.5.2 Kết quả kiểm thử
+Bảng dưới đây trình bày chi tiết kết quả ghi nhận được sau khi chạy các kịch bản kiểm thử (Test Cases) ở trên.
+TestID | Kết quả thực tế | Trạng thái | Ghi chú
+TC01 | Tạo tài khoản thành công. Tên "Khách Hàng" xuất hiện trên góc phải thay thế nút Đăng nhập. | Đạt | Chức năng mã hóa mật khẩu và tạo JWT hoạt động tốt.
+TC02 | Hệ thống hiển thị thông báo lỗi màu đỏ ngay dưới ô mật khẩu và ngăn chặn đăng nhập. | Đạt | Bắt lỗi Validation giao diện chuẩn xác.
+TC03 | Cửa sổ cảnh báo của trình duyệt xuất hiện đúng lúc, giải thích rõ lý do cần quyền thu âm. | Đạt | Bảo vệ quyền riêng tư người dùng nghiêm ngặt.
+TC04 | Kết quả tìm kiếm lọc ra chính xác "Áo sơ mi lụa" trong chưa tới 1 giây nhờ Text Index. | Đạt | Tốc độ truy vấn Database tối ưu.
+TC05 | Danh sách hiển thị đúng các mẫu áo khoác mùa đông, các loại áo thun bị loại trừ hoàn toàn. | Đạt | Luồng lọc danh mục chính xác.
+TC06 | Trang Flash Sale hiển thị chuẩn nhãn đỏ giảm giá và đếm ngược thời gian đếm đúng đến giây. | Đạt | Tính toán thời gian thực chính xác.
+TC07 | AI trả lời mạch lạc: "Dạ, đi tiệc tối bạn có thể diện đầm lụa đen này...", đính kèm 3 mẫu đầm. | Đạt | Tích hợp RAG và LLM hoạt động hoàn hảo.
+TC08 | Giao diện Live2D nhép môi nhịp nhàng theo giọng nói của hệ thống Text-to-Speech phát ra. | Đạt | Quá trình đồng bộ lipsync mượt mà, không bị trễ.
+TC09 | Giỏ hàng cập nhật số tiền 1.000.000đ. Dữ liệu được lưu trữ an toàn trong Redux State. | Đạt | Quản lý State Frontend ổn định.
+TC10 | Bài viết tải nhanh chóng, hình chữ định dạng đẹp, không bị tràn viền trên di động. | Đạt | Responsive Design thực hiện tốt.
+TC11 | Giá áo thay đổi ngay lập tức trên mọi giao diện thiết bị mà không cần khởi động lại máy chủ. | Đạt | Đồng bộ dữ liệu Real-time hiệu quả.
+TC12 | Nút duyệt đơn phản hồi nhanh, email tự động đã được chuyển vào hộp thư khách hàng. | Đạt | Tích hợp NodeMailer chạy tốt.
+TC13 | Kho hàng tự động tăng lên 2 chiếc áo đúng như trước khi đặt hàng, không làm sai lệch tồn kho. | Đạt | Logic Transaction trong CSDL chặt chẽ.
+5.5.3 Đánh giá chung
+5.5.3.1 Đánh giá về mặt chức năng
+Hệ thống AURA ARCHIVE đã hoàn thành toàn diện và vượt mức mong đợi các mục tiêu chức năng đề ra ban đầu. Một luồng thương mại điện tử khép kín từ lúc khách hàng đăng ký, xem sản phẩm, phân tích lựa chọn, cho đến khi cho hàng vào giỏ và thanh toán đã được vận hành trơn tru. Hệ thống quản trị nội bộ cũng đã cung cấp đầy đủ các công cụ quản lý bán hàng thiết yếu. Đặc biệt, sự thành công trong việc tích hợp khối tư vấn viên AI Agent đã mang lại một tính năng đột phá, làm lu mờ ranh giới giữa việc mua sắm trực tuyến và dịch vụ chăm sóc cao cấp tại cửa hàng.
+5.5.3.2 Đánh giá về hiệu năng và độ ổn định
+Nhờ ứng dụng công nghệ kết xuất phía máy chủ tiên tiến của framework Nuxt 3, thời gian tải trang lần đầu đã được rút ngắn đáng kể, mang lại trải nghiệm mượt mà ngay cả trên thiết bị cấu hình thấp. Ở phía máy chủ, việc sử dụng kiến trúc bất đồng bộ của Node.js kết hợp với PostgreSQL giúp hệ thống xử lý đồng thời lượng truy cập lớn. Ngay cả khi đường truyền đến API AI quốc tế bị nghẽn, hệ thống vẫn giữ được trạng thái sống nhờ cơ chế Timeout và Fallback an toàn.
+5.5.3.3 Đánh giá về giao diện và trải nghiệm người dùng
+Giao diện của hệ thống được thiết kế theo nguyên lý tối giản (Minimalism) với tông màu đơn sắc sang trọng, toát lên tinh thần thời trang cao cấp. Các chi tiết nhỏ nhất như nút bấm hover, micro-interactions đều được chăm chút tỉ mỉ. Việc hệ thống tự động co giãn hoàn hảo trên thiết bị di động (Mobile-first) mang lại sự thoải mái tối đa. Đặc biệt, nhân vật ảo Live2D sống động chuyển động theo giọng nói tạo ra sự gắn kết cảm xúc, giữ chân khách hàng lâu hơn hẳn các website truyền thống.
+5.5.3.4 Kết luận chung
+Đề tài đã hoàn thành xuất sắc giai đoạn hiện thực và kiểm thử. Nền tảng AURA ARCHIVE không đơn thuần chỉ là một phần mềm khóa luận, mà thực sự là một sản phẩm kỹ thuật có chiều sâu kiến trúc, thiết kế mỹ thuật chuyên nghiệp và tích hợp những công nghệ tiên phong của năm 2025 (AI Agent, Live2D). Phần mềm này hoàn toàn đủ độ chín chắn và an toàn để có thể triển khai trên môi trường kinh doanh thực tế. Đây là minh chứng rõ ràng cho việc áp dụng thành công kiến thức khoa học máy tính vào giải quyết bài toán cốt lõi của doanh nghiệp thương mại điện tử.
+CHƯƠNG VI: KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN
+6.1 Kết luận
+Trải qua một khoảng thời gian dài nghiên cứu tài liệu, khảo sát thị trường, thiết kế kiến trúc và trực tiếp bắt tay vào hiện thực hóa các dòng mã, đồ án tốt nghiệp với đề tài "Xây dựng Website thương mại điện tử thời trang cao cấp tích hợp AI Agent" (AURA ARCHIVE) đã đi đến giai đoạn hoàn thành. Đồ án không chỉ là minh chứng cho quá trình tích lũy kiến thức trong suốt bốn năm học tập trên giảng đường đại học, mà còn là một bước thử nghiệm táo bạo trong việc kết hợp giữa công nghệ phát triển web truyền thống và trí tuệ nhân tạo thế hệ mới. Dựa trên những mục tiêu đã đề ra từ Chương 1, nhóm thực hiện đã rà soát lại toàn bộ quy trình và rút ra những kết luận quan trọng về những thành tựu đạt được cũng như những khuyết điểm còn tồn đọng của hệ thống.
+6.1.1 Những kết quả đạt được
+Về mặt nghiên cứu lý thuyết và nền tảng công nghệ:
+Đồ án đã thực hiện thành công việc khảo sát và làm chủ một hệ sinh thái công nghệ đa dạng và hiện đại bậc nhất ở thời điểm hiện tại. Về phía giao diện người dùng (Frontend), đồ án đã nghiên cứu sâu sắc framework Nuxt 3 và Vue.js, áp dụng triệt để cơ chế kết xuất phía máy chủ (Server-Side Rendering) để giải quyết triệt để bài toán tối ưu hóa công cụ tìm kiếm (SEO) - vốn là điểm yếu cố hữu của các ứng dụng trang đơn (Single Page Application). Về phía máy chủ (Backend), kiến trúc Node.js kết hợp với Express.js và hệ quản trị cơ sở dữ liệu quan hệ PostgreSQL đã chứng minh được sự mạnh mẽ trong việc xử lý khối lượng lớn các giao dịch mua sắm đồng thời. Đặc biệt, đồ án đã đi sâu nghiên cứu kiến trúc RAG (Retrieval-Augmented Generation) và phương pháp tinh chỉnh (Fine-tuning) mô hình ngôn ngữ lớn, từ đó mở ra một cách tiếp cận mới trong việc xây dựng các trợ lý ảo có sự am hiểu sâu sắc về một lĩnh vực nghiệp vụ đặc thù, thay vì chỉ là những con bốt hỏi đáp chung chung.
+Về khía cạnh phát triển phần mềm ứng dụng:
+Nhóm nghiên cứu đã xây dựng thành công một nền tảng thương mại điện tử hoàn chỉnh mang tên AURA ARCHIVE. Hệ thống cung cấp một luồng trải nghiệm khách hàng xuyên suốt và không bị đứt gãy. Từ khâu đăng nhập, bảo mật xác thực bằng JSON Web Token, tìm kiếm sản phẩm với bộ lọc đa chiều, cho đến quy trình cho hàng vào giỏ và thanh toán trực tuyến qua cổng VNPay, tất cả đều được vận hành trơn tru với độ trễ tính bằng mili-giây. Song song với đó, hệ thống quản trị dành cho nhân viên (Admin Dashboard) cũng được hoàn thiện với các phân hệ quản lý kho hàng, kiểm duyệt bài viết blog, theo dõi tiến độ giao hàng và xử lý khiếu nại thông qua hệ thống đánh giá. Giao diện của toàn bộ hệ thống được thiết kế theo đúng triết lý tối giản và sang trọng của ngành công nghiệp thời trang cao cấp, hỗ trợ hiển thị hoàn hảo trên mọi kích thước màn hình từ máy tính để bàn cho đến thiết bị di động.
+Về khía cạnh đổi mới sáng tạo và trí tuệ nhân tạo
+Thành tựu mang tính bước ngoặt và là điểm nhấn quan trọng nhất của toàn bộ đồ án chính là việc tích hợp thành công khối tư vấn viên ảo AI Agent. Vượt ra khỏi giới hạn của một ô tìm kiếm bằng văn bản truyền thống, AI Agent của AURA ARCHIVE có khả năng giao tiếp bằng giọng nói, thấu hiểu ý định mua sắm của khách hàng trong ngữ cảnh các buổi tiệc, sự kiện hay môi trường công sở để đưa ra các gợi ý phối đồ chuẩn xác. Không dừng lại ở việc sinh ra văn bản phản hồi, hệ thống còn áp dụng công nghệ Live2D để hiển thị một nhân vật trợ lý ảo có khả năng cử động môi (lipsync) đồng bộ hoàn toàn với luồng âm thanh được phát ra. Sự kết hợp giữa AI ngôn ngữ, chuyển đổi giọng nói (Text-to-Speech / Speech-to-Text) và đồ họa tương tác thời gian thực đã tạo ra một trải nghiệm cá nhân hóa đỉnh cao (Personal Shopper), tái hiện lại cảm giác được phục vụ tận tình tại các cửa hàng thời trang vật lý xa xỉ.
+6.1.2 Những hạn chế còn tồn tại
+Bên cạnh những kết quả tích cực đã đạt được, với tư cách là một đồ án nghiên cứu khoa học mang tính chất thử nghiệm, hệ thống AURA ARCHIVE vẫn còn tồn tại một số hạn chế nhất định cần được nhìn nhận một cách khách quan để làm tiền đề cho các cải tiến trong tương lai.
+Vấn đề đầu tiên liên quan đến cơ sở hạ tầng và chi phí vận hành trí tuệ nhân tạo. Việc triển khai một mô hình AI Agent có khả năng phân tích ngữ cảnh liên tục đòi hỏi một lượng tài nguyên máy tính khổng lồ, đặc biệt là sức mạnh xử lý của các card đồ họa (GPU). Trong khuôn khổ của một đồ án sinh viên, việc phải dựa vào các máy chủ nội bộ hoặc các gói dịch vụ đám mây miễn phí đôi khi dẫn đến tình trạng thời gian phản hồi của trợ lý ảo bị kéo dài vào những giờ cao điểm. Quá trình kết xuất cử động môi cho nhân vật Live2D thông qua WebGL trên trình duyệt cũng tiêu tốn khá nhiều tài nguyên RAM của thiết bị khách hàng, có thể gây ra hiện tượng giật lag trên các dòng điện thoại thông minh đời cũ.
+Khía cạnh hạn chế tiếp theo nằm ở giới hạn của kho dữ liệu huấn luyện (Dataset). Mặc dù mô hình đã được tinh chỉnh bằng các bộ dữ liệu thời trang chuyên biệt, nhưng ngôn ngữ tự nhiên của con người lại vô cùng đa dạng và biến đổi không ngừng theo các xu hướng (trend) mới. Khi khách hàng sử dụng các từ lóng của giới trẻ hoặc nhắc đến các phong cách thời trang vừa mới xuất hiện trong vài tuần gần đây, AI Agent đôi khi vẫn gặp khó khăn trong việc nhận diện và đối chiếu chính xác với kho hàng hiện có, dẫn đến việc đưa ra những gợi ý chưa thực sự sát với kỳ vọng.
+Cuối cùng là những rào cản về tính liên kết với các hệ thống vận tải và logistics thực tế. Hiện tại, luồng xử lý đơn hàng của hệ thống quản trị chỉ mới dừng lại ở mức mô phỏng các trạng thái vận chuyển (đang chuẩn bị hàng, đang giao, đã giao) thông qua các thao tác bấm nút thủ công của quản trị viên. Trang web chưa được kết nối trực tiếp với API giao diện lập trình ứng dụng của các đơn vị vận chuyển lớn như Giao Hàng Tiết Kiệm, Viettel Post hay AhaMove. Do đó, hệ thống chưa có khả năng tự động tính toán phí vận chuyển động dựa trên khoảng cách địa lý thực tế giữa kho hàng và người mua, cũng như chưa hỗ trợ khách hàng theo dõi tọa độ thời gian thực của bưu tá trên bản đồ.
+6.2 Hướng phát triển tương lai
+Với nền tảng kiến trúc vững chắc đã được thiết lập, hệ thống AURA ARCHIVE mở ra rất nhiều không gian để phát triển và hoàn thiện. Để đưa sản phẩm từ phòng thí nghiệm của trường đại học ra thị trường cạnh tranh khốc liệt, nhóm nghiên cứu đề xuất các hướng phát triển chiến lược cho tương lai, chia làm ba phương diện cốt lõi: Nâng cấp hiệu năng hạ tầng, mở rộng các tính năng tương tác thực tế ảo, và tích hợp sâu rộng vào hệ sinh thái thương mại đa kênh.
+6.2.1 Tối ưu hóa hạ tầng AI và hiệu năng hệ thống
+Mục tiêu hàng đầu trong tương lai gần là giải quyết triệt để bài toán về chi phí và tốc độ phản hồi của trợ lý ảo. Để làm được điều này, hệ thống cần nghiên cứu áp dụng các kỹ thuật lượng tử hóa (Quantization) và cắt tỉa (Pruning) mô hình ngôn ngữ lớn. Các kỹ thuật này giúp giảm thiểu dung lượng của mô hình từ hàng chục Gigabyte xuống mức nhỏ gọn hơn rất nhiều mà không làm suy giảm quá nhiều độ chính xác của logic suy luận. Khi mô hình được làm nhẹ, việc đưa mô hình xuống triển khai trực tiếp trên các thiết bị ngoại biên (Edge Computing) sẽ trở nên khả thi, giúp giảm tải sự phụ thuộc vào máy chủ trung tâm và triệt tiêu hoàn toàn độ trễ do kết nối mạng.
+Bên cạnh đó, quá trình huấn luyện dữ liệu (Data-training) cần được xây dựng thành một quy trình khép kín và tự động (CI/CD for Machine Learning). Máy chủ cần có cơ chế thu thập lại các cuộc hội thoại bị lỗi, những câu hỏi mà AI trả lời chưa tốt, ẩn danh hóa dữ liệu người dùng và đưa chúng vào 파ipeline để tự động tái huấn luyện mô hình (Retraining) mỗi tháng. Điều này sẽ giúp AI Agent liên tục học hỏi và trưởng thành theo thời gian, luôn bắt kịp với các bộ sưu tập và thuật ngữ thời trang mới nhất trên thị trường.
+6.2.2 Tích hợp công nghệ thực tế tăng cường (AR) và thử đồ ảo (Virtual Try-On)
+Đối với ngành hàng thời trang, rào cản lớn nhất của thương mại điện tử luôn là việc khách hàng không thể trực tiếp chạm vào chất liệu vải hay mặc thử để xem phom dáng có phù hợp với cơ thể hay không. Việc đổi trả hàng hóa do sai lệch về kích cỡ không chỉ gây thất vọng cho người mua mà còn tạo ra chi phí logistics ngược (Reverse Logistics) rất lớn cho doanh nghiệp.
+Vì vậy, hướng phát triển tham vọng nhất của đồ án là tích hợp công nghệ Thực tế tăng cường (Augmented Reality - AR) và tính năng Thử đồ ảo (Virtual Try-On). Khách hàng chỉ cần tải lên một bức ảnh toàn thân của mình, hoặc sử dụng camera trực tiếp trên điện thoại di động. Hệ thống sẽ sử dụng các thuật toán nhận diện thị giác máy tính (Computer Vision) để quét sơ đồ tỷ lệ cơ thể (Body Segmentation), sau đó ghép nối và phủ hình ảnh 3D của các thiết kế quần áo lên hình ảnh người dùng một cách chân thực nhất. Công nghệ này sẽ tính toán cả sự đổ bóng của ánh sáng và độ rủ của các loại vải lụa, vải cotton để mang lại kết quả mô phỏng tự nhiên. Việc tích hợp thử đồ ảo, kết hợp cùng lời tư vấn của trợ lý Live2D, sẽ tạo ra một cú hích cực lớn đối với tỷ lệ chuyển đổi đơn hàng, biến AURA ARCHIVE trở thành một chuyên gia tư vấn hình ảnh thực thụ ngay trong phòng ngủ của khách hàng.
+6.2.3 Mở rộng hệ sinh thái đa kênh (Omnichannel) và cá nhân hóa sâu
+Trong kỷ nguyên thương mại điện tử hiện đại, một website độc lập là chưa đủ để tối đa hóa doanh thu. Định hướng dài hạn của hệ thống là chuyển mình từ một nền tảng bán hàng đơn lẻ thành một hệ sinh thái bán hàng đa kênh (Omnichannel Commerce). Kiến trúc máy chủ của hệ thống cần được mở rộng để cung cấp các webhook đồng bộ hóa dữ liệu tồn kho theo thời gian thực với các nền tảng mạng xã hội và sàn thương mại điện tử lớn khác như TikTok Shop, Facebook M-Commerce hay Instagram Shopping. Khách hàng có thể nhìn thấy sản phẩm trên video TikTok, nhắn tin hỏi size qua Facebook Messenger, và cuối cùng chốt đơn thanh toán trên website AURA ARCHIVE mà mọi thông tin lịch sử mua sắm vẫn được lưu trữ liền mạch về một cơ sở dữ liệu duy nhất.
+Cuối cùng, hệ thống cần tiến xa hơn nữa trong bài toán cá nhân hóa trải nghiệm người dùng (Deep Personalization). Thay vì chỉ dựa vào những thao tác nhấp chuột hoặc từ khóa tìm kiếm hiển ngôn, AI của hệ thống cần được cấp quyền phân tích các hành vi ẩn dụ (Implicit Behaviors) như: khoảng thời gian người dùng dừng lại ánh mắt để xem một bức ảnh sản phẩm, tỷ lệ cuộn trang ở các bài viết blog, hoặc lịch sử các màu sắc thường xuyên xuất hiện trong các bộ quần áo khách hàng đã mua. Từ những tệp dữ liệu lớn (Big Data) này, hệ thống sẽ xây dựng nên một bản phác họa chân dung tâm lý khách hàng (Customer Persona) cực kỳ chi tiết. Khi khách hàng vừa mới đăng nhập, ngay lập tức trang chủ sẽ tự động sắp xếp lại cấu trúc hiển thị, đưa những mẫu thiết kế phù hợp nhất với gu thẩm mỹ của từng cá nhân lên đầu trang. Sự tinh tế trong việc thấu hiểu khách hàng chính là chìa khóa để giữ vững vị thế của một thương hiệu thời trang cao cấp trên không gian số.
+TÀI LIỆU THAM KHẢO
+Tài liệu Tiếng Anh
+[1]          Vue.js Core Team. (2026). Vue.js Documentation - The Progressive JavaScript Framework. Truy xuất ngày 10 tháng 2 năm 2026, từ https://vuejs.org/guide/introduction.html
+[2]          Nuxt Framework Team. (2026). Nuxt 3 Documentation - The Intuitive Web Framework. Truy xuất ngày 12 tháng 2 năm 2026, từ https://nuxt.com/docs
+[3]          OpenJS Foundation. (2026). Node.js Official Documentation. Truy xuất ngày 15 tháng 2 năm 2026, từ https://nodejs.org/api/
+[4]          Expressjs.com. (2026). Express - Node.js web application framework. Truy xuất ngày 18 tháng 2 năm 2026, từ https://expressjs.com/
+[5]          PostgreSQL Global Development Group. (2026). PostgreSQL 16.0 Documentation. Truy xuất ngày 20 tháng 2 năm 2026, từ https://www.postgresql.org/docs/
+[6]          Prisma. (2026). Prisma ORM Documentation. Truy xuất ngày 22 tháng 2 năm 2026, từ https://www.prisma.io/docs
+[7]          Tailwind Labs. (2026). Tailwind CSS Documentation: Utility-first fundamentals. Truy xuất ngày 25 tháng 2 năm 2026, từ https://tailwindcss.com/docs/utility-first
+[8]          Google DeepMind. (2026). Gemini models documentation. Truy xuất ngày 28 tháng 2 năm 2026, từ https://ai.google.dev/docs
+[9]          OpenAI. (2026). OpenAI API Reference. Truy xuất ngày 1 tháng 3 năm 2026, từ https://platform.openai.com/docs/api-reference
+[10]Live2D Inc. (2026). Live2D Cubism SDK for Web Tutorial. Truy xuất ngày 3 tháng 3 năm 2026, từ https://docs.live2d.com/en
+[11]Khronos Group. (2026). WebGL - OpenGL ES 2.0 for the Web. Truy xuất ngày 5 tháng 3 năm 2026, từ https://www.khronos.org/webgl/
+[12]Axios. (2026). Axios getting started. Truy xuất ngày 8 tháng 3 năm 2026, từ https://axios-http.com/docs/intro
+[13]IETF. (2015). RFC 7519: JSON Web Token (JWT). Truy xuất ngày 10 tháng 3 năm 2026, từ https://datatracker.ietf.org/doc/html/rfc7519
+[14]Redis. (2026). Introduction to Redis. Truy xuất ngày 12 tháng 3 năm 2026, từ https://redis.io/ebook/
+[15]Docker. (2026). Docker Documentation: Getting started. Truy xuất ngày 18 tháng 3 năm 2026, từ https://docs.docker.com/
+[16]Nginx. (2026). NGINX Documentation. Truy xuất ngày 20 tháng 3 năm 2026, từ https://nginx.org/en/docs/
+[17]Pinia. (2026). Pinia - The intuitive store for Vue.js. Truy xuất ngày 22 tháng 3 năm 2026, từ https://pinia.vuejs.org/
+[18]Cloudinary. (2026). Image and Video Upload API. Truy xuất ngày 25 tháng 3 năm 2026, từ https://cloudinary.com/documentation/image_upload_api_reference
+[19]Open Web Application Security Project (OWASP). (2026). OWASP Top 10 Web Application Security Risks. Truy xuất ngày 28 tháng 3 năm 2026, từ https://owasp.org/www-project-top-ten/
+[20]Hugging Face. (2026). Transformers Documentation. Truy xuất ngày 30 tháng 3 năm 2026, từ https://huggingface.co/docs/transformers/index
+Tài liệu Tiếng Việt
+[21]VNPay. (2026). Tài liệu tích hợp Cổng thanh toán điện tử VNPAY. Truy xuất ngày 15 tháng 3 năm 2026, từ https://sandbox.vnpayment.vn/apis/
+[22]Bộ Công Thương Việt Nam. (2025). Báo cáo Chỉ số Thương mại điện tử Việt Nam (EBI). Truy xuất ngày 2 tháng 4 năm 2026, từ https://vecom.vn/
+[23]Cục An toàn thông tin. (2025). Cẩm nang Bảo đảm An toàn thông tin trong phát triển phần mềm. Truy xuất ngày 5 tháng 4 năm 2026, từ https://mst.gov.vn/
+NHẬT KÝ LÀM KHOÁ LUẬN
+Tuần | Từ ngày | Đến ngày | Nội dung công việc
+1 | 01/01/2026 | 07/01/2026 | Chọn đề tài và nhận Giảng viên hướng dẫn.Nghiên cứu tổng quan về thương mại điện tử thời trang cao cấp.Xây dựng xong đề cương chi tiết (Outline).
+2 | 08/01/2026 | 14/01/2026 | Tìm hiểu và làm quen với các công nghệ lõi: Nuxt 3, Node.js, AI Agent.
+3 | 15/01/2026 | 21/01/2026 | Khảo sát hiện trạng các website đối thủ (Farfetch, SSENSE...).Lấy yêu cầu hệ thống (Requirement Elicitation).Viết Đặc tả yêu cầu phần mềm (SRS).
+4 | 22/01/2026 | 28/01/2026 | Thiết kế Sơ đồ Use Case, Sơ đồ tuần tự cho các chức năng chính.Phân tích và thiết kế cơ sở dữ liệu (Lược đồ ERD với 9 bảng).
+5 | 29/01/2026 | 04/02/2026 | Khởi tạo dự án (Project Setup) bằng Nuxt 3 và Tailwind CSS.Xây dựng hệ thống Component UI/UX dùng chung.
+6 | 05/02/2026 | 11/02/2026 | Lập trình giao diện Frontend: Trang chủ, Đăng nhập/Đăng ký, Giỏ hàng, Danh sách sản phẩm.
+7 | 12/02/2026 | 18/02/2026 | Cài đặt máy chủ Express.js và kết nối PostgreSQL.Viết các API RESTful cơ bản cho User, Product, Category.
+8 | 19/02/2026 | 25/02/2026 | Xử lý xác thực người dùng bằng JWT Token.Tối ưu hóa truy vấn cơ sở dữ liệu Backend.
+9 | 26/02/2026 | 04/03/2026 | Nghiên cứu và kết nối Gemini API / OpenAI API.Huấn luyện (Fine-tuning) và áp dụng kiến trúc RAG cho AI Agent.
+10 | 05/03/2026 | 11/03/2026 | Tích hợp mô hình ảo Live2D WebGL.Xử lý tính năng chuyển đổi giọng nói và đồng bộ môi (Lipsync) cho nhân vật ảo.
+11 | 12/03/2026 | 18/03/2026 | Xây dựng hệ thống quản lý giỏ hàng (Cart) và đặt hàng (Order).Tích hợp cổng thanh toán trực tuyến VNPay Sandbox.
+12 | 19/03/2026 | 25/03/2026 | Phát triển giao diện Bảng điều khiển quản trị (Admin Dashboard).Lập trình luồng quản lý đơn hàng, quản lý kho sản phẩm.
+13 | 26/03/2026 | 01/04/2026 | Ghép nối hoàn chỉnh Frontend và Backend (Integration).Thiết kế Kịch bản kiểm thử (Test Cases).Thực hiện kiểm thử toàn bộ hệ thống và sửa lỗi (Fix bugs).
+14 | 02/04/2026 | 08/04/2026 | Triển khai ứng dụng (Deployment) lên máy chủ đám mây.Tối ưu hóa hiệu năng tải trang và bảo mật hệ thống.
+15 | 09/04/2026 | 15/04/2026 | Viết báo cáo quyển Khóa luận tổng kết (Chương 5, Chương 6).Làm Slide thuyết trình và chuẩn bị bảo vệ trước Hội đồng.

@@ -96,6 +96,19 @@ function colorMatches(variantColor, searchColor) {
     return false;
 }
 
+function normalizeVariantText(value) {
+    return typeof value === 'string' ? value.trim().toUpperCase() : '';
+}
+
+function getVariantStockQuantity(variant) {
+    const stock = Number(variant?.stock_quantity);
+    return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0;
+}
+
+function isAvailableVariant(variant) {
+    return variant?.status === 'AVAILABLE' && getVariantStockQuantity(variant) > 0;
+}
+
 async function searchProducts({
     search = null,
     category = null,
@@ -136,14 +149,14 @@ async function searchProducts({
 
         products = products.filter((product) => {
             const variants = Array.isArray(product?.variants) ? product.variants : [];
-            return variants.some((variant) => variant?.status === 'AVAILABLE');
+            return variants.some(isAvailableVariant);
         });
 
         // Post-filter by color (bilingual matching)
         if (color && products.length > 0) {
             const filtered = products.filter(p => {
                 const variants = Array.isArray(p.variants) ? p.variants : [];
-                return variants.some(v => v?.status === 'AVAILABLE' && colorMatches(v.color || '', color));
+                return variants.some(v => isAvailableVariant(v) && colorMatches(v.color || '', color));
             });
             if (filtered.length > 0) {
                 products = filtered;
@@ -157,7 +170,7 @@ async function searchProducts({
             const allSizes = products.flatMap(p => {
                 const variants = Array.isArray(p.variants) ? p.variants : [];
                 return variants
-                    .filter(v => v?.status === 'AVAILABLE')
+                    .filter(isAvailableVariant)
                     .map(v => `${p.name}: "${v.size}"`);
             });
             console.log(`[ProductSearch] Size filter: looking for "${sizeText}", available sizes:`, allSizes.slice(0, 15));
@@ -165,15 +178,13 @@ async function searchProducts({
             const filtered = products.filter(p => {
                 const variants = Array.isArray(p.variants) ? p.variants : [];
                 return variants.some(v =>
-                    v?.status === 'AVAILABLE'
+                    isAvailableVariant(v)
                     && v.size
-                    && v.size.trim().toUpperCase() === sizeText
+                    && normalizeVariantText(v.size) === sizeText
                 );
             });
             console.log(`[ProductSearch] Size filter result: ${filtered.length}/${products.length} products match size "${sizeText}"`);
-            if (filtered.length > 0) {
-                products = filtered;
-            }
+            products = filtered;
         }
 
         const ranked = products
@@ -238,7 +249,7 @@ function scoreProduct(product, criteria = {}) {
         if (description.includes(search)) score += 3;
     }
 
-    const availableVariants = variants.filter((variant) => variant?.status === 'AVAILABLE');
+    const availableVariants = variants.filter(isAvailableVariant);
     score += Math.min(availableVariants.length, 3) * 2;
 
     if (criteria.color && availableVariants.some((variant) => colorMatches(variant?.color || '', criteria.color))) {
@@ -246,8 +257,8 @@ function scoreProduct(product, criteria = {}) {
     }
 
     if (criteria.size) {
-        const sizeUpper = criteria.size.toUpperCase();
-        if (availableVariants.some((variant) => variant?.size && variant.size.toUpperCase() === sizeUpper)) {
+        const sizeUpper = normalizeVariantText(criteria.size);
+        if (availableVariants.some((variant) => normalizeVariantText(variant?.size) === sizeUpper)) {
             score += 6;
         }
     }
@@ -284,16 +295,24 @@ function buildProductContextForAi(products) {
 
         const variants = Array.isArray(p.variants) ? p.variants : [];
         const variantParts = [];
+        const availableBySize = new Map();
         let hasAvailable = false;
 
         for (const v of variants) {
             if (v && typeof v === 'object') {
                 const parts = [];
+                const stockQuantity = getVariantStockQuantity(v);
                 if (v.size) parts.push(`Size ${v.size}`);
                 if (v.color) parts.push(v.color);
                 if (v.material) parts.push(v.material);
                 const status = v.status || '';
-                if (status === 'AVAILABLE') { parts.push('Con hang'); hasAvailable = true; }
+                if (isAvailableVariant(v)) {
+                    parts.push(`Con hang x${stockQuantity}`);
+                    hasAvailable = true;
+                    const sizeKey = v.size || 'Unknown';
+                    availableBySize.set(sizeKey, (availableBySize.get(sizeKey) || 0) + stockQuantity);
+                }
+                else if (status === 'AVAILABLE') parts.push('Het so luong');
                 else if (status === 'SOLD') parts.push('Da ban');
                 else if (status === 'RESERVED') parts.push('Dang giu');
                 variantParts.push(parts.join(', '));
@@ -301,6 +320,9 @@ function buildProductContextForAi(products) {
         }
 
         const variantStr = variantParts.join(' | ');
+        const availableBySizeStr = [...availableBySize.entries()]
+            .map(([size, count]) => `Size ${size}: ${count}`)
+            .join(', ');
         const availability = hasAvailable ? 'CON HANG' : 'HET HANG';
 
         let priceStr = `${Math.floor(parseFloat(basePrice)).toLocaleString('vi-VN')}₫`;
@@ -311,6 +333,7 @@ function buildProductContextForAi(products) {
             `   Category: ${category}, Condition: ${condition}\n` +
             `   Tinh trang: ${availability}\n` +
             `   Price: ${priceStr}\n` +
+            (availableBySizeStr ? `   Available by size: ${availableBySizeStr}\n` : '') +
             `   Variant: ${variantStr}\n` +
             `   Link: [Xem chi tiết](/shop/${slug})\n` +
             `   Description: ${description}...\n`
