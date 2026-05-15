@@ -83,6 +83,10 @@ const INTENTS = {
         phrases: ['coupon', 'ma giam gia', 'giam gia', 'voucher', 'discount', 'khuyen mai', 'promo', 'promotion', 'code', 'ma uu dai', 'uu dai', 'ma khuyen mai'],
         priority: 9,
     },
+    CART_ACTION: {
+        phrases: ['them vao gio', 'them gio hang', 'them gio', 'bo vao gio', 'cho vao gio', 'add to cart', 'them vao cart', 'mua luon', 'chot', 'lay mon nay', 'dat mua', 'order luon'],
+        priority: 10,
+    },
     AUTHENTICITY: {
         phrases: ['that', 'chinh hang', 'authentic', 'real', 'fake', 'gia', 'xac thuc', 'verify', 'legit', 'bao dam', 'guarantee', 'warranty', 'cam ket', 'certificate'],
         priority: 7,

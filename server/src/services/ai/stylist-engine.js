@@ -42,6 +42,10 @@ const PRODUCT_DATA_INTENTS = new Set([
     'INVENTORY_CHECK',
 ]);
 
+const DETERMINISTIC_INTENTS = new Set([
+    'CART_ACTION',
+]);
+
 function escapeRegex(value = '') {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -204,6 +208,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         // Step 4: Generate response — always prefer API for richer responses
         const useApi = this.hasApi
             && this.mode !== 'trained_only'
+            && !DETERMINISTIC_INTENTS.has(intent)
             && !['GREETING', 'FAREWELL'].includes(intent);
 
         let responseText;
@@ -389,7 +394,7 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
         const objections = [];
         const profilePatch = {};
 
-        if (/(mua luôn|chốt|lấy luôn|order luôn|đặt luôn|thanh toán|checkout|add to cart|thêm vào giỏ)/i.test(text)) {
+        if (/(mua luôn|chốt|lấy luôn|order luôn|đặt luôn|đặt mua|thanh toán|checkout|add to cart|thêm vào giỏ|thêm giỏ hàng|thêm giỏ|bỏ vào giỏ|cho vào giỏ)/i.test(text)) {
             buyingSignals.push('checkout_ready');
         }
         if (/(mở sản phẩm|xem món này|gửi link|show me|xem thử|xem chi tiết)/i.test(text)) {
@@ -777,6 +782,11 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             );
         }
 
+        // CART ACTION
+        if (intent === 'CART_ACTION') {
+            return this._generateCartActionResponse(session, enrichment);
+        }
+
         // DISCOVERY
         if (intent === 'DISCOVERY') {
             return this._generateDiscoveryResponse(entities, ctx, enrichment);
@@ -1029,6 +1039,33 @@ NHẮC LẠI: Mọi thông tin bạn cung cấp PHẢI đến từ CONTEXT DATA 
             "• **Chính sách** — 'Ký gửi', 'Đổi trả', 'Vận chuyển'\n\n" +
             'Bạn cứ hỏi thoải mái nha, mình ở đây!'
         );
+    }
+
+    _generateCartActionResponse(session, enrichment) {
+        const slug = this._getActionProductSlug(session, enrichment);
+
+        if (slug) {
+            return (
+                `Mình thêm vào giỏ hàng cho bạn rồi nha! [Thêm vào giỏ hàng](/add-to-cart/${slug})\n\n` +
+                'Bạn muốn mình mở giỏ hàng hay xem thêm món khác không?'
+            );
+        }
+
+        return (
+            'Bạn muốn thêm món nào vào giỏ vậy? Gửi mình tên sản phẩm hoặc mở trang sản phẩm rồi nhắn ' +
+            '"thêm giỏ hàng", mình sẽ thêm đúng món cho bạn.'
+        );
+    }
+
+    _getActionProductSlug(session, enrichment) {
+        const currentSlug = enrichment.current_product?.slug || session.context?.productSlug;
+        if (currentSlug) return currentSlug;
+
+        const salesState = session.salesState || {};
+        if (salesState.primary_product_slug) return salesState.primary_product_slug;
+
+        const recentSlugs = salesState.last_recommended_slugs || [];
+        return recentSlugs[0] || null;
     }
 
     _generateDiscoveryResponse(entities, ctx, enrichment) {
