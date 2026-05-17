@@ -120,9 +120,7 @@ const paymentMethodLabel = (method: string) => {
 const changeablePaymentMethods = computed(() => [
   { value: 'COD', label: t('checkout.cod') },
   { value: 'BANK_TRANSFER', label: t('checkout.bankTransfer') },
-  { value: 'MOMO', label: 'MoMo' },
   { value: 'VNPAY', label: 'VNPAY thẻ test NCB' },
-  { value: 'PAYPAL', label: 'PayPal' },
 ])
 
 // Bank accounts for QR code
@@ -231,7 +229,8 @@ const paymentMethodSuccess = ref('')
 
 watch(order, (currentOrder) => {
   if (currentOrder?.payment_method) {
-    paymentMethodDraft.value = currentOrder.payment_method
+    const visibleMethod = changeablePaymentMethods.value.find((method) => method.value === currentOrder.payment_method)
+    paymentMethodDraft.value = visibleMethod?.value || changeablePaymentMethods.value[0]?.value || ''
   }
 }, { immediate: true })
 
